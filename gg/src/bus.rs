@@ -5,6 +5,8 @@ pub(crate) struct IoRequest {
     pub(crate) value: u8
 }
 
+// I/O: https://www.smspower.org/uploads/Development/smstech-20021112.txt
+
 pub(crate) struct Bus {
     rom: Memory, // 0x0000 - 0xbfff
     ram: Memory, // 0xc000 - 0xffff
