@@ -1,16 +1,37 @@
 use crate::memory::Memory;
 
+pub(crate) struct IoRequest {
+    pub(crate) port: u8,
+    pub(crate) value: u8
+}
+
 pub(crate) struct Bus {
     rom: Memory, // 0x0000 - 0xbfff
     ram: Memory, // 0xc000 - 0xffff
+    io: Option<IoRequest>
 }
 
 impl Bus {
     pub(crate) fn new() -> Bus {
         Bus { 
             rom: Memory::new(0x1024 * 16, 0x0000),
-            ram: Memory::new(0x1024 * 16, 0xc000)
+            ram: Memory::new(0x1024 * 16, 0xc000),
+            io: None
         }
+    }
+
+    pub(crate) fn push_io_request(&mut self, port: u8, value: u8) {
+        self.io = Some(IoRequest { port, value });
+    }
+
+    pub(crate) fn pop_io_request(&mut self, port: u8) -> Option<u8> {
+        let answer = self.io.take();
+        if let Some(ref request) = answer {
+            if request.port == port {
+                return Some(request.value);
+            }
+        }
+        None
     }
 
     // todo: bank mappers

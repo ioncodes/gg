@@ -1,19 +1,21 @@
 use std::fmt;
 
+
+// todo: Rename this to Reg and create new enum Reg16 and Reg8?
 #[derive(PartialEq, Copy, Clone)]
 pub enum Register {
-    A, B, C, D, E, H, L, F,
-    AF, BC, DE, HL,
-    IX, IY, SP, PC
+    Reg8(Reg8),
+    Reg16(Reg16)
 }
 
-impl Register {
-    pub fn is_16bit(&self) -> bool {
-        match self {
-            Register::AF | Register::BC | Register::DE | Register::HL | Register::IX | Register::IY | Register::SP | Register::PC => true,
-            _ => false
-        }
-    }
+#[derive(PartialEq, Copy, Clone)]
+pub enum Reg8 {
+    A, B, C, D, E, H, L, F
+}
+
+#[derive(PartialEq, Copy, Clone)]
+pub enum Reg16 {
+    AF, BC, DE, HL, IX, IY, SP, PC
 }
 
 #[derive(PartialEq, Copy, Clone)]
@@ -183,25 +185,41 @@ impl fmt::Debug for Operand {
     }
 }
 
+impl fmt::Debug for Reg8 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Reg8::A => write!(f, "a"),
+            Reg8::B => write!(f, "b"),
+            Reg8::C => write!(f, "c"),
+            Reg8::D => write!(f, "d"),
+            Reg8::E => write!(f, "e"),
+            Reg8::H => write!(f, "h"),
+            Reg8::L => write!(f, "l"),
+            Reg8::F => write!(f, "f")
+        }
+    }
+}
+
+impl fmt::Debug for Reg16 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Reg16::AF => write!(f, "af"),
+            Reg16::BC => write!(f, "bc"),
+            Reg16::DE => write!(f, "de"),
+            Reg16::HL => write!(f, "hl"),
+            Reg16::IX => write!(f, "ix"),
+            Reg16::IY => write!(f, "iy"),
+            Reg16::SP => write!(f, "sp"),
+            Reg16::PC => write!(f, "pc")
+        }
+    }
+}
+
 impl fmt::Debug for Register {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Register::A => write!(f, "a"),
-            Register::B => write!(f, "b"),
-            Register::C => write!(f, "c"),
-            Register::D => write!(f, "d"),
-            Register::E => write!(f, "e"),
-            Register::H => write!(f, "h"),
-            Register::L => write!(f, "l"),
-            Register::F => write!(f, "f"),
-            Register::AF => write!(f, "af"),
-            Register::BC => write!(f, "bc"),
-            Register::DE => write!(f, "de"),
-            Register::HL => write!(f, "hl"),
-            Register::IX => write!(f, "ix"),
-            Register::IY => write!(f, "iy"),
-            Register::SP => write!(f, "sp"),
-            Register::PC => write!(f, "pc")
+            Register::Reg8(reg) => write!(f, "{:?}", reg),
+            Register::Reg16(reg) => write!(f, "{:?}", reg)
         }
     }
 }

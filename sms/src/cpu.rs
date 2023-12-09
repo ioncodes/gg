@@ -3,7 +3,7 @@ use std::fmt;
 use crate::{bus::Bus, handlers::Handlers};
 use z80::{
     disassembler::Disassembler,
-    instruction::{Opcode, Register},
+    instruction::{Opcode, Register, Reg8, Reg16},
 };
 
 pub(crate) struct Registers {
@@ -54,15 +54,17 @@ impl Cpu {
             Ok(instruction) => {
                 println!("[{:04x}] {:?}", self.registers.pc, instruction.opcode);
 
-                match instruction.opcode {
+                let result = match instruction.opcode {
                     Opcode::Jump(_, _, _) => Handlers::jump(self, bus, &instruction),
-                    Opcode::DisableInterrupts(_) => {
-                        Handlers::disable_interrupts(self, bus, &instruction)
-                    }
+                    Opcode::DisableInterrupts(_) => Handlers::disable_interrupts(self, bus, &instruction),
                     Opcode::Load(_, _, _) => Handlers::load(self, bus, &instruction),
                     Opcode::LoadIndirectRepeat(_) => Handlers::load_indirect_repeat(self, bus, &instruction),
-                    _ => panic!("Unhandled opcode: {:?}", instruction.opcode),
-                }
+                    Opcode::Out(_, _, _) => Handlers::out(self, bus, &instruction),
+                    Opcode::In(_, _, _) => Handlers::in_(self, bus, &instruction),
+                    _ => panic!("Unhandled opcode: {:?}\nCPU state: {:?}", instruction.opcode, self),
+                };
+
+                result.expect(&format!("CPU crashed with: {:?}", self));
 
                 self.registers.pc += instruction.length as u16;
             }
@@ -75,71 +77,70 @@ impl Cpu {
     }
 
     pub(crate) fn set_reg(&mut self, register: Register, value: u16) {
-        if register.is_16bit() {
-            self.set_register_u16(register, value);
-        } else {
-            self.set_register(register, value as u8);
+        match register {
+            Register::Reg8(reg) => self.set_register(reg, value as u8),
+            Register::Reg16(reg) => self.set_register_u16(reg, value),
         }
     }
 
-    pub(crate) fn get_register_u16(&self, register: Register) -> u16 {
+    pub(crate) fn get_register_u16(&self, register: Reg16) -> u16 {
         match register {
-            Register::AF => ((self.registers.a as u16) << 8) | (self.registers.f as u16),
-            Register::BC => ((self.registers.b as u16) << 8) | (self.registers.c as u16),
-            Register::DE => ((self.registers.d as u16) << 8) | (self.registers.e as u16),
-            Register::HL => ((self.registers.h as u16) << 8) | (self.registers.l as u16),
-            Register::SP => self.registers.sp,
-            Register::PC => self.registers.pc,
+            Reg16::AF => ((self.registers.a as u16) << 8) | (self.registers.f as u16),
+            Reg16::BC => ((self.registers.b as u16) << 8) | (self.registers.c as u16),
+            Reg16::DE => ((self.registers.d as u16) << 8) | (self.registers.e as u16),
+            Reg16::HL => ((self.registers.h as u16) << 8) | (self.registers.l as u16),
+            Reg16::SP => self.registers.sp,
+            Reg16::PC => self.registers.pc,
             _ => panic!("Invalid register: {:?}", register),
         }
     }
 
-    pub(crate) fn get_register(&self, register: Register) -> u8 {
+    pub(crate) fn get_register(&self, register: Reg8) -> u8 {
         match register {
-            Register::A => self.registers.a,
-            Register::B => self.registers.b,
-            Register::C => self.registers.c,
-            Register::D => self.registers.d,
-            Register::E => self.registers.e,
-            Register::H => self.registers.h,
-            Register::L => self.registers.l,
+            Reg8::A => self.registers.a,
+            Reg8::B => self.registers.b,
+            Reg8::C => self.registers.c,
+            Reg8::D => self.registers.d,
+            Reg8::E => self.registers.e,
+            Reg8::H => self.registers.h,
+            Reg8::L => self.registers.l,
             _ => panic!("Invalid register: {:?}", register),
         }
     }
 
-    pub(crate) fn set_register_u16(&mut self, register: Register, value: u16) {
+    pub(crate) fn set_register_u16(&mut self, register: Reg16, value: u16) {
         match register {
-            Register::AF => {
+            Reg16::AF => {
                 self.registers.a = (value >> 8) as u8;
                 self.registers.f = value as u8;
             }
-            Register::BC => {
+            Reg16::BC => {
                 self.registers.b = (value >> 8) as u8;
                 self.registers.c = value as u8;
             }
-            Register::DE => {
+            Reg16::DE => {
                 self.registers.d = (value >> 8) as u8;
                 self.registers.e = value as u8;
             }
-            Register::HL => {
+            Reg16::HL => {
                 self.registers.h = (value >> 8) as u8;
                 self.registers.l = value as u8;
             }
-            Register::SP => self.registers.sp = value,
-            Register::PC => self.registers.pc = value,
+            Reg16::SP => self.registers.sp = value,
+            Reg16::PC => self.registers.pc = value,
             _ => panic!("Invalid register: {:?}", register),
         }
     }
 
-    pub(crate) fn set_register(&mut self, register: Register, value: u8) {
+    pub(crate) fn set_register(&mut self, register: Reg8, value: u8) {
         match register {
-            Register::A => self.registers.a = value,
-            Register::B => self.registers.b = value,
-            Register::C => self.registers.c = value,
-            Register::D => self.registers.d = value,
-            Register::E => self.registers.e = value,
-            Register::H => self.registers.h = value,
-            Register::L => self.registers.l = value,
+            Reg8::A => self.registers.a = value,
+            Reg8::B => self.registers.b = value,
+            Reg8::C => self.registers.c = value,
+            Reg8::D => self.registers.d = value,
+            Reg8::E => self.registers.e = value,
+            Reg8::H => self.registers.h = value,
+            Reg8::L => self.registers.l = value,
             _ => panic!("Invalid register: {:?}", register),
         }
     }
@@ -151,7 +152,7 @@ impl fmt::Debug for Cpu {
             f, 
             "a: {:02x} b: {:02x} c: {:02x} d: {:02x} e: {:02x} h: {:02x} l: {:02x} f: {:02x} af: {:04x} bc: {:04x} de: {:04x} hl: {:04x} pc: {:04x} sp: {:04x}",
             self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.f,
-            self.get_register_u16(Register::AF), self.get_register_u16(Register::BC), self.get_register_u16(Register::DE), self.get_register_u16(Register::HL),
+            self.get_register_u16(Reg16::AF), self.get_register_u16(Reg16::BC), self.get_register_u16(Reg16::DE), self.get_register_u16(Reg16::HL),
             self.registers.pc, self.registers.sp)
     }
 }
