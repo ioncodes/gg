@@ -3,6 +3,7 @@ mod memory;
 mod system;
 mod bus;
 mod handlers;
+mod io;
 
 use crate::system::System;
 

@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 z80 = { path = "../z80" }
 lazy_static = "1.4.0"
+bitflags = "2.4.1"

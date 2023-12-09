@@ -1,5 +1,5 @@
-use crate::{bus::Bus, cpu::Cpu};
-use z80::instruction::{Condition, Immediate, Instruction, Opcode, Operand, Register, Reg16};
+use crate::{bus::Bus, cpu::{Cpu, Flags}};
+use z80::instruction::{Condition, Immediate, Instruction, Opcode, Operand, Register, Reg16, Reg8};
 
 pub(crate) struct Handlers;
 
@@ -59,6 +59,14 @@ impl Handlers {
                 _,
             ) => {
                 bus.write_word(dst_imm, cpu.get_register_u16(src_register))?;
+                Ok(())
+            },
+            Opcode::Load(
+                Operand::Immediate(Immediate::U16(dst_imm), true),
+                Operand::Register(Register::Reg8(src_register), false),
+                _,
+            ) => {
+                bus.write(dst_imm, cpu.get_register(src_register))?;
                 Ok(())
             }
             _ => panic!(
@@ -139,6 +147,45 @@ impl Handlers {
                 Ok(())
             }
             _ => panic!("Invalid opcode for out instruction: {:?}", instruction.opcode),
+        }
+    }
+
+    // todo: is this a compare instruction?
+    pub(crate) fn subtract_no_update(cpu: &mut Cpu, _bus: &mut Bus, instruction: &Instruction) -> Result<(), String> {
+        match instruction.opcode {
+            Opcode::SubtractNoUpdate(
+                Operand::Immediate(Immediate::U8(imm), false),
+            _
+        ) => {
+            let a = cpu.get_register(Reg8::A);
+            let result = a.wrapping_sub(imm);
+            
+            // todo: ???
+            cpu.flags.set(Flags::SUBTRACT, true);
+            cpu.flags.set(Flags::CARRY, a < imm);
+            cpu.flags.set(Flags::HALF_CARRY, a < imm);
+            cpu.flags.set(Flags::ZERO, result == 0);
+
+            Ok(())
+        },
+        _ => panic!("Invalid opcode for subtract instruction: {:?}", instruction.opcode),
+        }
+    }
+
+    pub(crate) fn jump_relative(cpu: &mut Cpu, _bus: &mut Bus, instruction: &Instruction) -> Result<(), String> {
+        match instruction.opcode {
+            Opcode::JumpRelative(
+                Condition::NotZero,
+                Immediate::S8(imm),
+                _
+            ) => {
+                if !cpu.flags.contains(Flags::ZERO) {
+                    let pc = cpu.get_register_u16(Reg16::PC);
+                    cpu.set_register_u16(Reg16::PC, pc + imm as u16);
+                }
+                Ok(())
+            },
+            _ => panic!("Invalid opcode for jump relative instruction: {:?}", instruction.opcode),
         }
     }
 }

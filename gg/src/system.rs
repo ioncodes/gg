@@ -23,6 +23,9 @@ impl System {
     pub(crate) fn run(&mut self) {
         loop {
             self.cpu.tick(&mut self.bus);
+            
+            // execute other components here (e.g. VDP or I/O interaction)
+            self.bus.io.process_default();
         }
     }
 }
