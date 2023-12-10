@@ -1,19 +1,17 @@
-use crate::{bus::Bus, cpu::{Cpu, Flags}};
+use core::panic;
+
+use crate::{bus::Bus, cpu::{Cpu, Flags}, io::IoMode};
+use crate::error::GgError;
 use z80::instruction::{Condition, Immediate, Instruction, Opcode, Operand, Register, Reg16, Reg8};
 
 pub(crate) struct Handlers;
-
-// TODO: Implement U16 for Register type in Disassembler.
-// This should in theory help with a lot of cases for pattern matching.
-// Naturally it will also flatten the code a bit as we don't have to check for
-// 16 bit wideness in every opcode case.
 
 impl Handlers {
     pub(crate) fn load(
         cpu: &mut Cpu,
         bus: &mut Bus,
         instruction: &Instruction,
-    ) -> Result<(), String> {
+    ) -> Result<(), GgError> {
         match instruction.opcode {
             Opcode::Load(
                 Operand::Register(Register::Reg16(dst_register), dst_deref),
@@ -76,7 +74,7 @@ impl Handlers {
         }
     }
 
-    pub(crate) fn jump(cpu: &mut Cpu, _bus: &mut Bus, instruction: &Instruction) -> Result<(), String> {
+    pub(crate) fn jump(cpu: &mut Cpu, _bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
             Opcode::Jump(Condition::None, Immediate::U16(imm), _) => {
                 cpu.set_register_u16(Reg16::PC, imm);
@@ -89,12 +87,12 @@ impl Handlers {
         }
     }
 
-    pub(crate) fn disable_interrupts(_cpu: &mut Cpu, _bus: &mut Bus, _instruction: &Instruction) -> Result<(), String> {
-        println!("Disabling interrupts");
+    pub(crate) fn disable_interrupts(_cpu: &mut Cpu, _bus: &mut Bus, _instruction: &Instruction) -> Result<(), GgError> {
+        println!("[cpu] Disabling interrupts");
         Ok(())
     }
 
-    pub(crate) fn load_indirect_repeat(cpu: &mut Cpu, bus: &mut Bus, _instruction: &Instruction) -> Result<(), String> {
+    pub(crate) fn load_indirect_repeat(cpu: &mut Cpu, bus: &mut Bus, _instruction: &Instruction) -> Result<(), GgError> {
         loop {
             let src = {
                 let hl = cpu.get_register_u16(Reg16::HL);
@@ -120,7 +118,7 @@ impl Handlers {
         Ok(())
     }
 
-    pub(crate) fn out(cpu: &mut Cpu, bus: &mut Bus, instruction: &Instruction) -> Result<(), String> {
+    pub(crate) fn out(cpu: &mut Cpu, bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
             Opcode::Out(
                 Operand::Immediate(Immediate::U8(dst_port), true),
@@ -128,32 +126,36 @@ impl Handlers {
                 _
             ) => {
                 let imm = cpu.get_register(src_reg);
-                bus.push_io_request(dst_port, imm);
+                bus.push_io_request(dst_port, imm, IoMode::Write);
                 Ok(())
             }
             _ => panic!("Invalid opcode for out instruction: {:?}", instruction.opcode),
         }
     }
 
-    pub(crate) fn in_(cpu: &mut Cpu, bus: &mut Bus, instruction: &Instruction) -> Result<(), String> {
+    pub(crate) fn in_(cpu: &mut Cpu, bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
             Opcode::In(
                 Operand::Register(Register::Reg8(dst_reg), false),
                 Operand::Immediate(Immediate::U8(src_port), true),
                 _
             ) => {
-                let imm = bus.pop_io_request(src_port).unwrap();
-                cpu.set_register(dst_reg, imm);
-                Ok(())
+                if let Some(imm) = bus.pop_io_request(src_port) {
+                    cpu.set_register(dst_reg, imm);
+                    return Ok(());
+                } else {
+                    bus.push_io_request(src_port, 0x00, IoMode::Read);
+                }
+
+                Err(GgError::IoRequestNotFulfilled)
             }
             _ => panic!("Invalid opcode for out instruction: {:?}", instruction.opcode),
         }
     }
 
-    // todo: is this a compare instruction?
-    pub(crate) fn subtract_no_update(cpu: &mut Cpu, _bus: &mut Bus, instruction: &Instruction) -> Result<(), String> {
+    pub(crate) fn compare(cpu: &mut Cpu, _bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
-            Opcode::SubtractNoUpdate(
+            Opcode::Compare(
                 Operand::Immediate(Immediate::U8(imm), false),
             _
         ) => {
@@ -172,7 +174,7 @@ impl Handlers {
         }
     }
 
-    pub(crate) fn jump_relative(cpu: &mut Cpu, _bus: &mut Bus, instruction: &Instruction) -> Result<(), String> {
+    pub(crate) fn jump_relative(cpu: &mut Cpu, _bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
             Opcode::JumpRelative(
                 Condition::NotZero,

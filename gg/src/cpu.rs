@@ -1,4 +1,4 @@
-use crate::{bus::Bus, handlers::Handlers};
+use crate::{bus::Bus, handlers::Handlers, error::GgError};
 use std::fmt;
 use z80::{
     disassembler::Disassembler,
@@ -76,23 +76,24 @@ impl Cpu {
                     Opcode::LoadIndirectRepeat(_) => Handlers::load_indirect_repeat(self, bus, &instruction),
                     Opcode::Out(_, _, _) => Handlers::out(self, bus, &instruction),
                     Opcode::In(_, _, _) => Handlers::in_(self, bus, &instruction),
-                    Opcode::SubtractNoUpdate(_, _) => Handlers::subtract_no_update(self, bus, &instruction),
+                    Opcode::Compare(_, _) => Handlers::compare(self, bus, &instruction),
                     Opcode::JumpRelative(_, _, _) => Handlers::jump_relative(self, bus, &instruction),
                     _ => panic!("Unhandled opcode: {:?}\nCPU state: {:?}", instruction.opcode, self),
                 };
 
-                result.expect(&format!("CPU crashed with: {:?}", self));
-
-                self.registers.pc += instruction.length as u16
+                match result {
+                    Ok(_) => self.registers.pc += instruction.length as u16,
+                    Err(GgError::IoRequestNotFulfilled) => {
+                        println!("[cpu] I/O request not fulfilled, waiting for next tick");
+                    },
+                    Err(error) => panic!("CPU crashed with: {:?}\nError: {}", self, error)
+                }
             }
             Err(msg) => panic!("{} @ {:x} =>\n{:?}", msg, self.registers.pc, self),
         }
     }
 
-    pub(crate) fn abort(&self, msg: &str) {
-        panic!("{} @ {:x} =>\n{:?}", msg, self.registers.pc, self);
-    }
-
+    #[allow(dead_code)]
     pub(crate) fn set_reg(&mut self, register: Register, value: u16) {
         match register {
             Register::Reg8(reg) => self.set_register(reg, value as u8),

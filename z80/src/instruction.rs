@@ -50,7 +50,7 @@ pub enum Opcode {
     Out(Operand, Operand, usize),
     Outi(usize),
     In(Operand, Operand, usize),
-    SubtractNoUpdate(Operand, usize), // todo: ?
+    Compare(Operand, usize), // todo: ?
     JumpRelative(Condition, Immediate, usize),
     Jump(Condition, Immediate, usize),
     DecrementAndJumpRelative(Immediate, usize),
@@ -106,7 +106,7 @@ impl fmt::Debug for Opcode {
             Opcode::LoadIndirectRepeat(_) => write!(f, "ldir"),
             Opcode::Out(op1, op2, _) => write!(f, "out {:?}, {:?}", op1, op2),
             Opcode::In(op1, op2, _) => write!(f, "in {:?}, {:?}", op1, op2),
-            Opcode::SubtractNoUpdate(op1, _) => write!(f, "cp {:?}", op1),
+            Opcode::Compare(op1, _) => write!(f, "cp {:?}", op1),
             Opcode::JumpRelative(op1, op2, _) => {
                 write!(f, "jr")?;
                 if *op1 != Condition::None {

@@ -4,6 +4,8 @@ mod system;
 mod bus;
 mod handlers;
 mod io;
+mod vdp;
+mod error;
 
 use crate::system::System;
 

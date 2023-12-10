@@ -255,7 +255,7 @@ impl<'a> Disassembler<'a> {
             (None, 0xb7) => Opcode::Or(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 1),
-            (None, 0xbe) => Opcode::SubtractNoUpdate(
+            (None, 0xbe) => Opcode::Compare(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 1),
             (None, 0xc0) => Opcode::Return(
@@ -329,7 +329,7 @@ impl<'a> Disassembler<'a> {
                 Condition::Sign,
                 Immediate::U16(self.read_u16(offset + 1)),
                 3),
-            (None, 0xfe) => Opcode::SubtractNoUpdate(
+            (None, 0xfe) => Opcode::Compare(
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
                 2),
 
@@ -368,7 +368,7 @@ impl<'a> Disassembler<'a> {
             Opcode::LoadIndirectRepeat(length) => length,
             Opcode::Out(_, _, length) => length,
             Opcode::In(_, _, length) => length,
-            Opcode::SubtractNoUpdate(_, length) => length,
+            Opcode::Compare(_, length) => length,
             Opcode::JumpRelative(_, _, length) => length,
             Opcode::Jump(_, _, length) => length,
             Opcode::CallUnconditional(_, length) => length,
