@@ -40,7 +40,7 @@ impl Handlers {
                 _, 
             ) => {
                 let dst = cpu.get_register_u16(dst_register);
-                let src = cpu.get_register(src_register);
+                let src = cpu.get_register_u8(src_register);
                 bus.write(dst, src)?;
                 Ok(())
             },
@@ -49,7 +49,7 @@ impl Handlers {
                 Operand::Immediate(Immediate::U8(src_imm), false),
                 _,
             ) => {
-                cpu.set_register(dst_register, src_imm);
+                cpu.set_register_u8(dst_register, src_imm);
                 Ok(())
             },
             Opcode::Load(
@@ -65,9 +65,18 @@ impl Handlers {
                 Operand::Register(Register::Reg8(src_register), false),
                 _,
             ) => {
-                bus.write(dst_imm, cpu.get_register(src_register))?;
+                bus.write(dst_imm, cpu.get_register_u8(src_register))?;
                 Ok(())
-            }
+            },
+            Opcode::Load(
+                Operand::Register(Register::Reg8(dst_reg), false),
+                Operand::Register(Register::Reg8(src_reg), false),
+                _
+            ) => {
+                let src = cpu.get_register_u8(src_reg);
+                cpu.set_register_u8(dst_reg, src);
+                Ok(())
+            },
             _ => panic!(
                 "Invalid opcode for load instruction: {:?}",
                 instruction.opcode
@@ -126,7 +135,7 @@ impl Handlers {
                 Operand::Register(Register::Reg8(src_reg), false),
                 _
             ) => {
-                let imm = cpu.get_register(src_reg);
+                let imm = cpu.get_register_u8(src_reg);
                 bus.push_io_request(dst_port, imm, IoMode::Write);
                 Ok(())
             }
@@ -142,7 +151,7 @@ impl Handlers {
                 _
             ) => {
                 if let Some(imm) = bus.pop_io_request(src_port) {
-                    cpu.set_register(dst_reg, imm);
+                    cpu.set_register_u8(dst_reg, imm);
                     return Ok(());
                 } else {
                     bus.push_io_request(src_port, 0x00, IoMode::Read);
@@ -160,7 +169,7 @@ impl Handlers {
                 Operand::Immediate(Immediate::U8(imm), false),
             _
         ) => {
-            let a = cpu.get_register(Reg8::A);
+            let a = cpu.get_register_u8(Reg8::A);
             let result = a.wrapping_sub(imm);
             
             // todo: ???
@@ -190,6 +199,21 @@ impl Handlers {
                 Ok(())
             },
             _ => panic!("Invalid opcode for jump relative instruction: {:?}", instruction.opcode),
+        }
+    }
+
+    pub(crate) fn call_unconditional(cpu: &mut Cpu, bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::CallUnconditional(
+                Operand::Immediate(Immediate::U16(imm), false),
+                instruction_length
+            ) => {
+                let next_instruction_addr = cpu.get_register_u16(Reg16::PC) + instruction_length as u16;
+                cpu.push_stack(bus, next_instruction_addr);
+                cpu.set_register_u16(Reg16::PC, imm);
+                Ok(())
+            },
+            _ => panic!("Invalid opcode for call instruction: {:?}", instruction.opcode),
         }
     }
 }
