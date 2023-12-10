@@ -1,4 +1,5 @@
 use core::panic;
+use std::ops::Add;
 
 use crate::{bus::Bus, cpu::{Cpu, Flags}, io::IoMode};
 use crate::error::GgError;
@@ -183,7 +184,8 @@ impl Handlers {
             ) => {
                 if !cpu.flags.contains(Flags::ZERO) {
                     let pc = cpu.get_register_u16(Reg16::PC);
-                    cpu.set_register_u16(Reg16::PC, pc + imm as u16);
+                    let dst = pc.wrapping_add_signed(imm.into());
+                    cpu.set_register_u16(Reg16::PC, dst);
                 }
                 Ok(())
             },

@@ -153,13 +153,7 @@ impl fmt::Debug for Immediate {
         match self {
             Immediate::U8(value) => write!(f, "#{:02x}", value),
             Immediate::U16(value) => write!(f, "#{:04x}", value),
-            Immediate::S8(value) => {
-                if *value >= 0 {
-                    write!(f, "$+#{:02x}", value)
-                } else {
-                    write!(f, "$-#{:02x}", value)
-                }
-            }
+            Immediate::S8(value) => write!(f, "{}", value)
         }
     }
 }
