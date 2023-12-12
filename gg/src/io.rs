@@ -1,5 +1,7 @@
 use log::warn;
 
+// todo: rewrite entire io bus
+
 #[derive(Debug)]
 pub(crate) enum IoMode {
     Read,  // request
@@ -33,7 +35,10 @@ impl IoBus {
                     const DEFAULT: [u8; 7] = [0xc0, 0x7f, 0xff, 0x00, 0xff, 0x00, 0xff];
                     let default_value = DEFAULT[request.port as usize];
                     self.push_request(request.port, default_value, IoMode::Write);
-                }
+                },
+                0x7e..=0x7f => {
+                    // This is handled by the VDP (read) or PSG (write), ignore.
+                },
                 _ => warn!(
                     "Encountered I/O request with no default setting: {:02x} = {:02x}",
                     request.port, request.value

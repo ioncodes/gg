@@ -2,7 +2,7 @@ use crate::{
     bus::Bus,
     io::{IoMode, IoRequest},
 };
-use log::{trace, warn};
+use log::{debug, trace};
 
 // todo: ????
 const H_COUNTER_COUNT: u8 = 171;
@@ -43,11 +43,20 @@ impl Vdp {
                 value: _,
                 mode: IoMode::Read,
             }) => {
-                trace!("Found v counter read request");
+                trace!("I/O request in pipeline for V counter: {:02x}", self.v);
+                // todo: Fix this. We shouldn't use Write for answers as read or write is going to be important to select VDP or PSG
                 bus.io.push_request(0x7e, self.v, IoMode::Write);
             }
-            Some(data) => warn!("Unhandled I/O request {:02x} = {:02x}", data.port, data.value),
+            Some(data) => debug!("Unhandled I/O request {:02x} = {:02x}", data.port, data.value),
             None => {}
         }
+    }
+}
+
+impl std::fmt::Display for Vdp {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "V counter: {:02x}\n", self.v)?;
+        write!(f, "H counter: {:02x}\n", self.h)?;
+        Ok(())
     }
 }

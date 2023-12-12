@@ -39,7 +39,7 @@ impl Bus {
             return Ok(self.ram.read(address));
         }
 
-        Err(GgError::BusRequestOutOfBounds)
+        Err(GgError::BusRequestOutOfBounds { address })
     }
 
     #[allow(unused_comparisons)]
@@ -56,7 +56,7 @@ impl Bus {
             return Ok(self.ram.read_word(address));
         }
 
-        Err(GgError::BusRequestOutOfBounds)
+        Err(GgError::BusRequestOutOfBounds { address })
     }
 
     #[allow(unused_comparisons)]
@@ -73,7 +73,7 @@ impl Bus {
             return Ok(self.ram.write(address, value));
         }
 
-        Err(GgError::BusRequestOutOfBounds)
+        Err(GgError::BusRequestOutOfBounds { address })
     }
 
     #[allow(unused_comparisons)]
@@ -90,6 +90,6 @@ impl Bus {
             return Ok(self.ram.write_word(address, value));
         }
 
-        Err(GgError::BusRequestOutOfBounds)
+        Err(GgError::BusRequestOutOfBounds { address })
     }
 }

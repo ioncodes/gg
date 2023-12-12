@@ -5,7 +5,7 @@ use z80::{
     instruction::{Opcode, Register, Reg8, Reg16},
 };
 use bitflags::bitflags;
-use log::{trace, warn};
+use log::{trace, debug, error};
 
 pub(crate) struct Registers {
     pub(crate) a: u8,
@@ -57,7 +57,7 @@ impl Cpu {
         }
     }
 
-    pub(crate) fn tick(&mut self, bus: &mut Bus) {
+    pub(crate) fn tick(&mut self, bus: &mut Bus) -> Result<(), GgError> {
         let data = vec![
             bus.read(self.registers.pc).unwrap(),
             bus.read(self.registers.pc + 1).unwrap(),
@@ -68,7 +68,7 @@ impl Cpu {
 
         match disasm.decode(0) {
             Ok(instruction) => {
-                trace!("[{:04x}] {:?}", self.registers.pc, instruction.opcode);
+                trace!("[{:04x}] {}", self.registers.pc, instruction.opcode);
 
                 let result = match instruction.opcode {
                     Opcode::Jump(_, _, _) => Handlers::jump(self, bus, &instruction),
@@ -80,30 +80,34 @@ impl Cpu {
                     Opcode::Compare(_, _) => Handlers::compare(self, bus, &instruction),
                     Opcode::JumpRelative(_, _, _) => Handlers::jump_relative(self, bus, &instruction),
                     Opcode::CallUnconditional(_, _) => Handlers::call_unconditional(self, bus, &instruction),
-                    _ => panic!("Unhandled opcode: {:?}\nCPU state: {:?}", instruction.opcode, self),
+                    Opcode::Return(_, _) => Handlers::return_(self, bus, &instruction),
+                    _ => {
+                        error!("Invalid opcode: {}", instruction.opcode);
+                        Err(GgError::OpcodeNotImplemented { opcode: instruction.opcode })
+                    },
                 };
 
                 let io_skip = match result {
-                    Ok(_) => false,
                     Err(GgError::IoRequestNotFulfilled) => {
-                        warn!("I/O request not fulfilled, waiting for next tick");
+                        debug!("I/O request not fulfilled, waiting for next tick");
                         true
                     },
-                    Err(error) => panic!("CPU crashed with: {:?}\nError: {}", self, error)
+                    _ => false,
                 };
 
                 let call_skip = match instruction.opcode {
                     Opcode::CallUnconditional(_, _) => true,
+                    Opcode::Return(_, _) => true,
                     _ => false
                 };
 
-                if call_skip || io_skip {
-                    return;
+                if !call_skip && !io_skip {
+                    self.registers.pc += instruction.length as u16;
                 }
 
-                self.registers.pc += instruction.length as u16
+                result
             }
-            Err(msg) => panic!("{} @ {:x} =>\n{:?}", msg, self.registers.pc, self),
+            Err(msg) => Err(GgError::DecoderError { msg }),
         }
     }
 
@@ -123,7 +127,7 @@ impl Cpu {
             Reg16::HL => ((self.registers.h as u16) << 8) | (self.registers.l as u16),
             Reg16::SP => self.registers.sp,
             Reg16::PC => self.registers.pc,
-            _ => panic!("Invalid register: {:?}", register),
+            _ => panic!("Invalid register: {}", register),
         }
     }
 
@@ -136,7 +140,7 @@ impl Cpu {
             Reg8::E => self.registers.e,
             Reg8::H => self.registers.h,
             Reg8::L => self.registers.l,
-            _ => panic!("Invalid register: {:?}", register),
+            _ => panic!("Invalid register: {}", register),
         }
     }
 
@@ -160,7 +164,7 @@ impl Cpu {
             }
             Reg16::SP => self.registers.sp = value,
             Reg16::PC => self.registers.pc = value,
-            _ => panic!("Invalid register: {:?}", register),
+            _ => panic!("Invalid register: {}", register),
         }
     }
 
@@ -173,49 +177,50 @@ impl Cpu {
             Reg8::E => self.registers.e = value,
             Reg8::H => self.registers.h = value,
             Reg8::L => self.registers.l = value,
-            _ => panic!("Invalid register: {:?}", register),
+            _ => panic!("Invalid register: {}", register),
         }
     }
 
-    pub(crate) fn push_stack(&mut self, bus: &mut Bus, value: u16) {
+    pub(crate) fn push_stack(&mut self, bus: &mut Bus, value: u16) -> Result<(), GgError> {
         self.registers.sp -= 2;
-        bus.write(self.registers.sp, (value >> 8) as u8).unwrap();
-        bus.write(self.registers.sp + 1, value as u8).unwrap();
+        bus.write_word(self.registers.sp, value)?;
+        log::trace!("Pushed {:04x} to stack at {:04x}", value, self.registers.sp);
+        Ok(())
     }
 
-    pub(crate) fn pop_stack(&mut self, bus: &mut Bus) -> u16 {
-        let value = (bus.read(self.registers.sp + 1).unwrap() as u16) << 8
-            | bus.read(self.registers.sp).unwrap() as u16;
+    pub(crate) fn pop_stack(&mut self, bus: &mut Bus) -> Result<u16, GgError> {
+        let value = bus.read_word(self.registers.sp)?;
+        log::trace!("Popped {:04x} from stack at {:04x}", value, self.registers.sp);
         self.registers.sp += 2;
-        value
+        Ok(value)
     }
 }
 
-impl fmt::Debug for Flags {
+impl fmt::Display for Flags {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "CARRY: {} SUBTRACT: {} PARTIY_OR_OVERFLOW: {} F3: {} HALF_CARRY: {} F5: {} ZERO: {} SIGN: {}",
-            self.contains(Flags::CARRY),
-            self.contains(Flags::SUBTRACT),
-            self.contains(Flags::PARITY_OR_OVERFLOW),
-            self.contains(Flags::F3),
-            self.contains(Flags::HALF_CARRY),
-            self.contains(Flags::F5),
-            self.contains(Flags::ZERO),
-            self.contains(Flags::SIGN)
+            "CNPxHxZS\n{}{}{}{}{}{}{}{}",
+            self.contains(Flags::CARRY) as u8,
+            self.contains(Flags::SUBTRACT) as u8,
+            self.contains(Flags::PARITY_OR_OVERFLOW) as u8,
+            self.contains(Flags::F3) as u8,
+            self.contains(Flags::HALF_CARRY) as u8,
+            self.contains(Flags::F5) as u8,
+            self.contains(Flags::ZERO) as u8,
+            self.contains(Flags::SIGN) as u8
         )
     }
 }
 
-impl fmt::Debug for Cpu {
+impl fmt::Display for Cpu {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f, 
-            "Registers => a: {:02x} b: {:02x} c: {:02x} d: {:02x} e: {:02x} h: {:02x} l: {:02x} f: {:02x} af: {:04x} bc: {:04x} de: {:04x} hl: {:04x} pc: {:04x} sp: {:04x}\n",
+            "REGISTERS\nA: {:02x}\nB: {:02x}\nC: {:02x}\nD: {:02x}\nE: {:02x}\nH: {:02x}\nL: {:02x}\nF: {:02x}\nAF: {:04x}\nBC: {:04x}\nDE: {:04x}\nHL: {:04x}\nPC: {:04x}\nSP: {:04x}\n",
             self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.f,
             self.get_register_u16(Reg16::AF), self.get_register_u16(Reg16::BC), self.get_register_u16(Reg16::DE), self.get_register_u16(Reg16::HL),
             self.registers.pc, self.registers.sp)?;
-        write!(f, "Flags => {:?}", self.flags)
+        write!(f, "\nFLAGS\n{}", self.flags)
     }
 }

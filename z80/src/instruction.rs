@@ -91,13 +91,13 @@ pub struct Instruction {
     pub(crate) prefix: Option<u8>,
 }
 
-impl fmt::Debug for Instruction {
+impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[{:04x}] {:?} ", self.offset, self.opcode)
+        write!(f, "[{:04x}] {} ", self.offset, self.opcode)
     }
 }
 
-impl fmt::Debug for Condition {
+impl fmt::Display for Condition {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Condition::NotZero => write!(f, "nz"),
@@ -111,57 +111,63 @@ impl fmt::Debug for Condition {
     }
 }
 
-impl fmt::Debug for Opcode {
+impl fmt::Display for Opcode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Opcode::DisableInterrupts(_) => write!(f, "di"),
-            Opcode::Load(op1, op2, _) => write!(f, "ld {:?}, {:?}", op1, op2),
+            Opcode::Load(op1, op2, _) => write!(f, "ld {}, {}", op1, op2),
             Opcode::LoadIndirectRepeat(_) => write!(f, "ldir"),
-            Opcode::Out(op1, op2, _) => write!(f, "out {:?}, {:?}", op1, op2),
-            Opcode::In(op1, op2, _) => write!(f, "in {:?}, {:?}", op1, op2),
-            Opcode::Compare(op1, _) => write!(f, "cp {:?}", op1),
+            Opcode::Out(op1, op2, _) => write!(f, "out {}, {}", op1, op2),
+            Opcode::In(op1, op2, _) => write!(f, "in {}, {}", op1, op2),
+            Opcode::Compare(op1, _) => write!(f, "cp {}", op1),
             Opcode::JumpRelative(op1, op2, _) => {
                 write!(f, "jr")?;
                 if *op1 != Condition::None {
-                    write!(f, " {:?},", op1)?;
+                    write!(f, " {},", op1)?;
                 }
-                write!(f, " {:?}", op2)
+                write!(f, " {}", op2)
             }
             Opcode::Jump(op1, op2, _) => {
                 write!(f, "jp")?;
                 if *op1 != Condition::None {
-                    write!(f, " {:?},", op1)?;
+                    write!(f, " {},", op1)?;
                 }
-                write!(f, " {:?}", op2)
+                write!(f, " {}", op2)
             }
-            Opcode::Xor(op, _) => write!(f, "xor {:?}", op),
-            Opcode::Or(op, _) => write!(f, "or {:?}", op),
-            Opcode::CallUnconditional(op, _) => write!(f, "call {:?}", op),
+            Opcode::Xor(op, _) => write!(f, "xor {}", op),
+            Opcode::Or(op, _) => write!(f, "or {}", op),
+            Opcode::CallUnconditional(op, _) => write!(f, "call {}", op),
             Opcode::OutIndirectRepeat(_) => write!(f, "otir"),
             Opcode::NoOperation(_) => write!(f, "nop"),
             Opcode::ReturnFromNmi(_) => write!(f, "retn"),
-            Opcode::Decrement(op, _) => write!(f, "dec {:?}", op),
-            Opcode::Increment(op, _) => write!(f, "inc {:?}", op),
-            Opcode::DecrementAndJumpRelative(op, _) => write!(f, "djnz {:?}", op),
-            Opcode::Restart(op, _) => write!(f, "rst {:?}", op),
+            Opcode::Decrement(op, _) => write!(f, "dec {}", op),
+            Opcode::Increment(op, _) => write!(f, "inc {}", op),
+            Opcode::DecrementAndJumpRelative(op, _) => write!(f, "djnz {}", op),
+            Opcode::Restart(op, _) => write!(f, "rst {}", op),
             Opcode::Return(op, _) => {
                 write!(f, "ret")?;
                 if *op != Condition::None {
-                    write!(f, " {:?}", op)?;
+                    write!(f, " {}", op)?;
                 }
                 Ok(())
             }
-            Opcode::Push(op, _) => write!(f, "push {:?}", op),
-            Opcode::Pop(op, _) => write!(f, "pop {:?}", op),
-            Opcode::ResetBit(op1, op2, _) => write!(f, "res {:?}, {:?}", op1, op2),
-            Opcode::SetBit(op1, op2, _) => write!(f, "set {:?}, {:?}", op1, op2),
+            Opcode::Push(op, _) => write!(f, "push {}", op),
+            Opcode::Pop(op, _) => write!(f, "pop {}", op),
+            Opcode::ResetBit(op1, op2, _) => write!(f, "res {}, {}", op1, op2),
+            Opcode::SetBit(op1, op2, _) => write!(f, "set {}, {}", op1, op2),
             Opcode::Outi(_) => write!(f, "outi"),
             Opcode::Unknown(_) => unreachable!("Unknown opcode"),
         }
     }
 }
 
-impl fmt::Debug for Immediate {
+impl fmt::Debug for Opcode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(self, f)
+    }
+}
+
+impl fmt::Display for Immediate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Immediate::U8(value) => write!(f, "#{:02x}", value),
@@ -171,28 +177,28 @@ impl fmt::Debug for Immediate {
     }
 }
 
-impl fmt::Debug for Operand {
+impl fmt::Display for Operand {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Operand::Register(register, indirect) => {
                 if *indirect {
-                    write!(f, "[{:?}]", register)
+                    write!(f, "[{}]", register)
                 } else {
-                    write!(f, "{:?}", register)
+                    write!(f, "{}", register)
                 }
             }
             Operand::Immediate(immediate, indirect) => {
                 if *indirect {
-                    write!(f, "[{:?}]", immediate)
+                    write!(f, "[{}]", immediate)
                 } else {
-                    write!(f, "{:?}", immediate)
+                    write!(f, "{}", immediate)
                 }
             }
         }
     }
 }
 
-impl fmt::Debug for Reg8 {
+impl fmt::Display for Reg8 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Reg8::A => write!(f, "a"),
@@ -207,7 +213,7 @@ impl fmt::Debug for Reg8 {
     }
 }
 
-impl fmt::Debug for Reg16 {
+impl fmt::Display for Reg16 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Reg16::AF => write!(f, "af"),
@@ -222,11 +228,11 @@ impl fmt::Debug for Reg16 {
     }
 }
 
-impl fmt::Debug for Register {
+impl fmt::Display for Register {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Register::Reg8(reg) => write!(f, "{:?}", reg),
-            Register::Reg16(reg) => write!(f, "{:?}", reg),
+            Register::Reg8(reg) => write!(f, "{}", reg),
+            Register::Reg16(reg) => write!(f, "{}", reg),
         }
     }
 }

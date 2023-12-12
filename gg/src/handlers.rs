@@ -5,8 +5,8 @@ use crate::{
     io::IoMode,
 };
 use core::panic;
-use z80::instruction::{Condition, Immediate, Instruction, Opcode, Operand, Reg16, Reg8, Register};
 use log::trace;
+use z80::instruction::{Condition, Immediate, Instruction, Opcode, Operand, Reg16, Reg8, Register};
 
 pub(crate) struct Handlers;
 
@@ -60,7 +60,7 @@ impl Handlers {
                 cpu.set_register_u8(dst_reg, src);
                 Ok(())
             }
-            _ => panic!("Invalid opcode for load instruction: {:?}", instruction.opcode),
+            _ => panic!("Invalid opcode for load instruction: {}", instruction.opcode),
         }
     }
 
@@ -70,7 +70,7 @@ impl Handlers {
                 cpu.set_register_u16(Reg16::PC, imm);
                 Ok(())
             }
-            _ => panic!("Invalid opcode for jump instruction: {:?}", instruction.opcode),
+            _ => panic!("Invalid opcode for jump instruction: {}", instruction.opcode),
         }
     }
 
@@ -112,7 +112,7 @@ impl Handlers {
                 bus.push_io_request(dst_port, imm, IoMode::Write);
                 Ok(())
             }
-            _ => panic!("Invalid opcode for out instruction: {:?}", instruction.opcode),
+            _ => panic!("Invalid opcode for out instruction: {}", instruction.opcode),
         }
     }
 
@@ -129,7 +129,7 @@ impl Handlers {
 
                 Err(GgError::IoRequestNotFulfilled)
             }
-            _ => panic!("Invalid opcode for out instruction: {:?}", instruction.opcode),
+            _ => panic!("Invalid opcode for out instruction: {}", instruction.opcode),
         }
     }
 
@@ -147,7 +147,7 @@ impl Handlers {
 
                 Ok(())
             }
-            _ => panic!("Invalid opcode for subtract instruction: {:?}", instruction.opcode),
+            _ => panic!("Invalid opcode for subtract instruction: {}", instruction.opcode),
         }
     }
 
@@ -161,7 +161,7 @@ impl Handlers {
                 }
                 Ok(())
             }
-            _ => panic!("Invalid opcode for jump relative instruction: {:?}", instruction.opcode),
+            _ => panic!("Invalid opcode for jump relative instruction: {}", instruction.opcode),
         }
     }
 
@@ -169,11 +169,22 @@ impl Handlers {
         match instruction.opcode {
             Opcode::CallUnconditional(Operand::Immediate(Immediate::U16(imm), false), instruction_length) => {
                 let next_instruction_addr = cpu.get_register_u16(Reg16::PC) + instruction_length as u16;
-                cpu.push_stack(bus, next_instruction_addr);
+                cpu.push_stack(bus, next_instruction_addr)?;
                 cpu.set_register_u16(Reg16::PC, imm);
                 Ok(())
             }
-            _ => panic!("Invalid opcode for call instruction: {:?}", instruction.opcode),
+            _ => panic!("Invalid opcode for call instruction: {}", instruction.opcode),
+        }
+    }
+
+    pub(crate) fn return_(cpu: &mut Cpu, bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::Return(Condition::None, _) => {
+                let addr = cpu.pop_stack(bus)?;
+                cpu.set_register_u16(Reg16::PC, addr);
+                Ok(())
+            }
+            _ => panic!("Invalid opcode for return instruction: {}", instruction.opcode),
         }
     }
 }
