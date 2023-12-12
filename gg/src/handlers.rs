@@ -6,6 +6,7 @@ use crate::{
 };
 use core::panic;
 use z80::instruction::{Condition, Immediate, Instruction, Opcode, Operand, Reg16, Reg8, Register};
+use log::trace;
 
 pub(crate) struct Handlers;
 
@@ -74,7 +75,7 @@ impl Handlers {
     }
 
     pub(crate) fn disable_interrupts(_cpu: &mut Cpu, _bus: &mut Bus, _instruction: &Instruction) -> Result<(), GgError> {
-        println!("[cpu] Disabling interrupts");
+        trace!("Disabling interrupts");
         Ok(())
     }
 

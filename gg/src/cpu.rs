@@ -5,6 +5,7 @@ use z80::{
     instruction::{Opcode, Register, Reg8, Reg16},
 };
 use bitflags::bitflags;
+use log::{trace, warn};
 
 pub(crate) struct Registers {
     pub(crate) a: u8,
@@ -23,7 +24,7 @@ bitflags! {
     pub(crate) struct Flags: u8 {
         const CARRY = 0b0000_0001;
         const SUBTRACT = 0b0000_0010;
-        const PARTIY_OR_OVERFLOW = 0b0000_0100;
+        const PARITY_OR_OVERFLOW = 0b0000_0100;
         const F3 = 0b0000_1000; // unused
         const HALF_CARRY = 0b0001_0000;
         const F5 = 0b0010_0000; // unused
@@ -67,7 +68,7 @@ impl Cpu {
 
         match disasm.decode(0) {
             Ok(instruction) => {
-                println!("[{:04x}] {:?}", self.registers.pc, instruction.opcode);
+                trace!("[{:04x}] {:?}", self.registers.pc, instruction.opcode);
 
                 let result = match instruction.opcode {
                     Opcode::Jump(_, _, _) => Handlers::jump(self, bus, &instruction),
@@ -85,7 +86,7 @@ impl Cpu {
                 let io_skip = match result {
                     Ok(_) => false,
                     Err(GgError::IoRequestNotFulfilled) => {
-                        println!("[cpu] I/O request not fulfilled, waiting for next tick");
+                        warn!("I/O request not fulfilled, waiting for next tick");
                         true
                     },
                     Err(error) => panic!("CPU crashed with: {:?}\nError: {}", self, error)
@@ -197,7 +198,7 @@ impl fmt::Debug for Flags {
             "CARRY: {} SUBTRACT: {} PARTIY_OR_OVERFLOW: {} F3: {} HALF_CARRY: {} F5: {} ZERO: {} SIGN: {}",
             self.contains(Flags::CARRY),
             self.contains(Flags::SUBTRACT),
-            self.contains(Flags::PARTIY_OR_OVERFLOW),
+            self.contains(Flags::PARITY_OR_OVERFLOW),
             self.contains(Flags::F3),
             self.contains(Flags::HALF_CARRY),
             self.contains(Flags::F5),

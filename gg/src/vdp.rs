@@ -2,6 +2,7 @@ use crate::{
     bus::Bus,
     io::{IoMode, IoRequest},
 };
+use log::{trace, warn};
 
 // todo: ????
 const H_COUNTER_COUNT: u8 = 171;
@@ -42,10 +43,10 @@ impl Vdp {
                 value: _,
                 mode: IoMode::Read,
             }) => {
-                println!("[vdp] Found v counter read request");
+                trace!("Found v counter read request");
                 bus.io.push_request(0x7e, self.v, IoMode::Write);
             }
-            Some(data) => println!("[vdp] Unhandled I/O request {:02x} = {:02x}", data.port, data.value),
+            Some(data) => warn!("Unhandled I/O request {:02x} = {:02x}", data.port, data.value),
             None => {}
         }
     }

@@ -17,11 +17,11 @@ impl System {
         }
     }
 
-    pub(crate) fn load_bios(&mut self, data: &[u8]) {
+    pub(crate) fn load_rom(&mut self, data: &[u8]) {
         for i in 0..data.len() {
             self.bus
                 .write(i as u16, data[i])
-                .expect("failed to write to bus while loading BIOS");
+                .expect("Failed to write to bus while loading into ROM");
         }
     }
 
