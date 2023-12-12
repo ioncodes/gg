@@ -17,12 +17,12 @@ impl Bus {
         }
     }
 
-    pub(crate) fn push_io_request(&mut self, port: u8, value: u8, mode: IoMode) {
-        self.io.push_request(port, value, mode);
+    pub(crate) fn push_io_data(&mut self, port: u8, value: u8, mode: IoMode) {
+        self.io.push(port, value, mode);
     }
 
-    pub(crate) fn pop_io_request(&mut self, port: u8) -> Option<u8> {
-        self.io.pop_request(port)
+    pub(crate) fn pop_io_data(&mut self, port: u8) -> Option<u8> {
+        self.io.pop(port)
     }
 
     #[allow(unused_comparisons)]

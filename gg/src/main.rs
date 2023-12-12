@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 mod bus;
 mod cpu;
 mod error;

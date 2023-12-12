@@ -109,7 +109,7 @@ impl Handlers {
         match instruction.opcode {
             Opcode::Out(Operand::Immediate(Immediate::U8(dst_port), true), Operand::Register(Register::Reg8(src_reg), false), _) => {
                 let imm = cpu.get_register_u8(src_reg);
-                bus.push_io_request(dst_port, imm, IoMode::Write);
+                bus.push_io_data(dst_port, imm, IoMode::Write);
                 Ok(())
             }
             _ => panic!("Invalid opcode for out instruction: {}", instruction.opcode),
@@ -120,11 +120,11 @@ impl Handlers {
     pub(crate) fn in_(cpu: &mut Cpu, bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
             Opcode::In(Operand::Register(Register::Reg8(dst_reg), false), Operand::Immediate(Immediate::U8(src_port), true), _) => {
-                if let Some(imm) = bus.pop_io_request(src_port) {
+                if let Some(imm) = bus.pop_io_data(src_port) {
                     cpu.set_register_u8(dst_reg, imm);
                     return Ok(());
                 } else {
-                    bus.push_io_request(src_port, 0x00, IoMode::Read);
+                    bus.push_io_data(src_port, 0x00, IoMode::Read);
                 }
 
                 Err(GgError::IoRequestNotFulfilled)

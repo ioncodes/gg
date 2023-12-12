@@ -1,67 +1,86 @@
-use log::warn;
+use std::collections::HashMap;
+
+use log::{error, warn};
 
 // todo: rewrite entire io bus
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(crate) enum IoMode {
-    Read,  // request
-    Write, // answer
+    Read,
+    Write,
 }
 
 #[derive(Debug)]
-pub(crate) struct IoRequest {
+pub(crate) struct IoData {
     pub(crate) port: u8,
     pub(crate) value: u8,
     pub(crate) mode: IoMode,
+    is_answer: bool,
 }
 
 #[derive(Debug)]
 pub(crate) struct IoBus {
-    pub(crate) data: Option<IoRequest>,
+    pub(crate) data: HashMap<u8, IoData>,
 }
 
 impl IoBus {
     pub(crate) fn new() -> IoBus {
-        IoBus { data: None }
+        IoBus { data: HashMap::new() }
     }
 
     // Contains default values that are returned by the I/O bus in a real system
     // during normal game execution.
     pub(crate) fn process_default(&mut self) {
-        if let Some(request) = self.data.as_ref() {
-            match request.port {
+        for (port, data) in self.data.iter_mut() {
+            match port {
                 0x00..=0x06 => {
                     // Possibly Gear-to-Gear communication
                     const DEFAULT: [u8; 7] = [0xc0, 0x7f, 0xff, 0x00, 0xff, 0x00, 0xff];
-                    let default_value = DEFAULT[request.port as usize];
-                    self.push_request(request.port, default_value, IoMode::Write);
-                },
+                    data.value = DEFAULT[*port as usize];
+                    data.is_answer = true;
+                }
                 0x7e..=0x7f => {
                     // This is handled by the VDP (read) or PSG (write), ignore.
-                },
-                _ => warn!(
-                    "Encountered I/O request with no default setting: {:02x} = {:02x}",
-                    request.port, request.value
-                ),
+                }
+                _ => warn!("Encountered I/O request with no default setting: {:02x} = {:02x}", port, data.value),
             }
         }
     }
 
-    pub(crate) fn push_request(&mut self, port: u8, value: u8, mode: IoMode) {
-        self.data = Some(IoRequest { port, value, mode });
+    pub(crate) fn push(&mut self, port: u8, value: u8, mode: IoMode) {
+        if self.data.contains_key(&port) {
+            // todo: can this actually exist?
+            error!("Writing to I/O data on port {:02x} that has not been answered yet", port);
+        }
+
+        self.data.insert(
+            port,
+            IoData {
+                port,
+                value,
+                mode,
+                is_answer: false,
+            },
+        );
     }
 
-    pub(crate) fn pop_request(&mut self, port: u8) -> Option<u8> {
-        let data = self.data.as_ref();
-
-        if let Some(request) = data {
-            if request.port == port {
-                let value = request.value;
-                self.data = None;
-                return Some(value);
-            }
+    pub(crate) fn pop(&mut self, port: u8) -> Option<u8> {
+        if let Some(data) = self.data.get(&port)
+            && data.is_answer
+        {
+            let value = Some(data.value);
+            self.data.remove(&port);
+            return value;
         }
 
         None
+    }
+
+    pub(crate) fn answer(&mut self, port: u8, value: u8, mode: IoMode) {
+        if let Some(data) = self.data.get_mut(&port) {
+            data.value = value;
+            data.mode = mode;
+            data.is_answer = true;
+        }
     }
 }
