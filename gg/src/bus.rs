@@ -1,19 +1,19 @@
-use crate::memory::Memory;
-use crate::io::{IoBus, IoMode};
 use crate::error::GgError;
+use crate::io::{IoBus, IoMode};
+use crate::memory::Memory;
 
 pub(crate) struct Bus {
     rom: Memory, // 0x0000 - 0xbfff
     ram: Memory, // 0xc000 - 0xffff
-    pub(crate) io: IoBus
+    pub(crate) io: IoBus,
 }
 
 impl Bus {
     pub(crate) fn new() -> Bus {
-        Bus { 
+        Bus {
             rom: Memory::new(0x1024 * 16, 0x0000),
             ram: Memory::new(0x1024 * 16, 0xc000),
-            io: IoBus::new()
+            io: IoBus::new(),
         }
     }
 

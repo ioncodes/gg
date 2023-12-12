@@ -5,7 +5,7 @@ use crate::vdp::Vdp;
 pub(crate) struct System {
     pub(crate) cpu: Cpu,
     pub(crate) bus: Bus,
-    pub(crate) vdp: Vdp
+    pub(crate) vdp: Vdp,
 }
 
 impl System {
@@ -19,7 +19,9 @@ impl System {
 
     pub(crate) fn load_bios(&mut self, data: &[u8]) {
         for i in 0..data.len() {
-            self.bus.write(i as u16, data[i]).expect("failed to write to bus while loading BIOS");
+            self.bus
+                .write(i as u16, data[i])
+                .expect("failed to write to bus while loading BIOS");
         }
     }
 
@@ -27,7 +29,7 @@ impl System {
         loop {
             self.cpu.tick(&mut self.bus);
             self.vdp.tick(&mut self.bus);
-            
+
             // execute other components here (e.g. VDP or I/O interaction)
             self.bus.io.process_default();
         }

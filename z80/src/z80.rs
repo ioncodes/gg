@@ -1,3 +1,1 @@
-pub struct Z80 {
-    
-}
+pub struct Z80 {}

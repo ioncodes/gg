@@ -1,11 +1,14 @@
 pub(crate) struct Memory {
     pub(crate) buffer: Vec<u8>,
-    pub(crate) base_address: u16
+    pub(crate) base_address: u16,
 }
 
 impl Memory {
     pub(crate) fn new(size: usize, base_address: u16) -> Memory {
-        Memory { buffer: vec![0; size], base_address }
+        Memory {
+            buffer: vec![0; size],
+            base_address,
+        }
     }
 
     pub(crate) fn read(&self, address: u16) -> u8 {

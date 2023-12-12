@@ -1,11 +1,11 @@
-mod cpu;
-mod memory;
-mod system;
 mod bus;
+mod cpu;
+mod error;
 mod handlers;
 mod io;
+mod memory;
+mod system;
 mod vdp;
-mod error;
 
 use crate::system::System;
 

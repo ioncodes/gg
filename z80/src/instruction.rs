@@ -1,21 +1,34 @@
 use std::fmt;
 
-
 // todo: Rename this to Reg and create new enum Reg16 and Reg8?
 #[derive(PartialEq, Copy, Clone)]
 pub enum Register {
     Reg8(Reg8),
-    Reg16(Reg16)
+    Reg16(Reg16),
 }
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum Reg8 {
-    A, B, C, D, E, H, L, F
+    A,
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    F,
 }
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum Reg16 {
-    AF, BC, DE, HL, IX, IY, SP, PC
+    AF,
+    BC,
+    DE,
+    HL,
+    IX,
+    IY,
+    SP,
+    PC,
 }
 
 #[derive(PartialEq, Copy, Clone)]
@@ -26,14 +39,14 @@ pub enum Condition {
     Sign,
     NotCarry,
     Carry,
-    None
+    None,
 }
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum Immediate {
     U8(u8),
     U16(u16),
-    S8(i8)
+    S8(i8),
 }
 
 #[derive(PartialEq, Copy, Clone)]
@@ -68,14 +81,14 @@ pub enum Opcode {
     Pop(Register, usize),
     ResetBit(Immediate, Operand, usize),
     SetBit(Immediate, Operand, usize),
-    Unknown(usize)
+    Unknown(usize),
 }
 
 pub struct Instruction {
     pub opcode: Opcode,
     pub length: usize,
     pub(crate) offset: usize,
-    pub(crate) prefix: Option<u8>
+    pub(crate) prefix: Option<u8>,
 }
 
 impl fmt::Debug for Instruction {
@@ -93,7 +106,7 @@ impl fmt::Debug for Condition {
             Condition::Sign => write!(f, "m"),
             Condition::NotCarry => write!(f, "nc"),
             Condition::Carry => write!(f, "c"),
-            Condition::None => write!(f, "")
+            Condition::None => write!(f, ""),
         }
     }
 }
@@ -113,14 +126,14 @@ impl fmt::Debug for Opcode {
                     write!(f, " {:?},", op1)?;
                 }
                 write!(f, " {:?}", op2)
-            },
+            }
             Opcode::Jump(op1, op2, _) => {
                 write!(f, "jp")?;
                 if *op1 != Condition::None {
                     write!(f, " {:?},", op1)?;
                 }
                 write!(f, " {:?}", op2)
-            },
+            }
             Opcode::Xor(op, _) => write!(f, "xor {:?}", op),
             Opcode::Or(op, _) => write!(f, "or {:?}", op),
             Opcode::CallUnconditional(op, _) => write!(f, "call {:?}", op),
@@ -137,13 +150,13 @@ impl fmt::Debug for Opcode {
                     write!(f, " {:?}", op)?;
                 }
                 Ok(())
-            },
+            }
             Opcode::Push(op, _) => write!(f, "push {:?}", op),
             Opcode::Pop(op, _) => write!(f, "pop {:?}", op),
             Opcode::ResetBit(op1, op2, _) => write!(f, "res {:?}, {:?}", op1, op2),
             Opcode::SetBit(op1, op2, _) => write!(f, "set {:?}, {:?}", op1, op2),
             Opcode::Outi(_) => write!(f, "outi"),
-            Opcode::Unknown(_) => unreachable!("Unknown opcode")
+            Opcode::Unknown(_) => unreachable!("Unknown opcode"),
         }
     }
 }
@@ -153,7 +166,7 @@ impl fmt::Debug for Immediate {
         match self {
             Immediate::U8(value) => write!(f, "#{:02x}", value),
             Immediate::U16(value) => write!(f, "#{:04x}", value),
-            Immediate::S8(value) => write!(f, "{}", value)
+            Immediate::S8(value) => write!(f, "{}", value),
         }
     }
 }
@@ -167,7 +180,7 @@ impl fmt::Debug for Operand {
                 } else {
                     write!(f, "{:?}", register)
                 }
-            },
+            }
             Operand::Immediate(immediate, indirect) => {
                 if *indirect {
                     write!(f, "[{:?}]", immediate)
@@ -189,7 +202,7 @@ impl fmt::Debug for Reg8 {
             Reg8::E => write!(f, "e"),
             Reg8::H => write!(f, "h"),
             Reg8::L => write!(f, "l"),
-            Reg8::F => write!(f, "f")
+            Reg8::F => write!(f, "f"),
         }
     }
 }
@@ -204,7 +217,7 @@ impl fmt::Debug for Reg16 {
             Reg16::IX => write!(f, "ix"),
             Reg16::IY => write!(f, "iy"),
             Reg16::SP => write!(f, "sp"),
-            Reg16::PC => write!(f, "pc")
+            Reg16::PC => write!(f, "pc"),
         }
     }
 }
@@ -213,7 +226,7 @@ impl fmt::Debug for Register {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Register::Reg8(reg) => write!(f, "{:?}", reg),
-            Register::Reg16(reg) => write!(f, "{:?}", reg)
+            Register::Reg16(reg) => write!(f, "{:?}", reg),
         }
     }
 }

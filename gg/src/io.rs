@@ -1,6 +1,6 @@
 #[derive(Debug)]
 pub(crate) enum IoMode {
-    Read, // request
+    Read,  // request
     Write, // answer
 }
 
@@ -13,7 +13,7 @@ pub(crate) struct IoRequest {
 
 #[derive(Debug)]
 pub(crate) struct IoBus {
-    pub(crate) data: Option<IoRequest>
+    pub(crate) data: Option<IoRequest>,
 }
 
 impl IoBus {
@@ -31,8 +31,11 @@ impl IoBus {
                     const DEFAULT: [u8; 7] = [0xc0, 0x7f, 0xff, 0x00, 0xff, 0x00, 0xff];
                     let default_value = DEFAULT[request.port as usize];
                     self.push_request(request.port, default_value, IoMode::Write);
-                },
-                _ => println!("[io] Encountered I/O request with no default setting: {:02x} = {:02x}", request.port, request.value)
+                }
+                _ => println!(
+                    "[io] Encountered I/O request with no default setting: {:02x} = {:02x}",
+                    request.port, request.value
+                ),
             }
         }
     }
