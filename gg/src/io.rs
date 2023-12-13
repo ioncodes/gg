@@ -12,7 +12,6 @@ pub(crate) enum IoMode {
 
 #[derive(Debug)]
 pub(crate) struct IoData {
-    pub(crate) port: u8,
     pub(crate) value: u8,
     pub(crate) mode: IoMode,
     is_answer: bool,
@@ -42,7 +41,7 @@ impl IoBus {
                 0x7e..=0x7f => {
                     // This is handled by the VDP (read) or PSG (write), ignore.
                 }
-                _ => warn!("Encountered I/O request with no default setting: {:02x} = {:02x}", port, data.value),
+                _ => warn!("Encountered I/O data with no default setting: {:02x} = {:02x}", port, data.value),
             }
         }
     }
@@ -56,7 +55,6 @@ impl IoBus {
         self.data.insert(
             port,
             IoData {
-                port,
                 value,
                 mode,
                 is_answer: false,
@@ -74,6 +72,14 @@ impl IoBus {
         }
 
         None
+    }
+
+    pub(crate) fn has_pending(&self, port: u8, mode: IoMode) -> bool {
+        if let Some(data) = self.data.get(&port) && data.mode == mode {
+            true
+        } else {
+            false
+        }
     }
 
     pub(crate) fn answer(&mut self, port: u8, value: u8, mode: IoMode) {

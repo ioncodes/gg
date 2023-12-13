@@ -34,11 +34,9 @@ impl Vdp {
     }
 
     fn handle_io(&mut self, bus: &mut Bus) {
-        if let Some(data) = bus.io.data.get_mut(&V_COUNTER_PORT)
-            && data.mode == IoMode::Read
-        {
+        if bus.io.has_pending(V_COUNTER_PORT, IoMode::Read) {
             trace!("I/O request for V counter: {:02x}", self.v);
-            bus.io.answer(0x7e, self.v, IoMode::Read);
+            bus.io.answer(V_COUNTER_PORT, self.v, IoMode::Read);
         }
     }
 }
