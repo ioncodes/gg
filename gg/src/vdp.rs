@@ -99,7 +99,6 @@ impl Vdp {
                     _ => error!("Seemingly unimplemented control data found: {:02x?}", self.control_data),
                 }
             } else {
-                println!("lma");
                 break;
             }
         }
