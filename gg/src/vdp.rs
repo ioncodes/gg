@@ -142,17 +142,17 @@ impl Vdp {
 
             match self.mode {
                 Mode::VramWrite => {
-                    // Write data byte to VRAM
+                    // Write data bytes to VRAM
                     self.vram.copy(self.registers.address, &buffer);
                     debug!("Wrote {} bytes to {:04x} @ VRAM", buffer.len(), self.registers.address);
 
                     self.registers.address += buffer.len() as u16;
                     if self.registers.address >= 0x4000 {
-                        self.registers.address = 0x0000;
+                        self.registers.address = self.registers.address - 0x4000;
                     }
                 }
                 Mode::CramWrite => {
-                    // Write data byte to CRAM
+                    // Write data bytes to CRAM
                     // "If the address register exceeds the CRAM size (32 or 64 bytes), the high bits are ignored so it will always address CRAM;""
                     // "for example, address $1000 wil read from CRAM address $00.""
                     let address = self.registers.address & 0b0000_0000_0111_1111;
@@ -161,7 +161,7 @@ impl Vdp {
 
                     self.registers.address += buffer.len() as u16;
                     if self.registers.address >= 0x4000 {
-                        self.registers.address = 0x0000;
+                        self.registers.address = self.registers.address - 0x4000;
                     }
                 }
                 Mode::None => {
