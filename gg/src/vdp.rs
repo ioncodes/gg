@@ -120,31 +120,25 @@ impl Vdp {
             bus.push_io_data(V_COUNTER_PORT, self.v, IoMode::Read, true);
         }
 
-        loop {
-            if let Some(data) = bus.io.pop(CONTROL_PORT, false) {
-                debug!("Received byte via I/O control port ({:02x}): {:02x}", CONTROL_PORT, data);
-                self.control_data.push_back(data);
-            } else {
-                break;
-            }
+        if let Some(buffer) = bus.io.pop_all(CONTROL_PORT) {
+            debug!("Received buffer via I/O control port ({:02x}): {:02x?}", CONTROL_PORT, buffer);
+            self.control_data.extend(buffer);
         }
 
-        if let Some(data) = bus.io.pop(DATA_PORT, false) {
-            trace!("Received byte via I/O data port ({:02x}): {:02x}", DATA_PORT, data);
+        if let Some(buffer) = bus.io.pop_all(DATA_PORT) {
+            trace!("Received buffer via I/O data port ({:02x}): {:02x?}", DATA_PORT, buffer);
 
             match self.mode {
                 Mode::VramWrite => {
                     // Write data byte to VRAM
-                    self.vram.write(self.registers.address, data);
-                    debug!("Wrote {:02x} to {:04x} @ VRAM", data, self.registers.address);
+                    self.vram.copy(self.registers.address, &buffer);
+                    debug!("Wrote {} bytes to {:04x} @ VRAM", buffer.len(), self.registers.address);
 
-                    self.registers.address += 1;
+                    self.registers.address += buffer.len() as u16;
                     // todo: address register should wrap around past 3fff
-
-                    self.mode = Mode::None;
                 }
                 Mode::None => {
-                    error!("Received byte via I/O data port ({:02x}) while not in VRAM write mode: {:02x}", DATA_PORT, data);
+                    error!("Received byte on data port ({:02x}) without being in a specific mode", DATA_PORT);
                 }
             }
         }

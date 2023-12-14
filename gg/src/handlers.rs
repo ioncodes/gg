@@ -198,7 +198,7 @@ impl Handlers {
             bus.push_io_data(port, value, IoMode::Write, false);
 
             cpu.set_register_u16(Reg16::HL, hl + 1);
-            cpu.set_register_u8(Reg8::B, b - 1);
+            cpu.set_register_u8(Reg8::B, b.wrapping_sub(1));
 
             if cpu.get_register_u8(Reg8::B) == 0 {
                 break;

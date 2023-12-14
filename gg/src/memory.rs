@@ -31,4 +31,10 @@ impl Memory {
         self.write(address, low);
         self.write(address + 1, high);
     }
+
+    pub(crate) fn copy(&mut self, address: u16, data: &[u8]) {
+        for i in 0..data.len() {
+            self.write(address + i as u16, data[i]);
+        }
+    }
 }

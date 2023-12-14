@@ -69,6 +69,16 @@ impl IoBus {
         None
     }
 
+    pub(crate) fn pop_all(&mut self, port: u8) -> Option<Vec<u8>> {
+        if let Some(buffer) = self.pipeline.get(&port) {
+            let buffer = Some(buffer.iter().map(|data| data.value).collect());
+            self.pipeline.remove(&port);
+            return buffer;
+        }
+
+        None
+    }
+
     pub(crate) fn has_pending(&self, port: u8, mode: IoMode) -> bool {
         if let Some(buffer) = self.pipeline.get(&port)
             && let Some(data) = buffer.front()
