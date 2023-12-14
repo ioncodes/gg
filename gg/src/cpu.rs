@@ -81,6 +81,7 @@ impl Cpu {
                     Opcode::JumpRelative(_, _, _) => Handlers::jump_relative(self, bus, &instruction),
                     Opcode::CallUnconditional(_, _) => Handlers::call_unconditional(self, bus, &instruction),
                     Opcode::Return(_, _) => Handlers::return_(self, bus, &instruction),
+                    Opcode::OutIndirectRepeat(_) => Handlers::out_indirect_repeat(self, bus, &instruction),
                     _ => {
                         error!("Invalid opcode: {}", instruction.opcode);
                         Err(GgError::OpcodeNotImplemented { opcode: instruction.opcode })

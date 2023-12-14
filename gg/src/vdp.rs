@@ -87,9 +87,9 @@ impl Vdp {
     }
 
     fn handle_io(&mut self, bus: &mut Bus) {
-        if bus.io.has_pending(V_COUNTER_PORT, IoMode::Read) {
+        if let Some(_) = bus.io.pop(V_COUNTER_PORT, IoMode::Read) {
             trace!("I/O request for V counter: {:02x}", self.v);
-            bus.io.answer(V_COUNTER_PORT, self.v, IoMode::Read);
+            bus.push_io_data(V_COUNTER_PORT, self.v, IoMode::Read);
         }
 
         if let Some(data) = bus.io.pop(CONTROL_PORT, IoMode::Write) {

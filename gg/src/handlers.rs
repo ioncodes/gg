@@ -5,7 +5,7 @@ use crate::{
     io::IoMode,
 };
 use core::panic;
-use log::trace;
+use log::{trace, debug};
 use z80::instruction::{Condition, Immediate, Instruction, Opcode, Operand, Reg16, Reg8, Register};
 
 pub(crate) struct Handlers;
@@ -186,5 +186,32 @@ impl Handlers {
             }
             _ => panic!("Invalid opcode for return instruction: {}", instruction.opcode),
         }
+    }
+
+    pub(crate) fn out_indirect_repeat(cpu: &mut Cpu, bus: &mut Bus, _instruction: &Instruction) -> Result<(), GgError> {
+        let mut tmp = Vec::<u8>::new();
+
+        loop {
+            let b = cpu.get_register_u8(Reg8::B);
+            let hl = cpu.get_register_u16(Reg16::HL);
+
+            let value = bus.read(hl)?;
+            let port = cpu.get_register_u8(Reg8::C);
+            bus.push_io_data(port, value, IoMode::Write);
+            tmp.push(value);
+            cpu.set_register_u16(Reg16::HL, hl + 1);
+            debug!("Decrementing B from {:02x} to {:02x}", b, b - 1);
+            cpu.set_register_u8(Reg8::B, b - 1);
+
+            if cpu.get_register_u8(Reg8::B) == 0 {
+                break;
+            }
+        }
+
+        for b in tmp {
+            print!("{:08b} ", b);
+        }
+
+        Ok(())
     }
 }
