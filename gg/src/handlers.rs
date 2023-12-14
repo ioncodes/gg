@@ -109,7 +109,7 @@ impl Handlers {
         match instruction.opcode {
             Opcode::Out(Operand::Immediate(Immediate::U8(dst_port), true), Operand::Register(Register::Reg8(src_reg), false), _) => {
                 let imm = cpu.get_register_u8(src_reg);
-                bus.push_io_data(dst_port, imm, IoMode::Write);
+                bus.push_io_data(dst_port, imm, IoMode::Write, false);
                 Ok(())
             }
             _ => panic!("Invalid opcode for out instruction: {}", instruction.opcode),
@@ -120,11 +120,11 @@ impl Handlers {
     pub(crate) fn in_(cpu: &mut Cpu, bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
             Opcode::In(Operand::Register(Register::Reg8(dst_reg), false), Operand::Immediate(Immediate::U8(src_port), true), _) => {
-                if let Some(imm) = bus.pop_io_data(src_port, IoMode::Read) {
+                if let Some(imm) = bus.pop_io_data(src_port, true) {
                     cpu.set_register_u8(dst_reg, imm);
                     return Ok(());
-                } else {
-                    bus.push_io_data(src_port, 0x00, IoMode::Read);
+                } else if !bus.io.has_pending(src_port, IoMode::Read) {
+                    bus.push_io_data(src_port, 0x00, IoMode::Read, false);
                 }
 
                 Err(GgError::IoRequestNotFulfilled)
@@ -189,27 +189,20 @@ impl Handlers {
     }
 
     pub(crate) fn out_indirect_repeat(cpu: &mut Cpu, bus: &mut Bus, _instruction: &Instruction) -> Result<(), GgError> {
-        let mut tmp = Vec::<u8>::new();
-
         loop {
             let b = cpu.get_register_u8(Reg8::B);
             let hl = cpu.get_register_u16(Reg16::HL);
 
             let value = bus.read(hl)?;
             let port = cpu.get_register_u8(Reg8::C);
-            bus.push_io_data(port, value, IoMode::Write);
-            tmp.push(value);
+            bus.push_io_data(port, value, IoMode::Write, false);
+
             cpu.set_register_u16(Reg16::HL, hl + 1);
-            debug!("Decrementing B from {:02x} to {:02x}", b, b - 1);
             cpu.set_register_u8(Reg8::B, b - 1);
 
             if cpu.get_register_u8(Reg8::B) == 0 {
                 break;
             }
-        }
-
-        for b in tmp {
-            print!("{:08b} ", b);
         }
 
         Ok(())
