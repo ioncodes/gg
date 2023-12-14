@@ -1,4 +1,4 @@
-use crate::{bus::Bus, io::IoMode};
+use crate::{bus::Bus, io::IoMode, memory::Memory};
 use log::{debug, error, trace};
 use bitmatch::bitmatch;
 
@@ -7,14 +7,16 @@ const H_COUNTER_COUNT: u8 = 171;
 const NTSC_SCANLINE_COUNT: u16 = 262; // 60 frames
 const V_COUNTER_PORT: u8 = 0x7e;
 const CONTROL_PORT: u8 = 0xbf;
+const DATA_PORT: u8 = 0xbe;
 // const PAL_SCANLINE_COUNT: u8 = 312;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct Registers {
     pub(crate) r0: u8,
     pub(crate) r1: u8,
     pub(crate) r2: u8,
     pub(crate) r3: u8,
+    pub(crate) address: u16,
 }
 
 pub(crate) struct Vdp {
@@ -22,6 +24,7 @@ pub(crate) struct Vdp {
     pub(crate) h: u8,
     control_data: Vec<u8>,
     registers: Registers,
+    vram: Memory
 }
 
 impl Vdp {
@@ -31,14 +34,18 @@ impl Vdp {
             h: 0,
             control_data: Vec::new(),
             registers: Registers::default(),
+            vram: Memory::new(16 * 1024, 0x0000),
         }
     }
 
-    #[bitmatch]
     pub(crate) fn tick(&mut self, bus: &mut Bus) {
         self.handle_io(bus);
+        self.handle_control_data();
         self.handle_counters();
+    }
 
+    #[bitmatch]
+    fn handle_control_data(&mut self) {
         if self.control_data.len() >= 2 {
             trace!("VDP control type: {:08b}", self.control_data[1]);
 
@@ -62,14 +69,19 @@ impl Vdp {
                         0b0000_1000 => self.registers.r3 = value,
                         _ => error!("Invalid VDP register: {:08b}", register),
                     }
+
+                    self.control_data.clear();
                 }
                 "01??_????" => {
                     // Write to VRAM requests are denoted by a 0b01 at bit 15 and 14 of the 2nd byte in the control data.
                     // The rest adds up to a VRAM address.
                     let address = (((self.control_data[1] & 0b0011_1111) as u16) << 8) | (self.control_data[0] as u16);
-                    debug!("Writing to VRAM address {:04x}", address);
+                    self.registers.address = address;
+                    debug!("Setting address register to {:04x}", address);
+
+                    self.control_data.clear();
                 }
-                _ => error!("Seemingly invalid control data found: {:02x?}", self.control_data),
+                _ => error!("Seemingly unimplemented control data found: {:02x?}", self.control_data),
             }
         }
     }
@@ -80,9 +92,16 @@ impl Vdp {
             bus.io.answer(V_COUNTER_PORT, self.v, IoMode::Read);
         }
 
-        if let Some(data) = bus.io.pop(CONTROL_PORT, false) {
+        if let Some(data) = bus.io.pop(CONTROL_PORT, IoMode::Write) {
             trace!("Received byte via I/O control port ({:02x}): {:02x}", CONTROL_PORT, data);
             self.control_data.push(data);
+        }
+
+        if let Some(data) = bus.io.pop(DATA_PORT, IoMode::Write) {
+            // Write to VRAM
+            trace!("Received byte via I/O data port ({:02x}): {:02x}", DATA_PORT, data);
+            self.vram.write(self.registers.address, data);
+            self.registers.address += 1;
         }
     }
 
@@ -105,6 +124,20 @@ impl std::fmt::Display for Vdp {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "V counter: {:02x}\n", self.v)?;
         write!(f, "H counter: {:02x}\n", self.h)?;
+
+        write!(f, "Registers: {:04x?}\n", self.registers)?;
+
+        for addr in -8..=8 {
+            let addr = self.registers.address as i16 + addr;
+            if addr < 0 {
+                continue;
+            }
+
+            let addr = addr as u16;
+            let value = self.vram.read(addr);
+            write!(f, "{:04x}: {:02x}\n", addr, value)?;
+        }
+
         Ok(())
     }
 }

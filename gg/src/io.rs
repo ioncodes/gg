@@ -62,9 +62,9 @@ impl IoBus {
         );
     }
 
-    pub(crate) fn pop(&mut self, port: u8, expects_answer: bool) -> Option<u8> {
+    pub(crate) fn pop(&mut self, port: u8, mode: IoMode) -> Option<u8> {
         if let Some(data) = self.data.get(&port)
-            && data.is_answer == expects_answer
+            && data.mode == mode
         {
             let value = Some(data.value);
             self.data.remove(&port);
