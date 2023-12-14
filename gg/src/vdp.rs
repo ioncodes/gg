@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use crate::{bus::Bus, io::IoMode, memory::Memory};
 use bitmatch::bitmatch;
 use log::{debug, error, trace};
@@ -16,13 +18,20 @@ pub(crate) struct Registers {
     pub(crate) r1: u8,
     pub(crate) r2: u8,
     pub(crate) r3: u8,
+    pub(crate) r4: u8,
+    pub(crate) r5: u8,
+    pub(crate) r6: u8,
+    pub(crate) r7: u8,
+    pub(crate) r8: u8,
+    pub(crate) r9: u8,
+    pub(crate) r10: u8,
     pub(crate) address: u16,
 }
 
 pub(crate) struct Vdp {
     pub(crate) v: u8,
     pub(crate) h: u8,
-    control_data: Vec<u8>,
+    control_data: VecDeque<u8>,
     registers: Registers,
     vram: Memory,
 }
@@ -32,7 +41,7 @@ impl Vdp {
         Vdp {
             v: 0,
             h: 0,
-            control_data: Vec::new(),
+            control_data: VecDeque::new(),
             registers: Registers::default(),
             vram: Memory::new(16 * 1024, 0x0000),
         }
@@ -61,33 +70,36 @@ impl Vdp {
                          * registers (#0 to #10). b7 must be“1”and b6 to b4 must be“0”.
                          */
 
-                        let value = self.control_data[0];
-                        let register = self.control_data[1] & 0b0000_1111;
+                        let value = self.control_data.pop_front().unwrap();
+                        let register = self.control_data.pop_front().unwrap() & 0b0000_1111;
                         match register {
-                            0b0000_0001 => self.registers.r0 = value,
-                            0b0000_0010 => self.registers.r1 = value,
-                            0b0000_0100 => self.registers.r2 = value,
-                            0b0000_1000 => self.registers.r3 = value,
+                            0b0000_0000 => self.registers.r0 = value,
+                            0b0000_0001 => self.registers.r1 = value,
+                            0b0000_0010 => self.registers.r2 = value,
+                            0b0000_0011 => self.registers.r3 = value,
+                            0b0000_0100 => self.registers.r4 = value,
+                            0b0000_0101 => self.registers.r5 = value,
+                            0b0000_0110 => self.registers.r6 = value,
+                            0b0000_0111 => self.registers.r7 = value,
+                            0b0000_1000 => self.registers.r8 = value,
+                            0b0000_1001 => self.registers.r9 = value,
+                            0b0000_1010 => self.registers.r10 = value,
                             _ => error!("Invalid VDP register: {:08b}", register),
                         }
-
-                        self.control_data.clear();
                     }
                     "01??_????" => {
                         // Write to VRAM requests are denoted by a 0b01 at bit 15 and 14 of the 2nd byte in the control data.
                         // The rest adds up to a VRAM address.
-                        let address = (((self.control_data[1] & 0b0011_1111) as u16) << 8) | (self.control_data[0] as u16);
+                        let control_byte1 = self.control_data.pop_front().unwrap();
+                        let control_byte2 = self.control_data.pop_front().unwrap();
+                        let address = (((control_byte2 & 0b0011_1111) as u16) << 8) | (control_byte1 as u16);
                         self.registers.address = address;
                         debug!("Setting address register to {:04x}", address);
-
-                        self.control_data.clear();
                     }
-                    _ => {
-                        error!("Seemingly unimplemented control data found: {:02x?}", self.control_data);
-                        self.control_data.clear();
-                    },
+                    _ => error!("Seemingly unimplemented control data found: {:02x?}", self.control_data),
                 }
             } else {
+                println!("lma");
                 break;
             }
         }
@@ -99,13 +111,18 @@ impl Vdp {
             bus.push_io_data(V_COUNTER_PORT, self.v, IoMode::Read, true);
         }
 
-        if let Some(data) = bus.io.pop(CONTROL_PORT, false) {
-            trace!("Received byte via I/O control port ({:02x}): {:02x}", CONTROL_PORT, data);
-            self.control_data.push(data);
+        loop {
+            if let Some(data) = bus.io.pop(CONTROL_PORT, false) {
+                debug!("Received byte via I/O control port ({:02x}): {:02x}", CONTROL_PORT, data);
+                self.control_data.push_back(data);
+            } else {
+                break;
+            }
         }
 
         if let Some(data) = bus.io.pop(DATA_PORT, false) {
             // Write to VRAM
+            // todo: this is horribly wrong
             trace!("Received byte via I/O data port ({:02x}): {:02x}", DATA_PORT, data);
             self.vram.write(self.registers.address, data);
             self.registers.address += 1;
