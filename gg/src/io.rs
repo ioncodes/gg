@@ -37,7 +37,7 @@ impl IoBus {
                     const DEFAULT: [u8; 7] = [0xc0, 0x7f, 0xff, 0x00, 0xff, 0x00, 0xff];
                     data.value = DEFAULT[*port as usize];
                     data.is_answer = true;
-                }
+                },
                 0x7e..=0x7f => {
                     // This is handled by the VDP (read) or PSG (write), ignore.
                 }
@@ -62,9 +62,9 @@ impl IoBus {
         );
     }
 
-    pub(crate) fn pop(&mut self, port: u8) -> Option<u8> {
+    pub(crate) fn pop(&mut self, port: u8, expects_answer: bool) -> Option<u8> {
         if let Some(data) = self.data.get(&port)
-            && data.is_answer
+            && data.is_answer == expects_answer
         {
             let value = Some(data.value);
             self.data.remove(&port);

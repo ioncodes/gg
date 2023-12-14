@@ -21,8 +21,8 @@ impl Bus {
         self.io.push(port, value, mode);
     }
 
-    pub(crate) fn pop_io_data(&mut self, port: u8) -> Option<u8> {
-        self.io.pop(port)
+    pub(crate) fn pop_io_data(&mut self, port: u8, expects_answer: bool) -> Option<u8> {
+        self.io.pop(port, expects_answer)
     }
 
     #[allow(unused_comparisons)]
