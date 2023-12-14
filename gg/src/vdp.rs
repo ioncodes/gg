@@ -135,7 +135,9 @@ impl Vdp {
                     debug!("Wrote {} bytes to {:04x} @ VRAM", buffer.len(), self.registers.address);
 
                     self.registers.address += buffer.len() as u16;
-                    // todo: address register should wrap around past 3fff
+                    if self.registers.address >= 0x4000 {
+                        self.registers.address = 0x0000;
+                    }
                 }
                 Mode::None => {
                     error!("Received byte on data port ({:02x}) without being in a specific mode", DATA_PORT);

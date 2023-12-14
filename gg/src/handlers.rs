@@ -153,6 +153,12 @@ impl Handlers {
 
     pub(crate) fn jump_relative(cpu: &mut Cpu, _bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
+            Opcode::JumpRelative(Condition::None, Immediate::S8(imm), _) => {
+                let pc = cpu.get_register_u16(Reg16::PC);
+                let dst = pc.wrapping_add_signed(imm.into());
+                cpu.set_register_u16(Reg16::PC, dst);
+                Ok(())
+            },
             Opcode::JumpRelative(Condition::NotZero, Immediate::S8(imm), _) => {
                 if !cpu.flags.contains(Flags::ZERO) {
                     let pc = cpu.get_register_u16(Reg16::PC);
