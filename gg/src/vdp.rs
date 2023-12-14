@@ -12,6 +12,12 @@ const CONTROL_PORT: u8 = 0xbf;
 const DATA_PORT: u8 = 0xbe;
 // const PAL_SCANLINE_COUNT: u8 = 312;
 
+
+pub(crate) enum Mode {
+    VramWrite,
+    None
+}
+
 #[derive(Default, Debug)]
 pub(crate) struct Registers {
     pub(crate) r0: u8,
@@ -34,6 +40,7 @@ pub(crate) struct Vdp {
     control_data: VecDeque<u8>,
     registers: Registers,
     vram: Memory,
+    mode: Mode,
 }
 
 impl Vdp {
@@ -44,6 +51,7 @@ impl Vdp {
             control_data: VecDeque::new(),
             registers: Registers::default(),
             vram: Memory::new(16 * 1024, 0x0000),
+            mode: Mode::None,
         }
     }
 
@@ -84,6 +92,7 @@ impl Vdp {
                             0b0000_1000 => self.registers.r8 = value,
                             0b0000_1001 => self.registers.r9 = value,
                             0b0000_1010 => self.registers.r10 = value,
+                            // registers 11..15 have no effect when written to
                             _ => error!("Invalid VDP register: {:08b}", register),
                         }
                     }
@@ -95,6 +104,7 @@ impl Vdp {
                         let address = (((control_byte2 & 0b0011_1111) as u16) << 8) | (control_byte1 as u16);
                         self.registers.address = address;
                         debug!("Setting address register to {:04x}", address);
+                        self.mode = Mode::VramWrite;
                     }
                     _ => error!("Seemingly unimplemented control data found: {:02x?}", self.control_data),
                 }
@@ -120,11 +130,23 @@ impl Vdp {
         }
 
         if let Some(data) = bus.io.pop(DATA_PORT, false) {
-            // Write to VRAM
-            // todo: this is horribly wrong
             trace!("Received byte via I/O data port ({:02x}): {:02x}", DATA_PORT, data);
-            self.vram.write(self.registers.address, data);
-            self.registers.address += 1;
+
+            match self.mode {
+                Mode::VramWrite => {
+                    // Write data byte to VRAM
+                    self.vram.write(self.registers.address, data);
+                    debug!("Wrote {:02x} to {:04x} @ VRAM", data, self.registers.address);
+
+                    self.registers.address += 1;
+                    // todo: address register should wrap around past 3fff
+
+                    self.mode = Mode::None;
+                }
+                Mode::None => {
+                    error!("Received byte via I/O data port ({:02x}) while not in VRAM write mode: {:02x}", DATA_PORT, data);
+                }
+            }
         }
     }
 
