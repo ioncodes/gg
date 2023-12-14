@@ -12,10 +12,10 @@ const CONTROL_PORT: u8 = 0xbf;
 const DATA_PORT: u8 = 0xbe;
 // const PAL_SCANLINE_COUNT: u8 = 312;
 
-
 pub(crate) enum Mode {
     VramWrite,
-    None
+    CramWrite,
+    None,
 }
 
 #[derive(Default, Debug)]
@@ -40,6 +40,7 @@ pub(crate) struct Vdp {
     control_data: VecDeque<u8>,
     registers: Registers,
     vram: Memory,
+    cram: Memory,
     mode: Mode,
 }
 
@@ -51,6 +52,7 @@ impl Vdp {
             control_data: VecDeque::new(),
             registers: Registers::default(),
             vram: Memory::new(16 * 1024, 0x0000),
+            cram: Memory::new(64, 0x0000),
             mode: Mode::None,
         }
     }
@@ -106,6 +108,16 @@ impl Vdp {
                         debug!("Setting address register to {:04x}", address);
                         self.mode = Mode::VramWrite;
                     }
+                    "11??_????" => {
+                        // Write to CRAM requests are denoted by a 0b11 at bit 15 and 14 of the 2nd byte in the control data.
+                        // The rest adds up to a CRAM address.
+                        let control_byte1 = self.control_data.pop_front().unwrap();
+                        let control_byte2 = self.control_data.pop_front().unwrap();
+                        let address = (((control_byte2 & 0b0011_1111) as u16) << 8) | (control_byte1 as u16);
+                        self.registers.address = address;
+                        debug!("Setting address register to {:04x}", address);
+                        self.mode = Mode::CramWrite;
+                    }
                     _ => error!("Seemingly unimplemented control data found: {:02x?}", self.control_data),
                 }
             } else {
@@ -133,6 +145,19 @@ impl Vdp {
                     // Write data byte to VRAM
                     self.vram.copy(self.registers.address, &buffer);
                     debug!("Wrote {} bytes to {:04x} @ VRAM", buffer.len(), self.registers.address);
+
+                    self.registers.address += buffer.len() as u16;
+                    if self.registers.address >= 0x4000 {
+                        self.registers.address = 0x0000;
+                    }
+                }
+                Mode::CramWrite => {
+                    // Write data byte to CRAM
+                    // "If the address register exceeds the CRAM size (32 or 64 bytes), the high bits are ignored so it will always address CRAM;""
+                    // "for example, address $1000 wil read from CRAM address $00.""
+                    let address = self.registers.address & 0b0000_0000_0111_1111;
+                    self.cram.copy(address, &buffer);
+                    debug!("Wrote {} bytes to {:04x} @ CRAM", buffer.len(), address);
 
                     self.registers.address += buffer.len() as u16;
                     if self.registers.address >= 0x4000 {
