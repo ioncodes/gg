@@ -37,6 +37,8 @@ pub(crate) struct Registers {
 pub(crate) struct Vdp {
     pub(crate) v: u8,
     pub(crate) h: u8,
+    v_2nd_loop: bool,
+    h_2nd_loop: bool,
     control_data: VecDeque<u8>,
     registers: Registers,
     vram: Memory,
@@ -49,6 +51,8 @@ impl Vdp {
         Vdp {
             v: 0,
             h: 0,
+            v_2nd_loop: false,
+            h_2nd_loop: false,
             control_data: VecDeque::new(),
             registers: Registers::default(),
             vram: Memory::new(16 * 1024, 0x0000),
@@ -172,16 +176,34 @@ impl Vdp {
     }
 
     fn handle_counters(&mut self) {
-        if self.h < H_COUNTER_COUNT {
-            self.h += 1;
-        } else {
-            self.h = 0;
+        /*
+        The V counter counts up from 00h to EAh, then it jumps back to E5h and
+        continues counting up to FFh. This allows it to cover the entire 262 line
+        display.
 
-            if (self.v as u16) < NTSC_SCANLINE_COUNT {
-                self.v += 1;
+        The H counter counts up from 00h to E9h, then it jumps back to 93h and
+        continues counting up to FFh. This allows it to cover an entire 342 pixel
+        line.
+        */
+
+        if self.h == 0xe9 && !self.h_2nd_loop {
+            self.h = 0x93;
+            self.h_2nd_loop = true;
+        } else if self.h == 0xff && self.h_2nd_loop {
+            self.h = 0x00;
+            self.h_2nd_loop = false;
+
+            if self.v == 0xea && !self.v_2nd_loop {
+                self.v = 0xe5;
+                self.v_2nd_loop = true;
+            } else if self.v == 0xff && self.v_2nd_loop {
+                self.v = 0x00;
+                self.v_2nd_loop = false;
             } else {
-                self.v = 0;
+                self.v += 1;
             }
+        } else {
+            self.h += 1;
         }
     }
 }
