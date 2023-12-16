@@ -82,6 +82,13 @@ impl Cpu {
                     Opcode::CallUnconditional(_, _) => Handlers::call_unconditional(self, bus, &instruction),
                     Opcode::Return(_, _) => Handlers::return_(self, bus, &instruction),
                     Opcode::OutIndirectRepeat(_) => Handlers::out_indirect_repeat(self, bus, &instruction),
+                    Opcode::Or(_, _) => Handlers::or(self, bus, &instruction),
+                    Opcode::Push(_, _) => Handlers::push(self, bus, &instruction),
+                    Opcode::Pop(_, _) => Handlers::pop(self, bus, &instruction),
+                    Opcode::Increment(_, _) => Handlers::increment(self, bus, &instruction),
+                    Opcode::Decrement(_, _) => Handlers::decrement(self, bus, &instruction),
+                    Opcode::ResetBit(_, _, _) => Handlers::reset_bit(self, bus, &instruction),
+                    Opcode::DecrementAndJumpRelative(_, _) => Handlers::decrement_and_jump_relative(self, bus, &instruction),
                     _ => {
                         error!("Invalid opcode: {}", instruction.opcode);
                         Err(GgError::OpcodeNotImplemented { opcode: instruction.opcode })
