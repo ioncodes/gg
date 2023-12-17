@@ -89,6 +89,8 @@ impl Cpu {
                     Opcode::Decrement(_, _) => Handlers::decrement(self, bus, &instruction),
                     Opcode::ResetBit(_, _, _) => Handlers::reset_bit(self, bus, &instruction),
                     Opcode::DecrementAndJumpRelative(_, _) => Handlers::decrement_and_jump_relative(self, bus, &instruction),
+                    Opcode::Xor(_, _) => Handlers::xor(self, bus, &instruction),
+                    Opcode::Outi(_) => Handlers::outi(self, bus, &instruction),
                     _ => {
                         error!("Invalid opcode: {}", instruction.opcode);
                         Err(GgError::OpcodeNotImplemented { opcode: instruction.opcode })

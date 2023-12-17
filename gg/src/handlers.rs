@@ -148,14 +148,20 @@ impl Handlers {
     }
 
     pub(crate) fn out(cpu: &mut Cpu, bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
-        match instruction.opcode {
+        let (port, value) = match instruction.opcode {
             Opcode::Out(Operand::Immediate(Immediate::U8(dst_port), true), Operand::Register(Register::Reg8(src_reg), false), _) => {
-                let imm = cpu.get_register_u8(src_reg);
-                bus.push_io_data(dst_port, imm, IoMode::Write, false);
-                Ok(())
-            }
+                (dst_port, cpu.get_register_u8(src_reg))
+            },
+            Opcode::Out(Operand::Register(Register::Reg8(dst_port), true), Operand::Register(Register::Reg8(src_reg), false), _) => {
+                let dst = cpu.get_register_u8(dst_port);
+                let src = cpu.get_register_u8(src_reg);
+                (dst, src)
+            },
             _ => panic!("Invalid opcode for out instruction: {}", instruction.opcode),
-        }
+        };
+
+        bus.push_io_data(port, value, IoMode::Write, false);
+        Ok(())
     }
 
     // todo: change formatting for function signatures
@@ -398,6 +404,41 @@ impl Handlers {
             }
             _ => panic!("Invalid opcode for decrement and jump relative instruction: {}", instruction.opcode),
         }
+    }
+
+    pub(crate) fn xor(cpu: &mut Cpu, _bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::Xor(Operand::Register(Register::Reg8(src_reg), false), _) => {
+                let a = cpu.get_register_u8(Reg8::A);
+                let src = cpu.get_register_u8(src_reg);
+                let result = a ^ src;
+
+                cpu.set_register_u8(Reg8::A, result);
+
+                cpu.flags.set(Flags::ZERO, result == 0);
+                cpu.flags.set(Flags::SUBTRACT, false);
+                cpu.flags.set(Flags::HALF_CARRY, false);
+                cpu.flags.set(Flags::CARRY, false);
+
+                Ok(())
+            }
+            _ => panic!("Invalid opcode for xor instruction: {}", instruction.opcode),
+        }
+    }
+
+    pub(crate) fn outi(cpu: &mut Cpu, bus: &mut Bus, _instruction: &Instruction) -> Result<(), GgError> {
+        let b = cpu.get_register_u8(Reg8::B);
+        cpu.set_register_u8(Reg8::B, b.wrapping_sub(1));
+
+        let hl = cpu.get_register_u16(Reg16::HL);
+        let value = bus.read(hl)?;
+
+        let port = cpu.get_register_u8(Reg8::C);
+        bus.push_io_data(port, value, IoMode::Write, false);
+
+        cpu.set_register_u16(Reg16::HL, hl.wrapping_add(1));
+
+        Ok(())
     }
 
     // Helpers
