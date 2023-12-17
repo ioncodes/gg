@@ -14,11 +14,16 @@ use env_logger::Builder;
 use log::Level;
 
 fn main() {
-    let mut default_log_level = Level::Warn.to_level_filter();
+    let mut default_log_level = Level::Info.to_level_filter();
 
     let enable_trace = std::env::args().any(|arg| arg == "--trace" || arg == "-t");
     if enable_trace {
         default_log_level = Level::Trace.to_level_filter();
+    }
+
+    let enable_debug = std::env::args().any(|arg| arg == "--debug" || arg == "-d");
+    if enable_debug {
+        default_log_level = Level::Debug.to_level_filter();
     }
 
     Builder::new()

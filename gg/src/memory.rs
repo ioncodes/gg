@@ -18,7 +18,7 @@ impl Memory {
     pub(crate) fn read_word(&self, address: u16) -> u16 {
         let low = self.read(address);
         let high = self.read(address + 1);
-        ((high as u16) << 8) | (low as u16)
+        ((low as u16) << 8) | (high as u16)
     }
 
     pub(crate) fn write(&mut self, address: u16, value: u8) {
@@ -28,8 +28,8 @@ impl Memory {
     pub(crate) fn write_word(&mut self, address: u16, value: u16) {
         let low = (value & 0xff) as u8;
         let high = ((value >> 8) & 0xff) as u8;
-        self.write(address, low);
-        self.write(address + 1, high);
+        self.write(address, high);
+        self.write(address + 1, low);
     }
 
     pub(crate) fn copy(&mut self, address: u16, data: &[u8]) {

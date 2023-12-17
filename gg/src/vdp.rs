@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::{bus::Bus, io::IoMode, memory::Memory};
 use bitmatch::bitmatch;
-use log::{debug, error, trace};
+use log::{debug, error, trace, info, ParseLevelError};
 
 // todo: ????
 const H_COUNTER_COUNT: u8 = 171;
@@ -142,7 +142,7 @@ impl Vdp {
         }
 
         if let Some(buffer) = bus.io.pop_all(DATA_PORT) {
-            trace!("Received buffer via I/O data port ({:02x}): {:02x?}", DATA_PORT, buffer);
+            debug!("Received buffer via I/O data port ({:02x}): {:02x?}", DATA_PORT, buffer);
 
             match self.mode {
                 Mode::VramWrite => {
@@ -164,8 +164,20 @@ impl Vdp {
                     debug!("Wrote {} bytes to {:04x} @ CRAM", buffer.len(), address);
 
                     self.registers.address += buffer.len() as u16;
-                    if self.registers.address >= 0x4000 {
-                        self.registers.address = self.registers.address - 0x4000;
+                    if self.registers.address >= 0x40 {
+                        self.registers.address = self.registers.address - 0x40;
+                    }
+
+                    for idx in (0..64).step_by(2) {
+                        let palette_info = self.cram.read_word(idx);
+                        let r = (palette_info & 0b0000_0000_0000_1111) as u8;
+                        let g = ((palette_info & 0b0000_0000_1111_0000) >> 4) as u8;
+                        let b = ((palette_info & 0b0000_1111_0000_0000) >> 8) as u8;
+                        if r == 0 && g == 0 && b == 0 {
+                            continue;
+                        }
+            
+                        info!("Palette entry {:02x}: {:16b}/{:04x} {:02x} {:02x} {:02x}", idx, palette_info, palette_info, r, g, b);
                     }
                 }
                 Mode::None => {
@@ -185,6 +197,8 @@ impl Vdp {
         continues counting up to FFh. This allows it to cover an entire 342 pixel
         line.
         */
+
+        // todo: Generate vblank interrupt
 
         if self.h == 0xe9 && !self.h_2nd_loop {
             self.h = 0x93;
