@@ -109,8 +109,9 @@ impl Handlers {
             Opcode::Jump(condition, Immediate::U16(imm), _) => {
                 if Handlers::check_cpu_flag(cpu, condition) {
                     cpu.set_register_u16(Reg16::PC, imm);
+                    return Ok(());
                 }
-                Ok(())
+                Err(GgError::JumpNotTaken)
             }
             _ => panic!("Invalid opcode for jump instruction: {}", instruction.opcode),
         }
@@ -220,7 +221,6 @@ impl Handlers {
                     let dst = pc.wrapping_add_signed(imm.into());
                     cpu.set_register_u16(Reg16::PC, dst);
                 }
-
                 Ok(())
             }
             _ => panic!("Invalid opcode for jump relative instruction: {}", instruction.opcode),

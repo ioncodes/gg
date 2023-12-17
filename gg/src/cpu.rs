@@ -107,7 +107,9 @@ impl Cpu {
 
                 let call_skip = match instruction.opcode {
                     Opcode::CallUnconditional(_, _) => true,
-                    Opcode::Return(_, _) => result.is_ok(), // only skip the PC increment if we actually returned somewhere
+                    // only skip the PC increment if we actually returned somewhere
+                    Opcode::Jump(_, _, _) => result.is_ok(),
+                    Opcode::Return(_, _) => result.is_ok(), 
                     _ => false
                 };
 
