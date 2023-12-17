@@ -3,8 +3,10 @@ use crate::io::{IoBus, IoMode};
 use crate::memory::Memory;
 
 pub(crate) struct Bus {
-    rom: Memory, // 0x0000 - 0xbfff
-    ram: Memory, // 0xc000 - 0xffff
+    rom: Memory,      // 0x0000 - 0xbfff
+    ram: Memory,      // 0xc000 - 0xffff
+    bios_rom: Memory, // only for BIOS. enabled on startup, disabled by end of BIOS
+    pub(crate) bios_enabled: bool,
     pub(crate) io: IoBus,
 }
 
@@ -13,6 +15,8 @@ impl Bus {
         Bus {
             rom: Memory::new(0x1024 * 16, 0x0000),
             ram: Memory::new(0x1024 * 16, 0xc000),
+            bios_rom: Memory::new(0x400, 0x0000),
+            bios_enabled: true,
             io: IoBus::new(),
         }
     }
@@ -29,6 +33,10 @@ impl Bus {
     pub(crate) fn read(&self, mut address: u16) -> Result<u8, GgError> {
         if address == 0xfffc || address == 0xfffd || address == 0xfffe || address == 0xffff {
             address = address - 0xe000;
+        }
+
+        if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
+            return Ok(self.bios_rom.read(address));
         }
 
         if address >= 0x0000 && address < 0xc000 {
@@ -48,6 +56,10 @@ impl Bus {
             address = address - 0xe000;
         }
 
+        if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
+            return Ok(self.bios_rom.read_word(address));
+        }
+
         if address >= 0x0000 && address < 0xc000 {
             return Ok(self.rom.read_word(address));
         }
@@ -65,6 +77,10 @@ impl Bus {
             address = address - 0xe000;
         }
 
+        if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
+            return Ok(self.bios_rom.write(address, value));
+        }
+
         if address >= 0x0000 && address < 0xc000 {
             return Ok(self.rom.write(address, value));
         }
@@ -80,6 +96,10 @@ impl Bus {
     pub(crate) fn write_word(&mut self, mut address: u16, value: u16) -> Result<(), GgError> {
         if address == 0xfffc || address == 0xfffd || address == 0xfffe || address == 0xffff {
             address = address - 0xe000;
+        }
+
+        if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
+            return Ok(self.bios_rom.write_word(address, value));
         }
 
         if address >= 0x0000 && address < 0xc000 {

@@ -26,9 +26,11 @@ fn main() {
         .format_timestamp(None)
         .init();
 
-    let data = include_bytes!("../../external/majbios.gg");
+    let bios = include_bytes!("../../external/majbios.gg");
+    let sonic2 = include_bytes!("../../external/sonic2.gg");
 
     let mut system = System::new();
-    system.load_rom(data);
+    system.load_rom(bios, true);
+    system.load_rom(sonic2[..0xc000].as_ref(), false); // todo: need this cause of mapper
     system.run();
 }

@@ -18,11 +18,19 @@ impl System {
         }
     }
 
-    pub(crate) fn load_rom(&mut self, data: &[u8]) {
+    pub(crate) fn load_rom(&mut self, data: &[u8], is_bios: bool) {
+        if !is_bios {
+            self.bus.bios_enabled = false;
+        }
+
         for i in 0..data.len() {
             self.bus
                 .write(i as u16, data[i])
                 .expect("Failed to write to bus while loading into ROM");
+        }
+
+        if !is_bios {
+            self.bus.bios_enabled = true;
         }
     }
 

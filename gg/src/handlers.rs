@@ -179,22 +179,31 @@ impl Handlers {
         }
     }
 
-    pub(crate) fn compare(cpu: &mut Cpu, _bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
-        match instruction.opcode {
+    pub(crate) fn compare(cpu: &mut Cpu, bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
+        let (carry, zero) = match instruction.opcode {
             Opcode::Compare(Operand::Immediate(Immediate::U8(imm), false), _) => {
                 let a = cpu.get_register_u8(Reg8::A);
                 let result = a.wrapping_sub(imm);
+                (a < imm, result == 0)
+            },
+            Opcode::Compare(Operand::Register(Register::Reg16(src_reg), true), _) => {
+                let src = {
+                    let reg = cpu.get_register_u16(src_reg);
+                    bus.read(reg)?
+                };
+                let a = cpu.get_register_u8(Reg8::A);
+                let result = a.wrapping_sub(src);
+                (a < src, result == 0)
+            },
+            _ => panic!("Invalid opcode for compare instruction: {}", instruction.opcode),
+        };
 
-                // todo: ???
-                cpu.flags.set(Flags::SUBTRACT, true);
-                cpu.flags.set(Flags::CARRY, a < imm);
-                cpu.flags.set(Flags::HALF_CARRY, a < imm);
-                cpu.flags.set(Flags::ZERO, result == 0);
+        cpu.flags.set(Flags::SUBTRACT, true);
+        cpu.flags.set(Flags::CARRY, carry);
+        cpu.flags.set(Flags::HALF_CARRY, carry);
+        cpu.flags.set(Flags::ZERO, zero);
 
-                Ok(())
-            }
-            _ => panic!("Invalid opcode for subtract instruction: {}", instruction.opcode),
-        }
+        Ok(())
     }
 
     pub(crate) fn jump_relative(cpu: &mut Cpu, _bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
@@ -226,10 +235,13 @@ impl Handlers {
 
     pub(crate) fn return_(cpu: &mut Cpu, bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
-            Opcode::Return(Condition::None, _) => {
-                let addr = cpu.pop_stack(bus)?;
-                cpu.set_register_u16(Reg16::PC, addr);
-                Ok(())
+            Opcode::Return(condition, _) => {
+                if Handlers::check_cpu_flag(cpu, condition) {
+                    let addr = cpu.pop_stack(bus)?;
+                    cpu.set_register_u16(Reg16::PC, addr);
+                    return Ok(());
+                }
+                Err(GgError::JumpNotTaken)
             }
             _ => panic!("Invalid opcode for return instruction: {}", instruction.opcode),
         }

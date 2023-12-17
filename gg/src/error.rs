@@ -11,4 +11,6 @@ pub(crate) enum GgError {
     OpcodeNotImplemented { opcode: Opcode },
     #[snafu(display("Decoder errored with message: {msg}"))]
     DecoderError { msg: String },
+    #[snafu(display("Jump not taken"))]
+    JumpNotTaken
 }
