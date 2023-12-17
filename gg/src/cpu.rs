@@ -196,7 +196,6 @@ impl Cpu {
     pub(crate) fn push_stack(&mut self, bus: &mut Bus, value: u16) -> Result<(), GgError> {
         self.registers.sp -= 2;
         bus.write_word(self.registers.sp, value)?;
-        log::trace!("Pushed {:04x} to stack at {:04x}", value, self.registers.sp);
         Ok(())
     }
 

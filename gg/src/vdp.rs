@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::{bus::Bus, io::IoMode, memory::Memory};
 use bitmatch::bitmatch;
-use log::{debug, error, trace, info, ParseLevelError};
+use log::{debug, error, info, trace, ParseLevelError};
 
 // todo: ????
 const H_COUNTER_COUNT: u8 = 171;
@@ -141,13 +141,14 @@ impl Vdp {
             self.control_data.extend(buffer);
         }
 
-        if let Some(buffer) = bus.io.pop_all(DATA_PORT) {
+        if let Some(mut buffer) = bus.io.pop_all(DATA_PORT) {
             debug!("Received buffer via I/O data port ({:02x}): {:02x?}", DATA_PORT, buffer);
 
             match self.mode {
                 Mode::VramWrite => {
                     // Write data bytes to VRAM
-                    self.vram.copy(self.registers.address, &buffer);
+                    self.vram
+                        .copy(self.registers.address, &buffer.clone().into_iter().collect::<Vec<u8>>());
                     debug!("Wrote {} bytes to {:04x} @ VRAM", buffer.len(), self.registers.address);
 
                     self.registers.address += buffer.len() as u16;
@@ -159,25 +160,56 @@ impl Vdp {
                     // Write data bytes to CRAM
                     // "If the address register exceeds the CRAM size (32 or 64 bytes), the high bits are ignored so it will always address CRAM;""
                     // "for example, address $1000 wil read from CRAM address $00.""
-                    let address = self.registers.address & 0b0000_0000_0111_1111;
-                    self.cram.copy(address, &buffer);
-                    debug!("Wrote {} bytes to {:04x} @ CRAM", buffer.len(), address);
 
-                    self.registers.address += buffer.len() as u16;
-                    if self.registers.address >= 0x40 {
-                        self.registers.address = self.registers.address - 0x40;
+                    // Even writes to CRAM get cached in a latch, whereas odd writes write to the CRAM along with the latched byte
+                    // todo: isn't this just a copy routine basically? aka, what we did before the rewrite?
+
+                    let mut latch: Option<u8> = None;
+                    loop {
+                        if buffer.is_empty() {
+                            break;
+                        }
+
+                        let address = self.registers.address & 0b0000_0000_0111_1111;
+
+                        if address % 2 == 0 {
+                            latch = buffer.pop_front();
+                        } else {
+                            let value = buffer.pop_front().unwrap();
+                            let latched_value = latch.unwrap_or(0);
+                            self.cram.write(address, latched_value);
+                            self.cram.write(address - 1, value);
+                            debug!(
+                                "Wrote 2 bytes [current: {:02x}, latched: {:02x}] to {:04x} @ CRAM",
+                                value,
+                                latched_value,
+                                address - 1
+                            );
+                        }
+
+                        self.registers.address += 1;
+                        if self.registers.address >= 0x40 {
+                            self.registers.address = self.registers.address - 0x40;
+                        }
                     }
 
                     for idx in (0..64).step_by(2) {
-                        let palette_info = self.cram.read_word(idx);
-                        let r = (palette_info & 0b0000_0000_0000_1111) as u8;
-                        let g = ((palette_info & 0b0000_0000_1111_0000) >> 4) as u8;
-                        let b = ((palette_info & 0b0000_1111_0000_0000) >> 8) as u8;
+                        let p1 = self.cram.read(idx);
+                        let p2 = self.cram.read(idx + 1);
+
+                        // Shifting these values by 4 bits to the left gives us the actual color value in 8bit color space
+                        let palette_info = ((p1 as u16) << 8) | (p2 as u16);
+                        let r = ((palette_info & 0b0000_0000_0000_1111) << 4) as u8;
+                        let g = (((palette_info & 0b0000_0000_1111_0000) << 4) >> 4) as u8;
+                        let b = (((palette_info & 0b0000_1111_0000_0000) << 4) >> 8) as u8;
                         if r == 0 && g == 0 && b == 0 {
                             continue;
                         }
-            
-                        info!("Palette entry {:02x}: {:16b}/{:04x} {:02x} {:02x} {:02x}", idx, palette_info, palette_info, r, g, b);
+
+                        debug!(
+                            "Palette entry {:02x}: {:16b}/{:04x} r:{:02x} g:{:02x} b:{:02x}",
+                            idx, palette_info, palette_info, r, g, b
+                        );
                     }
                 }
                 Mode::None => {

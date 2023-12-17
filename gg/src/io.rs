@@ -32,9 +32,18 @@ impl IoBus {
             match port {
                 0x00..=0x06 => {
                     // Possibly Gear-to-Gear communication
-                    const DEFAULT: [u8; 7] = [0xc0, 0x7f, 0xff, 0x00, 0xff, 0x00, 0xff];
+                    // const DEFAULT: [u8; 7] = [0xc0, 0x7f, 0xff, 0x00, 0xff, 0x00, 0xff];
+                    // After reverse engineering the BIOS some more, it seems that
+                    // in a normal non Gear-to-Gear case, the port returns whatever is written to it
+                    /*
+                     *  00000026  LD A,0xfa
+                     *  00000028  OUT (0x0002),A
+                     *  0000002a  IN A,(0x0002)
+                     *  0000002c  CP 0xfa
+                     */
+                    
                     if let Some(data) = buffer.front_mut() {
-                        data.value = DEFAULT[*port as usize];
+                        // data.value = DEFAULT[*port as usize];
                         data.is_answer = true;
                     }
                 }
@@ -69,9 +78,9 @@ impl IoBus {
         None
     }
 
-    pub(crate) fn pop_all(&mut self, port: u8) -> Option<Vec<u8>> {
+    pub(crate) fn pop_all(&mut self, port: u8) -> Option<VecDeque<u8>> {
         if let Some(buffer) = self.pipeline.get(&port) {
-            let buffer = Some(buffer.iter().map(|data| data.value).collect());
+            let buffer = Some(buffer.into_iter().map(|data| data.value).collect());
             self.pipeline.remove(&port);
             return buffer;
         }
