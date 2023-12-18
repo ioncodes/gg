@@ -65,6 +65,39 @@ impl Vdp {
         self.handle_io(bus);
         self.handle_control_data();
         self.handle_counters();
+
+        // todo: extract a render function
+        // let background_color = self.read_palette_entry(0);
+        // if !(background_color.0 == 0 && background_color.1 == 0 && background_color.2 == 0) {
+        //     debug!("Background color => r:{:02x} g:{:02x} b:{:02x}", background_color.0, background_color.1, background_color.2);
+        // }
+        // debug!("{:02x}", self.vram.read(0x3a52));
+
+        // for x in 0..32 {
+        //     for y in 0..32 {
+        //         let addr = self.get_name_table_address(x, y);
+        //         if addr < 0x3800 {
+        //             continue;
+        //         }
+
+        //         let pattern = self.vram.read_word(addr);
+        //         if pattern == 0 {
+        //             continue;
+        //         }
+
+        //         debug!("Name table address: {:04x} => {:04x}", addr, pattern);
+        //         for i in 0..8 {
+        //             for j in 0..8 {
+        //                 let lmao = self.vram.read((pattern * 32) + i + j);
+        //                 if lmao == 0 {
+        //                     continue;
+        //                 }
+
+        //                 debug!("{:02x}", lmao);
+        //             }
+        //         }
+        //     }
+        // }
     }
 
     #[bitmatch]
@@ -176,13 +209,14 @@ impl Vdp {
                             latch = buffer.pop_front();
                         } else {
                             let value = buffer.pop_front().unwrap();
-                            let latched_value = latch.unwrap_or(0);
-                            self.cram.write(address, latched_value);
+                            if let Some(latched_value) = latch {
+                                self.cram.write(address, latched_value);
+                            }
                             self.cram.write(address - 1, value);
                             debug!(
-                                "Wrote 2 bytes [current: {:02x}, latched: {:02x}] to {:04x} @ CRAM",
+                                "Wrote 1-2 bytes [current: {:02x}, latched: {:02x?}] to {:04x} @ CRAM",
                                 value,
-                                latched_value,
+                                latch,
                                 address - 1
                             );
                         }
@@ -194,22 +228,12 @@ impl Vdp {
                     }
 
                     for idx in (0..64).step_by(2) {
-                        let p1 = self.cram.read(idx);
-                        let p2 = self.cram.read(idx + 1);
-
-                        // Shifting these values by 4 bits to the left gives us the actual color value in 8bit color space
-                        let palette_info = ((p1 as u16) << 8) | (p2 as u16);
-                        let r = ((palette_info & 0b0000_0000_0000_1111) << 4) as u8;
-                        let g = (((palette_info & 0b0000_0000_1111_0000) << 4) >> 4) as u8;
-                        let b = (((palette_info & 0b0000_1111_0000_0000) << 4) >> 8) as u8;
+                        let (r, g, b) = self.read_palette_entry(idx);
                         if r == 0 && g == 0 && b == 0 {
                             continue;
                         }
 
-                        debug!(
-                            "Palette entry {:02x}: {:16b}/{:04x} r:{:02x} g:{:02x} b:{:02x}",
-                            idx, palette_info, palette_info, r, g, b
-                        );
+                        debug!("Palette entry {:02x} => r:{:02x} g:{:02x} b:{:02x}", idx, r, g, b);
                     }
                 }
                 Mode::None => {
@@ -252,6 +276,33 @@ impl Vdp {
             self.h += 1;
         }
     }
+
+    fn get_name_table_address(&self, x: u8, y: u8) -> u16 {
+        /*
+         *  VRAM address bus layout for name table fetch
+         *  MSB             LSB
+         *  --bb byyy yyxx xxxw : b= Table base address, y= Row, x= Column
+         *  ---- -x-- ---- ---- : x= Mask bit (bit 0 of register $02)
+         */
+
+        let mut address: u16 = ((self.registers.r2 & 0b0000_1110) as u16) << 10;
+        address |= ((y & 0b0001_1111) as u16) << 6;
+        address |= ((x & 0b0001_1111) as u16) << 1;
+        address
+    }
+
+    fn read_palette_entry(&self, address: u16) -> (u8, u8, u8) {
+        let p1 = self.cram.read(address);
+        let p2 = self.cram.read(address + 1);
+
+        // Shifting these values by 4 bits to the left gives us the actual color value in 8bit color space
+        let palette = ((p1 as u16) << 8) | (p2 as u16);
+        let r = ((palette & 0b0000_0000_0000_1111) << 4) as u8;
+        let g = (((palette & 0b0000_0000_1111_0000) << 4) >> 4) as u8;
+        let b = (((palette & 0b0000_1111_0000_0000) << 4) >> 8) as u8;
+
+        (r, g, b)
+    }
 }
 
 impl std::fmt::Display for Vdp {
@@ -259,7 +310,7 @@ impl std::fmt::Display for Vdp {
         write!(f, "V counter: {:02x}\n", self.v)?;
         write!(f, "H counter: {:02x}\n", self.h)?;
 
-        write!(f, "Registers: {:04x?}\n", self.registers)?;
+        write!(f, "Registers: {:02x?}\n", self.registers)?;
 
         for addr in -8..=8 {
             let addr = self.registers.address as i16 + addr;
