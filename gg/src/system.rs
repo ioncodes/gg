@@ -41,6 +41,7 @@ impl System {
 
     pub(crate) fn run(&mut self) {
         loop {
+            // Execute pre-tick Lua script
             if !self.lua_cached {
                 self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
                 self.lua_cached = true;
@@ -56,9 +57,10 @@ impl System {
             };
             self.vdp.tick(&mut self.bus);
 
-            // execute other components here (e.g. VDP or I/O interaction)
+            // Execute other components here (e.g. VDP or I/O interaction)
             self.bus.io.process_default();
 
+            // Execute post-tick Lua script
             self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
             self.lua.execute_function("post_tick");
         }
