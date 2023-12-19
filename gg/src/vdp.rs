@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::{bus::Bus, io::IoMode, memory::Memory};
 use bitmatch::bitmatch;
-use log::{debug, error, info, trace, ParseLevelError};
+use log::{debug, error, trace};
 
 // todo: ????
 const H_COUNTER_COUNT: u8 = 171;
@@ -182,6 +182,7 @@ impl Vdp {
                     // Write data bytes to VRAM
 
                     let bytes_to_write = buffer.len();
+
                     loop {
                         if buffer.is_empty() {
                             break;

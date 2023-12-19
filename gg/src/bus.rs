@@ -3,9 +3,9 @@ use crate::io::{IoBus, IoMode};
 use crate::memory::Memory;
 
 pub(crate) struct Bus {
-    rom: Memory,      // 0x0000 - 0xbfff
-    ram: Memory,      // 0xc000 - 0xffff
-    bios_rom: Memory, // only for BIOS. enabled on startup, disabled by end of BIOS
+    pub(crate) rom: Memory,      // 0x0000 - 0xbfff
+    pub(crate) ram: Memory,      // 0xc000 - 0xffff
+    pub(crate) bios_rom: Memory, // only for BIOS. enabled on startup, disabled by end of BIOS
     pub(crate) bios_enabled: bool,
     pub(crate) io: IoBus,
 }

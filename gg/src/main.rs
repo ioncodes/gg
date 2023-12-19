@@ -8,6 +8,7 @@ mod io;
 mod memory;
 mod system;
 mod vdp;
+mod lua_engine;
 
 use crate::system::System;
 use env_logger::Builder;
@@ -33,8 +34,9 @@ fn main() {
 
     let bios = include_bytes!("../../external/majbios.gg");
     let sonic2 = include_bytes!("../../external/sonic2.gg");
+    let lua_script = String::from(include_str!("../../external/test.lua"));
 
-    let mut system = System::new();
+    let mut system = System::new(Some(lua_script));
     system.load_rom(bios, true);
     system.load_rom(sonic2[..0xc000].as_ref(), false); // todo: need this cause of mapper
     system.run();

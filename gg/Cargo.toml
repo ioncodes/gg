@@ -5,9 +5,9 @@ edition = "2021"
 
 [dependencies]
 z80 = { path = "../z80" }
-lazy_static = "1.4.0"
 bitflags = "2.4.1"
 snafu = "0.7.5"
 log = "0.4.20"
 env_logger = "0.10.1"
 bitmatch = "0.1.1"
+rlua = "0.19.7"

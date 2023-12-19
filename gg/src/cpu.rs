@@ -154,7 +154,7 @@ impl Cpu {
             Reg8::E => self.registers.e,
             Reg8::H => self.registers.h,
             Reg8::L => self.registers.l,
-            _ => panic!("Invalid register: {}", register),
+            Reg8::F => self.registers.f,
         }
     }
 

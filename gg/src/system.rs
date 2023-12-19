@@ -1,20 +1,25 @@
 use crate::bus::Bus;
 use crate::cpu::Cpu;
 use crate::error::GgError;
+use crate::lua_engine::LuaEngine;
 use crate::vdp::Vdp;
 
 pub(crate) struct System {
     pub(crate) cpu: Cpu,
     pub(crate) bus: Bus,
     pub(crate) vdp: Vdp,
+    lua: LuaEngine,
+    lua_cached: bool,
 }
 
 impl System {
-    pub(crate) fn new() -> System {
+    pub(crate) fn new(lua_script: Option<String>) -> System {
         System {
             cpu: Cpu::new(),
             bus: Bus::new(),
             vdp: Vdp::new(),
+            lua: LuaEngine::new(lua_script),
+            lua_cached: false
         }
     }
 
@@ -36,6 +41,13 @@ impl System {
 
     pub(crate) fn run(&mut self) {
         loop {
+            if !self.lua_cached {
+                self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
+                self.lua_cached = true;
+            }
+            self.lua.execute_function("pre_tick");
+
+            // Process tick for all components
             let result = self.cpu.tick(&mut self.bus);
             match result {
                 Err(GgError::OpcodeNotImplemented { opcode: _ }) => panic!("{}", self),
@@ -47,19 +59,8 @@ impl System {
             // execute other components here (e.g. VDP or I/O interaction)
             self.bus.io.process_default();
 
-            if self.cpu.registers.pc == 0x9f {
-                for idx in 0..self.vdp.vram.buffer.len() {
-                    print!("{:02x} ", self.vdp.vram.buffer[idx]);
-                    if idx % 16 == 15 {
-                        println!();
-                    }
-                }
-                break;
-            }
-
-            // println!("{}", self);
-            // let mut user_input = String::new();
-            // std::io::stdin().read_line(&mut user_input).unwrap();
+            self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
+            self.lua.execute_function("post_tick");
         }
     }
 }
