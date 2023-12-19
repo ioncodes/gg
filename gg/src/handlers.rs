@@ -283,6 +283,8 @@ impl Handlers {
                 cpu.set_register_u8(Reg8::A, result);
 
                 cpu.flags.set(Flags::ZERO, result == 0);
+                cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                // todo: cpu.flags.set(Flags::PARITY_OR_OVERFLOW, )
                 cpu.flags.set(Flags::SUBTRACT, false);
                 cpu.flags.set(Flags::HALF_CARRY, false);
                 cpu.flags.set(Flags::CARRY, false);
@@ -325,6 +327,8 @@ impl Handlers {
                 cpu.flags.set(Flags::ZERO, result == 0);
                 cpu.flags.set(Flags::SUBTRACT, false);
                 cpu.flags.set(Flags::HALF_CARRY, dst & 0x0f == 0x0f);
+                cpu.flags.set(Flags::PARITY_OR_OVERFLOW, result < dst);
+                cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
 
                 Ok(())
             }
@@ -336,6 +340,8 @@ impl Handlers {
                 cpu.flags.set(Flags::ZERO, result == 0);
                 cpu.flags.set(Flags::SUBTRACT, false);
                 cpu.flags.set(Flags::HALF_CARRY, dst & 0x0f == 0x0f);
+                cpu.flags.set(Flags::PARITY_OR_OVERFLOW, result < dst);
+                cpu.flags.set(Flags::SIGN, result & 0b1000_0000_0000_0000 != 0);
 
                 Ok(())
             }
@@ -353,6 +359,8 @@ impl Handlers {
                 cpu.flags.set(Flags::ZERO, result == 0);
                 cpu.flags.set(Flags::SUBTRACT, true);
                 cpu.flags.set(Flags::HALF_CARRY, dst & 0x0f == 0x00);
+                cpu.flags.set(Flags::PARITY_OR_OVERFLOW, result > dst);
+                cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
 
                 Ok(())
             }
@@ -364,6 +372,8 @@ impl Handlers {
                 cpu.flags.set(Flags::ZERO, result == 0);
                 cpu.flags.set(Flags::SUBTRACT, true);
                 cpu.flags.set(Flags::HALF_CARRY, dst & 0x0f == 0x00);
+                cpu.flags.set(Flags::PARITY_OR_OVERFLOW, result > dst);
+                cpu.flags.set(Flags::SIGN, result & 0b1000_0000_0000_0000 != 0);
 
                 Ok(())
             }
@@ -416,6 +426,8 @@ impl Handlers {
                 cpu.set_register_u8(Reg8::A, result);
 
                 cpu.flags.set(Flags::ZERO, result == 0);
+                cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                // todo: cpu.flags.set(Flags::PARITY_OR_OVERFLOW, )
                 cpu.flags.set(Flags::SUBTRACT, false);
                 cpu.flags.set(Flags::HALF_CARRY, false);
                 cpu.flags.set(Flags::CARRY, false);
