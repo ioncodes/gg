@@ -1,7 +1,7 @@
 use crate::bus::Bus;
 use crate::cpu::Cpu;
 use crate::error::GgError;
-use crate::lua_engine::LuaEngine;
+use crate::lua_engine::{LuaEngine, HookType};
 use crate::vdp::Vdp;
 
 pub(crate) struct System {
@@ -42,11 +42,15 @@ impl System {
     pub(crate) fn run(&mut self) {
         loop {
             // Execute pre-tick Lua script
-            if !self.lua_cached {
-                self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
-                self.lua_cached = true;
+            let current_pc_before_tick = self.cpu.registers.pc;
+            if self.lua.hook_exists(current_pc_before_tick, HookType::PreTick) {
+                if !self.lua_cached {
+                    self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
+                    self.lua_cached = true;
+                }
+
+                self.lua.execute_hook(current_pc_before_tick,HookType::PreTick);
             }
-            self.lua.execute_function("pre_tick");
 
             // Process tick for all components
             let result = self.cpu.tick(&mut self.bus);
@@ -61,8 +65,10 @@ impl System {
             self.bus.io.process_default();
 
             // Execute post-tick Lua script
-            self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
-            self.lua.execute_function("post_tick");
+            if self.lua.hook_exists(current_pc_before_tick, HookType::PostTick) {
+                self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
+                self.lua.execute_hook(current_pc_before_tick, crate::lua_engine::HookType::PostTick);
+            }
         }
     }
 }

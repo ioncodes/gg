@@ -1,8 +1,23 @@
+use std::collections::HashMap;
+
+use lazy_static::lazy_static;
 use log::info;
-use rlua::{Context, Lua, Function};
+use rlua::{Context, Function, Lua};
+use std::sync::Mutex;
 use z80::instruction::{Reg16, Reg8};
 
 use crate::{bus::Bus, cpu::Cpu, vdp::Vdp};
+
+lazy_static! {
+    static ref HOOKS: Mutex<HashMap<u16, (String, HookType)>> = Mutex::new(HashMap::new());
+}
+
+#[derive(PartialEq)]
+pub(crate) enum HookType {
+    PreTick,
+    PostTick,
+    Both,
+}
 
 pub(crate) struct LuaEngine {
     lua: Option<Lua>,
@@ -13,12 +28,45 @@ impl LuaEngine {
         let lua = if let Some(script) = script {
             let lua = Lua::new();
             lua.context(|ctx| {
+                let globals = ctx.globals();
+
+                // Logging function
+                globals
+                    .set(
+                        "log",
+                        ctx.create_function(|_, msg: String| {
+                            info!("{}", msg);
+                            Ok(())
+                        })
+                        .unwrap(),
+                    )
+                    .unwrap();
+
+                // Instruction-level hook function
+                globals
+                    .set(
+                        "install_hook",
+                        ctx.create_function(|_, (address, pre_tick_hook, function_name): (u16, u8, String)| {
+                            match pre_tick_hook {
+                                0 => HOOKS.lock().unwrap().insert(address, (function_name, HookType::PreTick)),
+                                1 => HOOKS.lock().unwrap().insert(address, (function_name, HookType::PostTick)),
+                                2 => HOOKS.lock().unwrap().insert(address, (function_name, HookType::Both)),
+                                _ => panic!("Invalid hook type in Lua script"),
+                            };
+                            Ok(())
+                        })
+                        .unwrap(),
+                    )
+                    .unwrap();
+
+                // Hook type constants
+                globals.set("PRE_TICK", 0).unwrap();
+                globals.set("POST_TICK", 1).unwrap();
+                globals.set("BOTH_TICK", 2).unwrap();
+
                 ctx.load(&script).exec().unwrap();
-                ctx.globals().set("log", ctx.create_function(|_, msg: String| {
-                    info!("{}", msg);
-                    Ok(())
-                }).unwrap()).unwrap();
             });
+
             Some(lua)
         } else {
             None
@@ -27,13 +75,39 @@ impl LuaEngine {
         LuaEngine { lua }
     }
 
+    pub(crate) fn hook_exists(&self, address: u16, current_instruction_state: HookType) -> bool {
+        if let Some((_, hook_type)) = HOOKS.lock().unwrap().get(&address) {
+            return *hook_type == current_instruction_state || *hook_type == HookType::Both;
+        }
+
+        false
+    }
+
+    pub(crate) fn execute_hook(&self, address: u16, current_instruction_state: HookType) {
+        if let Some(lua) = &self.lua {
+            if let Some((function_name, hook_type)) = HOOKS.lock().unwrap().get(&address) {
+                if *hook_type != current_instruction_state || *hook_type == HookType::Both {
+                    return;
+                }
+
+                lua.context(|ctx| {
+                    let globals = ctx.globals();
+                    let func = globals.get::<_, Function>(function_name.clone()).unwrap();
+                    func.call::<_, ()>(())
+                })
+                .unwrap();
+            }
+        }
+    }
+
     pub(crate) fn execute_function(&self, function_name: &str) {
         if let Some(lua) = &self.lua {
             lua.context(|ctx| {
                 let globals = ctx.globals();
-                let func = globals.get::<_, Function>(function_name)?;
-                func.call::<_, ()>(())
-            }).unwrap();
+                if let Ok(func) = globals.get::<_, Function>(function_name) {
+                    func.call::<_, ()>(()).unwrap();
+                }
+            });
         }
     }
 
