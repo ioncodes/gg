@@ -46,22 +46,32 @@ impl System {
 
             // execute other components here (e.g. VDP or I/O interaction)
             self.bus.io.process_default();
+
+            if self.cpu.registers.pc == 0x9f {
+                for idx in 0..self.vdp.vram.buffer.len() {
+                    print!("{:02x} ", self.vdp.vram.buffer[idx]);
+                    if idx % 16 == 15 {
+                        println!();
+                    }
+                }
+                break;
+            }
+
+            // println!("{}", self);
+            // let mut user_input = String::new();
+            // std::io::stdin().read_line(&mut user_input).unwrap();
         }
     }
 }
 
 impl std::fmt::Display for System {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "CPU state:\n{}", self.cpu)?;
+        write!(f, "{}", self.cpu)?;
 
-        write!(f, "\n\nStack:\n")?;
-        for i in -8..=8 {
-            let address = self.cpu.registers.sp.wrapping_add_signed(i);
-            let value = self.bus.read_word(address).unwrap_or(0x6969);
-            write!(f, "{:04x}: {:04x}\n", address, value)?;
-        }
+        let value = self.bus.read_word(self.cpu.registers.sp).unwrap();
+        write!(f, "RAM @ {:04x}: {:04x}\n", self.cpu.registers.sp, value)?;
 
-        write!(f, "\nVDP state:\n{}", self.vdp)?;
+        write!(f, "{}\n", self.vdp)?;
 
         Ok(())
     }

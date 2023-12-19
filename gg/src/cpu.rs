@@ -1,11 +1,11 @@
-use crate::{bus::Bus, handlers::Handlers, error::GgError};
+use crate::{bus::Bus, error::GgError, handlers::Handlers};
+use bitflags::bitflags;
+use log::{debug, error, trace};
 use std::fmt;
 use z80::{
     disassembler::Disassembler,
-    instruction::{Opcode, Register, Reg8, Reg16},
+    instruction::{Opcode, Reg16, Reg8, Register},
 };
-use bitflags::bitflags;
-use log::{trace, debug, error};
 
 pub(crate) struct Registers {
     pub(crate) a: u8,
@@ -93,15 +93,17 @@ impl Cpu {
                     Opcode::Outi(_) => Handlers::outi(self, bus, &instruction),
                     _ => {
                         error!("Invalid opcode: {}", instruction.opcode);
-                        Err(GgError::OpcodeNotImplemented { opcode: instruction.opcode })
-                    },
+                        Err(GgError::OpcodeNotImplemented {
+                            opcode: instruction.opcode,
+                        })
+                    }
                 };
 
                 let io_skip = match result {
                     Err(GgError::IoRequestNotFulfilled) => {
                         debug!("I/O request not fulfilled, waiting for next tick");
                         true
-                    },
+                    }
                     _ => false,
                 };
 
@@ -109,8 +111,8 @@ impl Cpu {
                     Opcode::CallUnconditional(_, _) => true,
                     // only skip the PC increment if we actually returned somewhere
                     Opcode::Jump(_, _, _) => result.is_ok(),
-                    Opcode::Return(_, _) => result.is_ok(), 
-                    _ => false
+                    Opcode::Return(_, _) => result.is_ok(),
+                    _ => false,
                 };
 
                 if !call_skip && !io_skip {
@@ -211,13 +213,11 @@ impl fmt::Display for Flags {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "CNPxHxZS\n{}{}{}{}{}{}{}{}",
+            "C: {} N: {} P: {} H: {} Z: {} S: {}",
             self.contains(Flags::CARRY) as u8,
             self.contains(Flags::SUBTRACT) as u8,
             self.contains(Flags::PARITY_OR_OVERFLOW) as u8,
-            self.contains(Flags::F3) as u8,
             self.contains(Flags::HALF_CARRY) as u8,
-            self.contains(Flags::F5) as u8,
             self.contains(Flags::ZERO) as u8,
             self.contains(Flags::SIGN) as u8
         )
@@ -227,11 +227,15 @@ impl fmt::Display for Flags {
 impl fmt::Display for Cpu {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
-            f, 
-            "REGISTERS\nA: {:02x}\nB: {:02x}\nC: {:02x}\nD: {:02x}\nE: {:02x}\nH: {:02x}\nL: {:02x}\nF: {:02x}\nAF: {:04x}\nBC: {:04x}\nDE: {:04x}\nHL: {:04x}\nPC: {:04x}\nSP: {:04x}\n",
-            self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.f,
-            self.get_register_u16(Reg16::AF), self.get_register_u16(Reg16::BC), self.get_register_u16(Reg16::DE), self.get_register_u16(Reg16::HL),
-            self.registers.pc, self.registers.sp)?;
-        write!(f, "\nFLAGS\n{}", self.flags)
+            f,
+            "AF: {:04x}  BC: {:04x}  DE: {:04x}  HL: {:04x}  PC: {:04x}  SP: {:04x}\n",
+            self.get_register_u16(Reg16::AF),
+            self.get_register_u16(Reg16::BC),
+            self.get_register_u16(Reg16::DE),
+            self.get_register_u16(Reg16::HL),
+            self.registers.pc,
+            self.registers.sp
+        )?;
+        write!(f, "{}\n", self.flags)
     }
 }

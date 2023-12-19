@@ -41,8 +41,8 @@ pub(crate) struct Vdp {
     h_2nd_loop: bool,
     control_data: VecDeque<u8>,
     registers: Registers,
-    vram: Memory,
-    cram: Memory,
+    pub(crate) vram: Memory,
+    pub(crate) cram: Memory,
     mode: Mode,
 }
 
@@ -180,14 +180,23 @@ impl Vdp {
             match self.mode {
                 Mode::VramWrite => {
                     // Write data bytes to VRAM
-                    self.vram
-                        .copy(self.registers.address, &buffer.clone().into_iter().collect::<Vec<u8>>());
-                    debug!("Wrote {} bytes to {:04x} @ VRAM", buffer.len(), self.registers.address);
 
-                    self.registers.address += buffer.len() as u16;
-                    if self.registers.address >= 0x4000 {
-                        self.registers.address = self.registers.address - 0x4000;
+                    let bytes_to_write = buffer.len();
+                    loop {
+                        if buffer.is_empty() {
+                            break;
+                        }
+
+                        let value = buffer.pop_front().unwrap();
+                        self.vram.write(self.registers.address, value);
+
+                        self.registers.address += 1;
+                        if self.registers.address >= 0x4000 {
+                            self.registers.address = self.registers.address - 0x4000;
+                        }
                     }
+
+                    debug!("Wrote {} bytes to {:04x} @ VRAM", bytes_to_write, self.registers.address);
                 }
                 Mode::CramWrite => {
                     // Write data bytes to CRAM
@@ -225,15 +234,6 @@ impl Vdp {
                         if self.registers.address >= 0x40 {
                             self.registers.address = self.registers.address - 0x40;
                         }
-                    }
-
-                    for idx in (0..64).step_by(2) {
-                        let (r, g, b) = self.read_palette_entry(idx);
-                        if r == 0 && g == 0 && b == 0 {
-                            continue;
-                        }
-
-                        debug!("Palette entry {:02x} => r:{:02x} g:{:02x} b:{:02x}", idx, r, g, b);
                     }
                 }
                 Mode::None => {
@@ -307,21 +307,23 @@ impl Vdp {
 
 impl std::fmt::Display for Vdp {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "V counter: {:02x}\n", self.v)?;
-        write!(f, "H counter: {:02x}\n", self.h)?;
-
-        write!(f, "Registers: {:02x?}\n", self.registers)?;
-
-        for addr in -8..=8 {
-            let addr = self.registers.address as i16 + addr;
-            if addr < 0 {
-                continue;
-            }
-
-            let addr = addr as u16;
-            let value = self.vram.read(addr);
-            write!(f, "{:04x}: {:02x}\n", addr, value)?;
-        }
+        write!(f, "V: {:02x}  H: {:02x}\n", self.v, self.h)?;
+        write!(f, "r0: {:02x}  r1: {:02x}  r2: {:02x}  r3: {:02x}  r4: {:02x}  r5: {:02x}  r6: {:02x}  r7: {:02x}  r8: {:02x}  r9: {:02x}  r10: {:02x}  address: {:04x}\n",
+            self.registers.r0,
+            self.registers.r1,
+            self.registers.r2,
+            self.registers.r3,
+            self.registers.r4,
+            self.registers.r5,
+            self.registers.r6,
+            self.registers.r7,
+            self.registers.r8,
+            self.registers.r9,
+            self.registers.r10,
+            self.registers.address)?;
+        
+        let value = self.vram.read(self.registers.address);
+        write!(f, "VRAM @ {:04x}: {:02x}", self.registers.address, value)?;
 
         Ok(())
     }
