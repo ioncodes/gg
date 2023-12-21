@@ -8,8 +8,7 @@ pub(crate) struct System {
     pub(crate) cpu: Cpu,
     pub(crate) bus: Bus,
     pub(crate) vdp: Vdp,
-    lua: LuaEngine,
-    lua_cached: bool,
+    lua: LuaEngine
 }
 
 impl System {
@@ -18,8 +17,7 @@ impl System {
             cpu: Cpu::new(),
             bus: Bus::new(),
             vdp: Vdp::new(),
-            lua: LuaEngine::new(lua_script),
-            lua_cached: false
+            lua: LuaEngine::new(lua_script)
         }
     }
 
@@ -44,12 +42,8 @@ impl System {
             // Execute pre-tick Lua script
             let current_pc_before_tick = self.cpu.registers.pc;
             if self.lua.hook_exists(current_pc_before_tick, HookType::PreTick) {
-                if !self.lua_cached {
-                    self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
-                    self.lua_cached = true;
-                }
-
-                self.lua.execute_hook(current_pc_before_tick,HookType::PreTick);
+                self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
+                self.lua.execute_hook(current_pc_before_tick, HookType::PreTick);
             }
 
             // Process tick for all components
@@ -67,7 +61,7 @@ impl System {
             // Execute post-tick Lua script
             if self.lua.hook_exists(current_pc_before_tick, HookType::PostTick) {
                 self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
-                self.lua.execute_hook(current_pc_before_tick, crate::lua_engine::HookType::PostTick);
+                self.lua.execute_hook(current_pc_before_tick, HookType::PostTick);
             }
         }
     }

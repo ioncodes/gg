@@ -324,24 +324,12 @@ impl Handlers {
                 let result = dst.wrapping_add(1);
                 cpu.set_register_u8(dst_reg, result);
 
-                cpu.flags.set(Flags::ZERO, result == 0);
-                cpu.flags.set(Flags::SUBTRACT, false);
-                cpu.flags.set(Flags::HALF_CARRY, dst & 0x0f == 0x0f);
-                cpu.flags.set(Flags::PARITY_OR_OVERFLOW, result < dst);
-                cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
-
                 Ok(())
             }
             Opcode::Increment(Operand::Register(Register::Reg16(dst_reg), false), _) => {
                 let dst = cpu.get_register_u16(dst_reg);
                 let result = dst.wrapping_add(1);
                 cpu.set_register_u16(dst_reg, result);
-
-                cpu.flags.set(Flags::ZERO, result == 0);
-                cpu.flags.set(Flags::SUBTRACT, false);
-                cpu.flags.set(Flags::HALF_CARRY, dst & 0x0f == 0x0f);
-                cpu.flags.set(Flags::PARITY_OR_OVERFLOW, result < dst);
-                cpu.flags.set(Flags::SIGN, result & 0b1000_0000_0000_0000 != 0);
 
                 Ok(())
             }
@@ -356,24 +344,12 @@ impl Handlers {
                 let result = dst.wrapping_sub(1);
                 cpu.set_register_u8(dst_reg, result);
 
-                cpu.flags.set(Flags::ZERO, result == 0);
-                cpu.flags.set(Flags::SUBTRACT, true);
-                cpu.flags.set(Flags::HALF_CARRY, dst & 0x0f == 0x00);
-                cpu.flags.set(Flags::PARITY_OR_OVERFLOW, result > dst);
-                cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
-
                 Ok(())
             }
             Opcode::Decrement(Operand::Register(Register::Reg16(dst_reg), false), _) => {
                 let dst = cpu.get_register_u16(dst_reg);
                 let result = dst.wrapping_sub(1);
                 cpu.set_register_u16(dst_reg, result);
-
-                cpu.flags.set(Flags::ZERO, result == 0);
-                cpu.flags.set(Flags::SUBTRACT, true);
-                cpu.flags.set(Flags::HALF_CARRY, dst & 0x0f == 0x00);
-                cpu.flags.set(Flags::PARITY_OR_OVERFLOW, result > dst);
-                cpu.flags.set(Flags::SIGN, result & 0b1000_0000_0000_0000 != 0);
 
                 Ok(())
             }
