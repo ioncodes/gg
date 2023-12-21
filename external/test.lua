@@ -34,8 +34,7 @@ function outi_hook()
 end
 
 function post_unknown_function_hook()
-    -- todo: is this off by one?
-    log(string.format("%02x %02x %02x %02x %02x %02x %02x", vdp["vram"][0x3a50], vdp["vram"][0x3a51], vdp["vram"][0x3a52], vdp["vram"][0x3a53], vdp["vram"][0x3a54], vdp["vram"][0x3a55], vdp["vram"][0x3a56]))
+    log(string.format("%02x %02x %02x %02x %02x %02x %02x", vdp["vram"][0x3a51], vdp["vram"][0x3a52], vdp["vram"][0x3a53], vdp["vram"][0x3a54], vdp["vram"][0x3a55], vdp["vram"][0x3a56], vdp["vram"][0x3a57]))
 end
 
 install_hook(0x9f, PRE_TICK, "post_sega_license_hook")
