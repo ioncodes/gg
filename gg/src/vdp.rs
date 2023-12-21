@@ -68,33 +68,25 @@ impl Vdp {
 
         // todo: extract a render function
         // let background_color = self.read_palette_entry(0);
-        // if !(background_color.0 == 0 && background_color.1 == 0 && background_color.2 == 0) {
-        //     debug!("Background color => r:{:02x} g:{:02x} b:{:02x}", background_color.0, background_color.1, background_color.2);
-        // }
-        // debug!("{:02x}", self.vram.read(0x3a52));
+        // // if !(background_color.0 == 0 && background_color.1 == 0 && background_color.2 == 0) {
+        // //     debug!("Background color => r:{:02x} g:{:02x} b:{:02x}", background_color.0, background_color.1, background_color.2);
+        // // }
+        // // debug!("{:02x}", self.vram.read(0x3a52));
+        // if self.h == 0 && self.v == 0 {
+        //     // todo this if is temporary
+        //     // Render tiles
+        //     debug!("VDP: {:02x}", self.vram.read(0x3ad0));
 
-        // for x in 0..32 {
-        //     for y in 0..32 {
-        //         let addr = self.get_name_table_address(x, y);
-        //         if addr < 0x3800 {
-        //             continue;
-        //         }
+        //     let mut name_table_addr = self.get_name_table_base_address();
+        //    //debug!("Name table base address: {:04x}", name_table_addr);
+            
+        //     for x in 0..32 {
+        //         for y in 0..32 {
+        //             let tile_info = self.vram.read_word(name_table_addr);
+        //             let pattern = tile_info & 0b0000_0001_1111_1111;
+        //             //debug!("{:04x}", pattern);
 
-        //         let pattern = self.vram.read_word(addr);
-        //         if pattern == 0 {
-        //             continue;
-        //         }
-
-        //         debug!("Name table address: {:04x} => {:04x}", addr, pattern);
-        //         for i in 0..8 {
-        //             for j in 0..8 {
-        //                 let lmao = self.vram.read((pattern * 32) + i + j);
-        //                 if lmao == 0 {
-        //                     continue;
-        //                 }
-
-        //                 debug!("{:02x}", lmao);
-        //             }
+        //             name_table_addr += 2;
         //         }
         //     }
         // }
@@ -111,7 +103,7 @@ impl Vdp {
                     "1000_????" => {
                         /*
                          * Set VDP register:
-                         * To set data in a VDP register, the data is inputted in the first byte. The second byte is used
+                         * To set data in a VDP register, the data is inputted in  the first byte. The second byte is used
                          * to indicate the register where the data is to be transferred.
                          * The bottom four bits (R3 to R0) of the second byte designate the data transfer destination
                          * registers (#0 to #10). b7 must be“1”and b6 to b4 must be“0”.
@@ -278,7 +270,7 @@ impl Vdp {
         }
     }
 
-    fn get_name_table_address(&self, x: u8, y: u8) -> u16 {
+    fn get_name_table_base_address(&self) -> u16 {
         /*
          *  VRAM address bus layout for name table fetch
          *  MSB             LSB
@@ -286,10 +278,7 @@ impl Vdp {
          *  ---- -x-- ---- ---- : x= Mask bit (bit 0 of register $02)
          */
 
-        let mut address: u16 = ((self.registers.r2 & 0b0000_1110) as u16) << 10;
-        address |= ((y & 0b0001_1111) as u16) << 6;
-        address |= ((x & 0b0001_1111) as u16) << 1;
-        address
+        ((self.registers.r2 & 0b0000_1110) as u16) << 10
     }
 
     fn read_palette_entry(&self, address: u16) -> (u8, u8, u8) {

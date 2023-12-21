@@ -416,7 +416,8 @@ impl Handlers {
 
     pub(crate) fn outi(cpu: &mut Cpu, bus: &mut Bus, _instruction: &Instruction) -> Result<(), GgError> {
         let b = cpu.get_register_u8(Reg8::B);
-        cpu.set_register_u8(Reg8::B, b.wrapping_sub(1));
+        let result = b.wrapping_sub(1);
+        cpu.set_register_u8(Reg8::B, result);
 
         let hl = cpu.get_register_u16(Reg16::HL);
         let value = bus.read(hl)?;
@@ -425,6 +426,9 @@ impl Handlers {
         bus.push_io_data(port, value, IoMode::Write, false);
 
         cpu.set_register_u16(Reg16::HL, hl.wrapping_add(1));
+
+        cpu.flags.set(Flags::ZERO, result == 0);
+        cpu.flags.set(Flags::SUBTRACT, true);
 
         Ok(())
     }
