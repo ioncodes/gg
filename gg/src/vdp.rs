@@ -12,6 +12,26 @@ const CONTROL_PORT: u8 = 0xbf;
 const DATA_PORT: u8 = 0xbe;
 // const PAL_SCANLINE_COUNT: u8 = 312;
 
+pub(crate) type Color = (u8, u8, u8, u8);
+
+pub(crate) struct Pattern {
+    pub(crate) data: [Color; 32],
+}
+
+impl Pattern {
+    pub(crate) fn new() -> Pattern {
+        Pattern { data: [(0, 0, 0, 0); 32] }
+    }
+
+    pub(crate) fn set_pixel(&mut self, x: u8, y: u8, color: Color) {
+        self.data[(y * 4 + x) as usize] = color;
+    }
+
+    pub(crate) fn get_pixel(&self, x: u8, y: u8) -> Color {
+        self.data[(y * 4 + x) as usize]
+    }
+}
+
 pub(crate) enum Mode {
     VramWrite,
     CramWrite,
@@ -44,6 +64,7 @@ pub(crate) struct Vdp {
     pub(crate) vram: Memory,
     pub(crate) cram: Memory,
     mode: Mode,
+    render_cache: Option<Vec<Color>>,
 }
 
 impl Vdp {
@@ -58,6 +79,7 @@ impl Vdp {
             vram: Memory::new(16 * 1024, 0x0000),
             cram: Memory::new(64, 0x0000),
             mode: Mode::None,
+            render_cache: None,
         }
     }
 
@@ -65,31 +87,82 @@ impl Vdp {
         self.handle_io(bus);
         self.handle_control_data();
         self.handle_counters();
+    }
 
-        // todo: extract a render function
-        // let background_color = self.read_palette_entry(0);
-        // // if !(background_color.0 == 0 && background_color.1 == 0 && background_color.2 == 0) {
-        // //     debug!("Background color => r:{:02x} g:{:02x} b:{:02x}", background_color.0, background_color.1, background_color.2);
-        // // }
-        // // debug!("{:02x}", self.vram.read(0x3a52));
-        // if self.h == 0 && self.v == 0 {
-        //     // todo this if is temporary
-        //     // Render tiles
-        //     debug!("VDP: {:02x}", self.vram.read(0x3ad0));
+    pub(crate) fn render(&mut self) -> (bool, Color, Vec<Color>) {        
+        let background_color = self.read_palette_entry(0);
+        
+        if let Some(cache) = &self.render_cache {
+            return (true, background_color, cache.to_vec());
+        }
 
-        //     let mut name_table_addr = self.get_name_table_base_address();
-        //    //debug!("Name table base address: {:04x}", name_table_addr);
-            
-        //     for x in 0..32 {
-        //         for y in 0..32 {
-        //             let tile_info = self.vram.read_word(name_table_addr);
-        //             let pattern = tile_info & 0b0000_0001_1111_1111;
-        //             //debug!("{:04x}", pattern);
+        let mut pixels = vec![(0, 0, 0, 0); 256 * 192];
 
-        //             name_table_addr += 2;
-        //         }
-        //     }
+        // if !(background_color.0 == 0 && background_color.1 == 0 && background_color.2 == 0) {
+        //     debug!("Background color => r:{:02x} g:{:02x} b:{:02x}", background_color.0, background_color.1, background_color.2);
         // }
+        // debug!("{:02x}", self.vram.read(0x3a52));
+        if self.h == 0 && self.v == 0 {
+            // todo this if is temporary
+            // Render tiles
+
+            for row in 0..32 {
+                for column in 0..32 {
+                    let name_table_addr = self.get_name_table_addr(column, row);
+                    //debug!("Name table base address: {:04x}", name_table_addr);
+
+                    let tile_info = self.vram.read_word(name_table_addr);
+                    let pattern = tile_info & 0b0000_0001_1111_1111;
+                    let pattern_base_addr = pattern * 32;
+
+                    // 8 lines x 4 bytes per line = 32 bytes per pattern = 1 tile?
+                    let mut pattern = Pattern::new();
+                    for line in 0..8 {
+                        let line_base_addr = pattern_base_addr + (line * 4);
+                        let line_data1 = self.vram.read(line_base_addr);
+                        let line_data2 = self.vram.read(line_base_addr + 1);
+                        let line_data3 = self.vram.read(line_base_addr + 2);
+                        let line_data4 = self.vram.read(line_base_addr + 3);
+
+                        for bit in 0..8 {
+                            let mut color: u8 = 0;
+                            if line_data1 & (1 << bit) != 0 {
+                                color |= 0b0000_0001;
+                            }
+                            if line_data2 & (1 << bit) != 0 {
+                                color |= 0b0000_0010;
+                            }
+                            if line_data3 & (1 << bit) != 0 {
+                                color |= 0b0000_0100;
+                            }
+                            if line_data4 & (1 << bit) != 0 {
+                                color |= 0b0000_1000;
+                            }
+                            let color = if color == 0 {
+                                (0, 0, 0, 0) // transparent
+                            } else {
+                                self.read_palette_entry(color as u16)
+                            };
+                            pattern.set_pixel(7 - bit, line as u8, color);
+                        }
+                    }
+
+                    let x_ = column * 8;
+                    let y_ = row * 8;
+
+                    for y in 0..8 {
+                        for x in 0..8 {
+                            let color = pattern.get_pixel(x, y);
+                            pixels[((y_ + y) + (x_ + x)) as usize] = color;
+                        }
+                    }
+                }
+            }
+        }
+
+        self.render_cache = Some(pixels.to_vec());
+
+        (false, background_color, pixels)
     }
 
     #[bitmatch]
@@ -190,6 +263,9 @@ impl Vdp {
                     }
 
                     debug!("Wrote {} bytes to {:04x} @ VRAM", bytes_to_write, self.registers.address);
+
+                    // Force a rerender
+                    self.render_cache = None;
                 }
                 Mode::CramWrite => {
                     // Write data bytes to CRAM
@@ -228,6 +304,9 @@ impl Vdp {
                             self.registers.address = self.registers.address - 0x40;
                         }
                     }
+
+                    // Force a rerender
+                    self.render_cache = None;
                 }
                 Mode::None => {
                     error!("Received byte on data port ({:02x}) without being in a specific mode", DATA_PORT);
@@ -270,7 +349,7 @@ impl Vdp {
         }
     }
 
-    fn get_name_table_base_address(&self) -> u16 {
+    fn get_name_table_addr(&self, x: u8, y: u8) -> u16 {
         /*
          *  VRAM address bus layout for name table fetch
          *  MSB             LSB
@@ -278,10 +357,13 @@ impl Vdp {
          *  ---- -x-- ---- ---- : x= Mask bit (bit 0 of register $02)
          */
 
-        ((self.registers.r2 & 0b0000_1110) as u16) << 10
+        let mut address: u16 = ((self.registers.r2 & 0b0000_1110) as u16) << 10;
+        address |= ((y & 0b0001_1111) as u16) << 6;
+        address |= ((x & 0b0001_1111) as u16) << 1;
+        address
     }
 
-    fn read_palette_entry(&self, address: u16) -> (u8, u8, u8) {
+    fn read_palette_entry(&self, address: u16) -> (u8, u8, u8, u8) {
         let p1 = self.cram.read(address);
         let p2 = self.cram.read(address + 1);
 
@@ -291,7 +373,7 @@ impl Vdp {
         let g = (((palette & 0b0000_0000_1111_0000) << 4) >> 4) as u8;
         let b = (((palette & 0b0000_1111_0000_0000) << 4) >> 8) as u8;
 
-        (r, g, b)
+        (r, g, b, 0xff)
     }
 }
 
@@ -311,7 +393,7 @@ impl std::fmt::Display for Vdp {
             self.registers.r9,
             self.registers.r10,
             self.registers.address)?;
-        
+
         let value = self.vram.read(self.registers.address);
         write!(f, "VRAM @ {:04x}: {:02x}", self.registers.address, value)?;
 

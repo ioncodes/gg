@@ -8,11 +8,6 @@ use core::panic;
 use log::trace;
 use z80::instruction::{Condition, Immediate, Instruction, Opcode, Operand, Reg16, Reg8, Register};
 
-
-// todo: The issue I'm currently facing here is that I have a lot of duplicate code.
-// Ok(()) statements could technically be outside of the match statement, perhaps even CPU flags could be set outside the handler?
-
-
 pub(crate) struct Handlers;
 
 impl Handlers {
@@ -165,7 +160,6 @@ impl Handlers {
         Ok(())
     }
 
-    // todo: change formatting for function signatures
     pub(crate) fn in_(cpu: &mut Cpu, bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
             Opcode::In(
@@ -284,7 +278,7 @@ impl Handlers {
 
                 cpu.flags.set(Flags::ZERO, result == 0);
                 cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
-                // todo: cpu.flags.set(Flags::PARITY_OR_OVERFLOW, )
+                // FIXME: cpu.flags.set(Flags::PARITY_OR_OVERFLOW, )
                 cpu.flags.set(Flags::SUBTRACT, false);
                 cpu.flags.set(Flags::HALF_CARRY, false);
                 cpu.flags.set(Flags::CARRY, false);

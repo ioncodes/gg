@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use lazy_static::lazy_static;
-use log::info;
+use log::{info, debug};
 use rlua::{Context, Function, Lua};
 use std::sync::Mutex;
 use z80::instruction::{Reg16, Reg8};
@@ -92,7 +92,10 @@ impl LuaEngine {
 
                 lua.context(|ctx| {
                     let globals = ctx.globals();
-                    let func = globals.get::<_, Function>(function_name.clone()).unwrap();
+                    let function_name = function_name.clone();
+
+                    debug!("Executing Lua hook: {}", &function_name);
+                    let func = globals.get::<_, Function>(function_name).unwrap();
                     func.call::<_, ()>(())
                 })
                 .unwrap();

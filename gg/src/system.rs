@@ -38,6 +38,23 @@ impl System {
     }
 
     pub(crate) fn run(&mut self) {
+        use minifb::{Key, Window, WindowOptions};
+
+        const WIDTH: usize = 256;
+        const HEIGHT: usize = 192;
+
+        let mut window = Window::new(
+            "gg",
+            WIDTH,
+            HEIGHT,
+            WindowOptions::default(),
+        )
+        .unwrap_or_else(|e| {
+            panic!("{}", e);
+        });
+
+        window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
+
         loop {
             // Execute pre-tick Lua script
             let current_pc_before_tick = self.cpu.registers.pc;
@@ -63,6 +80,31 @@ impl System {
                 self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
                 self.lua.execute_hook(current_pc_before_tick, HookType::PostTick);
             }
+
+            let (cached, background_color, buffer) = self.vdp.render();
+            if cached {
+                continue;
+            }
+
+            let buffer = {
+                let mut buffer_: Vec<u32> = Vec::new();
+                for (r, g, b, a) in buffer {
+                    if r == 0 && g == 0 && b == 0 && a == 0 {
+                        let (r, g, b, a) = background_color;
+                        let color: u32 = ((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | b as u32;
+                        buffer_.push(color);
+                        continue;
+                    }
+
+                    let color: u32 = ((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | b as u32;
+                    buffer_.push(color);
+                }
+                buffer_
+            };
+
+            window
+                .update_with_buffer(&buffer, WIDTH, HEIGHT)
+                .unwrap();
         }
     }
 }
