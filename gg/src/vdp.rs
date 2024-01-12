@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::{bus::Bus, io::IoMode, memory::Memory};
 use bitmatch::bitmatch;
-use log::{debug, error, trace};
+use log::{debug, error, trace, info};
 
 // todo: ????
 const H_COUNTER_COUNT: u8 = 171;
@@ -15,12 +15,12 @@ const DATA_PORT: u8 = 0xbe;
 pub(crate) type Color = (u8, u8, u8, u8);
 
 pub(crate) struct Pattern {
-    pub(crate) data: [Color; 32],
+    pub(crate) data: [Color; 64],
 }
 
 impl Pattern {
     pub(crate) fn new() -> Pattern {
-        Pattern { data: [(0, 0, 0, 0); 32] }
+        Pattern { data: [(0, 0, 0, 0); 64] }
     }
 
     pub(crate) fn set_pixel(&mut self, x: u8, y: u8, color: Color) {
@@ -92,7 +92,7 @@ impl Vdp {
     pub(crate) fn render(&mut self) -> (bool, Color, Vec<Color>) {        
         let background_color = self.read_palette_entry(0);
         
-        if let Some(cache) = &self.render_cache {
+        if let Some(cache) = &self.render_cache && self.v != 0 {
             return (true, background_color, cache.to_vec());
         }
 
@@ -102,59 +102,54 @@ impl Vdp {
         //     debug!("Background color => r:{:02x} g:{:02x} b:{:02x}", background_color.0, background_color.1, background_color.2);
         // }
         // debug!("{:02x}", self.vram.read(0x3a52));
-        if self.h == 0 && self.v == 0 {
-            // todo this if is temporary
-            // Render tiles
 
-            for row in 0..32 {
-                for column in 0..32 {
-                    let name_table_addr = self.get_name_table_addr(column, row);
-                    //debug!("Name table base address: {:04x}", name_table_addr);
+        println!("Rendering tiles");
 
-                    let tile_info = self.vram.read_word(name_table_addr);
-                    let pattern = tile_info & 0b0000_0001_1111_1111;
-                    let pattern_base_addr = pattern * 32;
+        for row in 0..32 {
+            for column in 0..32 {
+                let name_table_addr = self.get_name_table_addr(column, row);
+                //debug!("Name table base address: {:04x}", name_table_addr);
 
-                    // 8 lines x 4 bytes per line = 32 bytes per pattern = 1 tile?
-                    let mut pattern = Pattern::new();
-                    for line in 0..8 {
-                        let line_base_addr = pattern_base_addr + (line * 4);
-                        let line_data1 = self.vram.read(line_base_addr);
-                        let line_data2 = self.vram.read(line_base_addr + 1);
-                        let line_data3 = self.vram.read(line_base_addr + 2);
-                        let line_data4 = self.vram.read(line_base_addr + 3);
+                let tile_info = self.vram.read_word(name_table_addr);
+                let pattern = tile_info & 0b0000_0001_1111_1111;
+                let pattern_base_addr = pattern * 32;
 
-                        for bit in 0..8 {
-                            let mut color: u8 = 0;
-                            if line_data1 & (1 << bit) != 0 {
-                                color |= 0b0000_0001;
-                            }
-                            if line_data2 & (1 << bit) != 0 {
-                                color |= 0b0000_0010;
-                            }
-                            if line_data3 & (1 << bit) != 0 {
-                                color |= 0b0000_0100;
-                            }
-                            if line_data4 & (1 << bit) != 0 {
-                                color |= 0b0000_1000;
-                            }
-                            let color = if color == 0 {
-                                (0, 0, 0, 0) // transparent
-                            } else {
-                                self.read_palette_entry(color as u16)
-                            };
-                            pattern.set_pixel(7 - bit, line as u8, color);
+                // 8 lines x 4 bytes per line = 32 bytes per pattern = 1 tile?
+                let mut pattern = Pattern::new();
+                for line in 0..8 {
+                    let line_base_addr = pattern_base_addr + (line * 4);
+                    let line_data1 = self.vram.read(line_base_addr);
+                    let line_data2 = self.vram.read(line_base_addr + 1);
+                    let line_data3 = self.vram.read(line_base_addr + 2);
+                    let line_data4 = self.vram.read(line_base_addr + 3);
+
+                    for bit in 0..8 {
+                        let mut color: u8 = 0;
+                        if line_data1 & (1 << bit) != 0 {
+                            color |= 0b0000_0001;
                         }
+                        if line_data2 & (1 << bit) != 0 {
+                            color |= 0b0000_0010;
+                        }
+                        if line_data3 & (1 << bit) != 0 {
+                            color |= 0b0000_0100;
+                        }
+                        if line_data4 & (1 << bit) != 0 {
+                            color |= 0b0000_1000;
+                        }
+                        let color = if color == 0 {
+                            (0, 0, 0, 0) // transparent
+                        } else {
+                            self.read_palette_entry(color as u16)
+                        };
+                        pattern.set_pixel(7 - bit, line as u8, color);
                     }
+                }
 
-                    let x_ = column * 8;
-                    let y_ = row * 8;
-
-                    for y in 0..8 {
-                        for x in 0..8 {
-                            let color = pattern.get_pixel(x, y);
-                            pixels[((y_ + y) + (x_ + x)) as usize] = color;
-                        }
+                for y in 0..8 {
+                    for x in 0..8 {
+                        let color = pattern.get_pixel(x, y);
+                        pixels[(y * 8 + x) as usize] = color;
                     }
                 }
             }

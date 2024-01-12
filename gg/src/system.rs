@@ -102,6 +102,15 @@ impl System {
                 buffer_
             };
 
+            // // write to file
+            // use std::io::prelude::*;
+            // use std::fs::File;
+            // let mut file = File::create(format!("framebuffer_{:x}.vdp", self.cpu.registers.pc)).unwrap();
+            // for pixel in &buffer {
+            //     file.write_all(&pixel.to_le_bytes()).unwrap();
+            // }
+            // file.sync_all().unwrap();
+
             window
                 .update_with_buffer(&buffer, WIDTH, HEIGHT)
                 .unwrap();
