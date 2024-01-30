@@ -1,4 +1,4 @@
-use log::debug;
+use log::{debug, error, info};
 
 use crate::bus::Bus;
 use crate::cpu::Cpu;
@@ -43,7 +43,7 @@ impl System {
         use minifb::{Key, Window, WindowOptions};
 
         const WIDTH: usize = 256;
-        const HEIGHT: usize = 192;
+        const HEIGHT: usize = 224;
 
         let mut window = Window::new(
             "gg",
@@ -76,7 +76,7 @@ impl System {
                     use std::io;
                     use std::io::prelude::*;
 
-                    debug!("Press any key to continue...");
+                    info!("Press any key to continue...");
 
                     let mut stdin = io::stdin();
                     let _ = stdin.read(&mut [0u8]).unwrap();
@@ -101,20 +101,23 @@ impl System {
                 continue;
             }
 
-            let (background_color, buffer) = self.vdp.render();
+            let (background_color, buffer) = self.vdp.render_background();
 
             let buffer = {
                 let mut buffer_: Vec<u32> = Vec::new();
-                for (r, g, b, a) in buffer {
-                    if r == 0 && g == 0 && b == 0 && a == 0 {
-                        let (r, g, b, a) = background_color;
+                for x_buffer in buffer {
+                    for color in x_buffer {
+                        let (r, g, b, a) = color;
+                        if r == 0 && g == 0 && b == 0 && a == 0 {
+                            let (r, g, b, a) = background_color;
+                            let color: u32 = ((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | b as u32;
+                            buffer_.push(color);
+                            continue;
+                        }
+                        
                         let color: u32 = ((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | b as u32;
                         buffer_.push(color);
-                        continue;
                     }
-
-                    let color: u32 = ((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | b as u32;
-                    buffer_.push(color);
                 }
                 buffer_
             };

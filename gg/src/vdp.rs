@@ -14,21 +14,22 @@ const DATA_PORT: u8 = 0xbe;
 
 pub(crate) type Color = (u8, u8, u8, u8);
 
+#[derive(Debug)]
 pub(crate) struct Pattern {
-    pub(crate) data: [Color; 64],
+    pub(crate) data: [[Color; 8]; 8],
 }
 
 impl Pattern {
     pub(crate) fn new() -> Pattern {
-        Pattern { data: [(0, 0, 0, 0); 64] }
+        Pattern { data: [[(0, 0, 0, 0); 8]; 8] }
     }
 
     pub(crate) fn set_pixel(&mut self, x: u8, y: u8, color: Color) {
-        self.data[(y * 4 + x) as usize] = color;
+        self.data[y as usize][x as usize] = color;
     }
 
     pub(crate) fn get_pixel(&self, x: u8, y: u8) -> Color {
-        self.data[(y * 4 + x) as usize]
+        self.data[y as usize][x as usize]
     }
 }
 
@@ -89,32 +90,39 @@ impl Vdp {
         self.handle_counters();
     }
 
-    pub(crate) fn render(&mut self) -> (Color, Vec<Color>) {        
+    pub(crate) fn render_background(&mut self) -> (Color, Vec<Vec<Color>>) {        
         let background_color = self.read_palette_entry(0);
 
-        let mut pixels = vec![(0, 0, 0, 0); 256 * 192];
+        let mut pixels = vec![vec![(0, 0, 0, 0); 256]; 224];
 
         // if !(background_color.0 == 0 && background_color.1 == 0 && background_color.2 == 0) {
         //     debug!("Background color => r:{:02x} g:{:02x} b:{:02x}", background_color.0, background_color.1, background_color.2);
         // }
         // debug!("{:02x}", self.vram.read(0x3a52));
 
-        debug!("Rendering tilemap");
-
-        for row in 0..32 {
+        debug!("Rendering background");
+        
+        for row in 0..28 {
             for column in 0..32 {
                 let name_table_addr = self.get_name_table_addr(column, row);
-                //debug!("Name table base address: {:04x}", name_table_addr);
+                //info!("Name table base address ({},{}): {:04x} => {:04x}", column, row, name_table_addr, self.vram.read_word(name_table_addr));
 
-                let tile_info = self.vram.read_word(name_table_addr);
-                let pattern = tile_info & 0b0000_0001_1111_1111;
-                let pattern_base_addr = pattern * 32;
+                // The pattern base address is defined by the pattern generator table (which always starts at 0)
+                // Rendering every pattern starting at 0 would yield a classic tile map
+                // Source: As per Sega Game Gear Hardware Reference Manual, page 26
+                // Source: Chapter 6 "VDP Manual", subchapter 3 "Standard VRAM mapping"
+                let pattern_base_addr = self.vram.read_word(name_table_addr);
+                let pattern_base_addr = pattern_base_addr & 0b0000_0001_1111_1111;
+                let pattern_base_addr = pattern_base_addr * 32;
 
-                // 8 lines x 4 bytes per line = 32 bytes per pattern = 1 tile?
+                // pattern_base_addr = character/tile location in VRAM.
+                // Each character/tile is 8x8 pixels, and each pixel consists of 4 bits.
+                // So each character/tile is 32 bytes (64 pixels).
+                
                 let mut pattern = Pattern::new();
                 for line in 0..8 {
                     let line_base_addr = pattern_base_addr + (line * 4);
-                    let line_data1 = self.vram.read(line_base_addr);
+                    let line_data1 = self.vram.read(line_base_addr + 0);
                     let line_data2 = self.vram.read(line_base_addr + 1);
                     let line_data3 = self.vram.read(line_base_addr + 2);
                     let line_data4 = self.vram.read(line_base_addr + 3);
@@ -145,7 +153,9 @@ impl Vdp {
                 for y in 0..8 {
                     for x in 0..8 {
                         let color = pattern.get_pixel(x, y);
-                        pixels[(y * 8 + x) as usize] = color;
+                        let pixel_x = (column * 8 + x) as usize % 256;
+                        let pixel_y = (row * 8 + y) as usize % 224;
+                        pixels[pixel_y][pixel_x] = color;
                     }
                 }
             }
@@ -354,7 +364,13 @@ impl Vdp {
         address
     }
 
-    fn read_palette_entry(&self, address: u16) -> (u8, u8, u8, u8) {
+    fn read_palette_entry(&self, index: u16) -> (u8, u8, u8, u8) {
+        trace!("Reading palette entry at {:04x}", index);
+
+        // Convert palette index to absolute address in CRAM
+        // Each palette entry is 2 bytes
+        let address = index * 2;
+
         let p1 = self.cram.read(address);
         let p2 = self.cram.read(address + 1);
 
