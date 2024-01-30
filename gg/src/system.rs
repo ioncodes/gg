@@ -1,3 +1,5 @@
+use log::debug;
+
 use crate::bus::Bus;
 use crate::cpu::Cpu;
 use crate::error::GgError;
@@ -68,6 +70,19 @@ impl System {
             match result {
                 Err(GgError::OpcodeNotImplemented { opcode: _ }) => panic!("{}", self),
                 Err(GgError::DecoderError { msg }) => panic!("Decoder error: {}\n{}", msg, self),
+                Err(GgError::BreakpointHit) => {
+                    debug!("{}", self);
+
+                    use std::io;
+                    use std::io::prelude::*;
+
+                    debug!("Press any key to continue...");
+
+                    let mut stdin = io::stdin();
+                    let _ = stdin.read(&mut [0u8]).unwrap();
+
+                    self.cpu.resume_execution();
+                },
                 _ => {}
             };
             self.vdp.tick(&mut self.bus);
@@ -81,10 +96,12 @@ impl System {
                 self.lua.execute_hook(current_pc_before_tick, HookType::PostTick);
             }
 
-            let (cached, background_color, buffer) = self.vdp.render();
-            if cached {
+            // Render tiles to screen if VRAM is dirty
+            if !self.vdp.vram_dirty {
                 continue;
             }
+
+            let (background_color, buffer) = self.vdp.render();
 
             let buffer = {
                 let mut buffer_: Vec<u32> = Vec::new();
@@ -101,15 +118,6 @@ impl System {
                 }
                 buffer_
             };
-
-            // // write to file
-            // use std::io::prelude::*;
-            // use std::fs::File;
-            // let mut file = File::create(format!("framebuffer_{:x}.vdp", self.cpu.registers.pc)).unwrap();
-            // for pixel in &buffer {
-            //     file.write_all(&pixel.to_le_bytes()).unwrap();
-            // }
-            // file.sync_all().unwrap();
 
             window
                 .update_with_buffer(&buffer, WIDTH, HEIGHT)

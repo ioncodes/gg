@@ -12,5 +12,7 @@ pub(crate) enum GgError {
     #[snafu(display("Decoder errored with message: {msg}"))]
     DecoderError { msg: String },
     #[snafu(display("Jump not taken"))]
-    JumpNotTaken
+    JumpNotTaken,
+    #[snafu(display("Breakpoint hit"))]
+    BreakpointHit,
 }

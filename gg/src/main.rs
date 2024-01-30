@@ -9,6 +9,7 @@ mod memory;
 mod system;
 mod vdp;
 mod lua_engine;
+mod dbg;
 
 use crate::system::System;
 use env_logger::Builder;

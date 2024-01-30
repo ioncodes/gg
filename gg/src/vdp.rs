@@ -64,7 +64,7 @@ pub(crate) struct Vdp {
     pub(crate) vram: Memory,
     pub(crate) cram: Memory,
     mode: Mode,
-    render_cache: Option<Vec<Color>>,
+    pub(crate) vram_dirty: bool
 }
 
 impl Vdp {
@@ -79,7 +79,7 @@ impl Vdp {
             vram: Memory::new(16 * 1024, 0x0000),
             cram: Memory::new(64, 0x0000),
             mode: Mode::None,
-            render_cache: None,
+            vram_dirty: false
         }
     }
 
@@ -89,12 +89,8 @@ impl Vdp {
         self.handle_counters();
     }
 
-    pub(crate) fn render(&mut self) -> (bool, Color, Vec<Color>) {        
+    pub(crate) fn render(&mut self) -> (Color, Vec<Color>) {        
         let background_color = self.read_palette_entry(0);
-        
-        if let Some(cache) = &self.render_cache && self.v != 0 {
-            return (true, background_color, cache.to_vec());
-        }
 
         let mut pixels = vec![(0, 0, 0, 0); 256 * 192];
 
@@ -103,7 +99,7 @@ impl Vdp {
         // }
         // debug!("{:02x}", self.vram.read(0x3a52));
 
-        println!("Rendering tiles");
+        debug!("Rendering tilemap");
 
         for row in 0..32 {
             for column in 0..32 {
@@ -155,9 +151,9 @@ impl Vdp {
             }
         }
 
-        self.render_cache = Some(pixels.to_vec());
+        self.vram_dirty = false;
 
-        (false, background_color, pixels)
+        (background_color, pixels)
     }
 
     #[bitmatch]
@@ -260,7 +256,7 @@ impl Vdp {
                     debug!("Wrote {} bytes to {:04x} @ VRAM", bytes_to_write, self.registers.address);
 
                     // Force a rerender
-                    self.render_cache = None;
+                    self.vram_dirty = true;
                 }
                 Mode::CramWrite => {
                     // Write data bytes to CRAM
@@ -301,7 +297,7 @@ impl Vdp {
                     }
 
                     // Force a rerender
-                    self.render_cache = None;
+                    self.vram_dirty = true;
                 }
                 Mode::None => {
                     error!("Received byte on data port ({:02x}) without being in a specific mode", DATA_PORT);
