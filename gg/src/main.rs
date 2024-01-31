@@ -2,12 +2,13 @@ use env_logger::Builder;
 use log::Level;
 use pixels::{Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
-use winit::event::Event;
 use winit::event_loop::EventLoop;
 use winit::window::{Window, WindowBuilder};
 
 use core::system::System;
 use core::vdp::{Color, INTERNAL_HEIGHT, INTERNAL_WIDTH};
+
+const RENDER_SCALE: usize = 2;
 
 fn main() {
     initialize_logging();
@@ -43,9 +44,9 @@ fn draw_frame(frame_dst: &mut [u8], frame_src: &(Color, Vec<Color>)) {
 fn initialize_renderer() -> (Window, EventLoop<()>, Pixels) {
     let event_loop = EventLoop::new();
     let window = {
-        let size = LogicalSize::new(INTERNAL_WIDTH as f64, INTERNAL_HEIGHT as f64);
+        let size = LogicalSize::new((INTERNAL_WIDTH * RENDER_SCALE) as f64, (INTERNAL_HEIGHT * RENDER_SCALE) as f64);
         WindowBuilder::new()
-            .with_title("Hello Pixels")
+            .with_title("geegee")
             .with_inner_size(size)
             .with_min_inner_size(size)
             .build(&event_loop)
