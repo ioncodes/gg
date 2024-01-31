@@ -1,5 +1,5 @@
-use log::Level;
 use env_logger::Builder;
+use log::Level;
 use minifb::{Window, WindowOptions};
 
 use core::system::System;
@@ -19,7 +19,7 @@ fn main() {
     let mut system = System::new(Some(lua_script));
     system.load_rom(bios, true);
     system.load_rom(sonic2[..0xc000].as_ref(), false); // todo: need this cause of mapper
-    
+
     loop {
         let redraw = system.tick();
         if redraw {
@@ -31,38 +31,20 @@ fn main() {
 fn draw_frame(window: &mut Window, frame: &(Color, Vec<Vec<Color>>)) {
     let (background_color, frame) = frame;
 
-    let buffer = {
-        let mut buffer_: Vec<u32> = Vec::new();
-        for x_buffer in frame {
-            for color in x_buffer {
-                let (r, g, b, a) = *color;
-                if *color == (0, 0, 0, 0) {
-                    let (r, g, b, a) = *background_color;
-                    let color: u32 = ((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | b as u32;
-                    buffer_.push(color);
-                    continue;
-                }
-                
-                let color: u32 = ((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | b as u32;
-                buffer_.push(color);
-            }
-        }
-        buffer_
-    };
+    let buffer: Vec<u32> = frame
+        .iter()
+        .flatten()
+        .map(|color| {
+            let (r, g, b, a) = if *color == (0, 0, 0, 0) { *background_color } else { *color };
+            ((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | b as u32
+        })
+        .collect();
 
-    window
-        .update_with_buffer(&buffer, WIDTH, HEIGHT)
-        .unwrap();
+    window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
 }
 
 fn initialize_renderer() -> Window {
-    let mut window = Window::new(
-        "gg",
-        WIDTH,
-        HEIGHT,
-        WindowOptions::default(),
-    )
-    .unwrap_or_else(|e| {
+    let mut window = Window::new("gg", WIDTH, HEIGHT, WindowOptions::default()).unwrap_or_else(|e| {
         panic!("{}", e);
     });
 
@@ -84,8 +66,5 @@ fn initialize_logging() {
         default_log_level = Level::Debug.to_level_filter();
     }
 
-    Builder::new()
-        .filter(None, default_log_level)
-        .format_timestamp(None)
-        .init();
+    Builder::new().filter(None, default_log_level).format_timestamp(None).init();
 }
