@@ -1,16 +1,17 @@
 use env_logger::Builder;
 use log::Level;
-use minifb::{Window, WindowOptions};
+use pixels::{Pixels, SurfaceTexture};
+use winit::dpi::LogicalSize;
+use winit::event::Event;
+use winit::event_loop::EventLoop;
+use winit::window::{Window, WindowBuilder};
 
 use core::system::System;
-use core::vdp::Color;
-
-const WIDTH: usize = 256;
-const HEIGHT: usize = 224;
+use core::vdp::{Color, INTERNAL_HEIGHT, INTERNAL_WIDTH};
 
 fn main() {
     initialize_logging();
-    let mut window = initialize_renderer();
+    let (_, _, mut pixels) = initialize_renderer();
 
     let bios = include_bytes!("../../external/majbios.gg");
     let sonic2 = include_bytes!("../../external/sonic2.gg");
@@ -23,33 +24,41 @@ fn main() {
     loop {
         let redraw = system.tick();
         if redraw {
-            draw_frame(&mut window, &system.render());
+            draw_frame(&mut pixels.frame_mut(), &system.render());
+            pixels.render().unwrap();
         }
     }
 }
 
-fn draw_frame(window: &mut Window, frame: &(Color, Vec<Color>)) {
-    let (background_color, frame) = frame;
+fn draw_frame(frame_dst: &mut [u8], frame_src: &(Color, Vec<Color>)) {
+    let (background_color, frame_src) = frame_src;
 
-    let buffer: Vec<u32> = frame
-        .iter()
-        .map(|color| {
-            let (r, g, b, a) = if *color == (0, 0, 0, 0) { *background_color } else { *color };
-            ((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | b as u32
-        })
-        .collect();
-
-    window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
+    for (i, pixel) in frame_dst.chunks_exact_mut(4).enumerate() {
+        let color = frame_src.get(i).unwrap();
+        let (r, g, b, a) = if *color == (0, 0, 0, 0) { *background_color } else { *color };
+        pixel.copy_from_slice([r, g, b, a].as_ref());
+    }
 }
 
-fn initialize_renderer() -> Window {
-    let mut window = Window::new("gg", WIDTH, HEIGHT, WindowOptions::default()).unwrap_or_else(|e| {
-        panic!("{}", e);
-    });
+fn initialize_renderer() -> (Window, EventLoop<()>, Pixels) {
+    let event_loop = EventLoop::new();
+    let window = {
+        let size = LogicalSize::new(INTERNAL_WIDTH as f64, INTERNAL_HEIGHT as f64);
+        WindowBuilder::new()
+            .with_title("Hello Pixels")
+            .with_inner_size(size)
+            .with_min_inner_size(size)
+            .build(&event_loop)
+            .unwrap()
+    };
 
-    window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
+    let pixels = {
+        let window_size = window.inner_size();
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+        Pixels::new(INTERNAL_WIDTH as u32, INTERNAL_HEIGHT as u32, surface_texture).unwrap()
+    };
 
-    window
+    (window, event_loop, pixels)
 }
 
 fn initialize_logging() {
@@ -65,5 +74,8 @@ fn initialize_logging() {
         default_log_level = Level::Debug.to_level_filter();
     }
 
-    Builder::new().filter(None, default_log_level).format_timestamp(None).init();
+    Builder::new()
+        .filter(Some("core"), default_log_level)
+        .format_timestamp(None)
+        .init();
 }

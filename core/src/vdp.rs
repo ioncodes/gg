@@ -12,8 +12,8 @@ const CONTROL_PORT: u8 = 0xbf;
 const DATA_PORT: u8 = 0xbe;
 // const PAL_SCANLINE_COUNT: u8 = 312;
 
-const INTERNAL_WIDTH: usize = 256;
-const INTERNAL_HEIGHT: usize = 224;
+pub const INTERNAL_WIDTH: usize = 256;
+pub const INTERNAL_HEIGHT: usize = 224;
 
 pub type Color = (u8, u8, u8, u8);
 
