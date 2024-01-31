@@ -12,6 +12,9 @@ const CONTROL_PORT: u8 = 0xbf;
 const DATA_PORT: u8 = 0xbe;
 // const PAL_SCANLINE_COUNT: u8 = 312;
 
+const INTERNAL_WIDTH: usize = 256;
+const INTERNAL_HEIGHT: usize = 224;
+
 pub type Color = (u8, u8, u8, u8);
 
 #[derive(Debug)]
@@ -98,10 +101,10 @@ impl Vdp {
         self.h == 0
     }
 
-    pub fn render_background(&mut self) -> (Color, Vec<Vec<Color>>) {        
+    pub fn render_background(&mut self) -> (Color, Vec<Color>) {        
         let background_color = self.read_palette_entry(0);
 
-        let mut pixels = vec![vec![(0, 0, 0, 0); 256]; 224];
+        let mut pixels = vec![(0, 0, 0, 0); INTERNAL_WIDTH * INTERNAL_HEIGHT];
 
         // if !(background_color.0 == 0 && background_color.1 == 0 && background_color.2 == 0) {
         //     debug!("Background color => r:{:02x} g:{:02x} b:{:02x}", background_color.0, background_color.1, background_color.2);
@@ -161,9 +164,8 @@ impl Vdp {
                 for y in 0..8 {
                     for x in 0..8 {
                         let color = pattern.get_pixel(x, y);
-                        let pixel_x = (column * 8 + x) as usize % 256;
-                        let pixel_y = (row * 8 + y) as usize % 224;
-                        pixels[pixel_y][pixel_x] = color;
+                        let idx = (row * 8 + y) as usize * INTERNAL_WIDTH + (column * 8 + x) as usize;
+                        pixels[idx] = color;
                     }
                 }
             }

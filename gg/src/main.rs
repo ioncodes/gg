@@ -28,12 +28,11 @@ fn main() {
     }
 }
 
-fn draw_frame(window: &mut Window, frame: &(Color, Vec<Vec<Color>>)) {
+fn draw_frame(window: &mut Window, frame: &(Color, Vec<Color>)) {
     let (background_color, frame) = frame;
 
     let buffer: Vec<u32> = frame
         .iter()
-        .flatten()
         .map(|color| {
             let (r, g, b, a) = if *color == (0, 0, 0, 0) { *background_color } else { *color };
             ((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | b as u32

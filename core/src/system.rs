@@ -84,7 +84,7 @@ impl System {
         self.ready_to_redraw()
     }
 
-    pub fn render(&mut self) -> (Color, Vec<Vec<Color>>) {
+    pub fn render(&mut self) -> (Color, Vec<Color>) {
         self.vdp.render_background()
     }
 
