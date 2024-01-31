@@ -1,7 +1,6 @@
-use crate::{bus::Bus, dbg::Debugger, error::GgError, handlers::Handlers};
+use crate::{bus::Bus, error::GgError, handlers::Handlers};
 use bitflags::bitflags;
 use log::{debug, error, trace};
-use rlua::Debug;
 use std::fmt;
 use z80::{
     disassembler::Disassembler,
@@ -37,7 +36,6 @@ bitflags! {
 pub(crate) struct Cpu {
     pub(crate) registers: Registers,
     pub(crate) flags: Flags,
-    breakpoints: Vec<u16>,
     ignore_next_breakpoint: bool
 }
 
@@ -57,19 +55,11 @@ impl Cpu {
                 sp: 0,
             },
             flags: Flags::empty(),
-            breakpoints: Cpu::default_breakpoints(),
             ignore_next_breakpoint: false,
         }
     }
 
     pub(crate) fn tick(&mut self, bus: &mut Bus) -> Result<(), GgError> {
-        if self.breakpoints.contains(&self.registers.pc) && !self.ignore_next_breakpoint {
-            debug!("Breakpoint hit at {:04x}", self.registers.pc);
-            return Err(GgError::BreakpointHit);
-        } else if self.breakpoints.contains(&self.registers.pc) && self.ignore_next_breakpoint {
-            self.ignore_next_breakpoint = false;
-        }
-
         let data = vec![
             bus.read(self.registers.pc).unwrap(),
             bus.read(self.registers.pc + 1).unwrap(),
@@ -222,19 +212,6 @@ impl Cpu {
 
     pub(crate) fn resume_execution(&mut self) {
         self.ignore_next_breakpoint = true;
-    }
-}
-
-
-impl Debugger for Cpu {
-    fn set_breakpoint(&mut self, address: u16) {
-        if !self.breakpoints.contains(&address) {
-            self.breakpoints.push(address);
-        }
-    }
-
-    fn clear_breakpoint(&mut self, address: u16) {
-        self.breakpoints.retain(|&x| x != address);
     }
 }
 

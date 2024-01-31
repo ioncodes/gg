@@ -88,7 +88,7 @@ pub struct Instruction {
     pub opcode: Opcode,
     pub length: usize,
     pub(crate) offset: usize,
-    pub(crate) prefix: Option<u8>,
+    pub(crate) _prefix: Option<u8>,
 }
 
 impl fmt::Display for Instruction {

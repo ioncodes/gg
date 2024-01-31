@@ -103,17 +103,6 @@ impl LuaEngine {
         }
     }
 
-    pub(crate) fn execute_function(&self, function_name: &str) {
-        if let Some(lua) = &self.lua {
-            lua.context(|ctx| {
-                let globals = ctx.globals();
-                if let Ok(func) = globals.get::<_, Function>(function_name) {
-                    func.call::<_, ()>(()).unwrap();
-                }
-            });
-        }
-    }
-
     pub(crate) fn create_tables(&self, cpu: &Cpu, vdp: &Vdp, bus: &Bus) {
         if let Some(lua) = &self.lua {
             lua.context(|ctx| {

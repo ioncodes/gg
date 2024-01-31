@@ -24,7 +24,7 @@ impl<'a> Disassembler<'a> {
             Ok(Instruction {
                 opcode,
                 length,
-                prefix,
+                _prefix: prefix,
                 offset,
             })
         } else {

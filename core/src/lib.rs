@@ -7,7 +7,6 @@ mod handlers;
 mod io;
 mod memory;
 mod lua_engine;
-mod dbg;
 
 pub mod vdp;
 pub mod system;

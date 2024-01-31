@@ -2,11 +2,11 @@ use std::collections::VecDeque;
 
 use crate::{bus::Bus, io::IoMode, memory::Memory};
 use bitmatch::bitmatch;
-use log::{debug, error, trace, info};
+use log::{debug, error, trace};
 
 // todo: ????
-const H_COUNTER_COUNT: u8 = 171;
-const NTSC_SCANLINE_COUNT: u16 = 262; // 60 frames
+//const H_COUNTER_COUNT: u8 = 171;
+//const NTSC_SCANLINE_COUNT: u16 = 262; // 60 frames
 const V_COUNTER_PORT: u8 = 0x7e;
 const CONTROL_PORT: u8 = 0xbf;
 const DATA_PORT: u8 = 0xbe;
@@ -97,26 +97,16 @@ impl Vdp {
         self.v == 0
     }
 
-    pub(crate) fn is_hblank(&self) -> bool {
-        self.h == 0
-    }
-
     pub fn render_background(&mut self) -> (Color, Vec<Color>) {        
         let background_color = self.read_palette_entry(0);
 
         let mut pixels = vec![(0, 0, 0, 0); INTERNAL_WIDTH * INTERNAL_HEIGHT];
-
-        // if !(background_color.0 == 0 && background_color.1 == 0 && background_color.2 == 0) {
-        //     debug!("Background color => r:{:02x} g:{:02x} b:{:02x}", background_color.0, background_color.1, background_color.2);
-        // }
-        // debug!("{:02x}", self.vram.read(0x3a52));
 
         debug!("Rendering background");
         
         for row in 0..28 {
             for column in 0..32 {
                 let name_table_addr = self.get_name_table_addr(column, row);
-                //info!("Name table base address ({},{}): {:04x} => {:04x}", column, row, name_table_addr, self.vram.read_word(name_table_addr));
 
                 // The pattern base address is defined by the pattern generator table (which always starts at 0)
                 // Rendering every pattern starting at 0 would yield a classic tile map
