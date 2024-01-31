@@ -65,7 +65,7 @@ impl System {
 
                 self.cpu.resume_execution();
 
-                return self.vdp.vram_dirty;
+                return self.ready_to_redraw();
             },
             _ => {}
         };
@@ -80,12 +80,16 @@ impl System {
             self.lua.execute_hook(current_pc_before_tick, HookType::PostTick);
         }
 
-        // Let the caller know if VRAM is dirty to cause a redraw
-        self.vdp.vram_dirty
+        // Let the caller know if VRAM is dirty and if we reached VBlank to cause a redraw
+        self.ready_to_redraw()
     }
 
     pub fn render(&mut self) -> (Color, Vec<Vec<Color>>) {
         self.vdp.render_background()
+    }
+
+    fn ready_to_redraw(&self) -> bool {
+        self.vdp.vram_dirty && self.vdp.is_vblank()
     }
 }
 
