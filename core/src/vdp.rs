@@ -12,7 +12,7 @@ const CONTROL_PORT: u8 = 0xbf;
 const DATA_PORT: u8 = 0xbe;
 // const PAL_SCANLINE_COUNT: u8 = 312;
 
-pub(crate) type Color = (u8, u8, u8, u8);
+pub type Color = (u8, u8, u8, u8);
 
 #[derive(Debug)]
 pub(crate) struct Pattern {
@@ -55,7 +55,7 @@ pub(crate) struct Registers {
     pub(crate) address: u16,
 }
 
-pub(crate) struct Vdp {
+pub struct Vdp {
     pub(crate) v: u8,
     pub(crate) h: u8,
     v_2nd_loop: bool,
@@ -90,7 +90,7 @@ impl Vdp {
         self.handle_counters();
     }
 
-    pub(crate) fn render_background(&mut self) -> (Color, Vec<Vec<Color>>) {        
+    pub fn render_background(&mut self) -> (Color, Vec<Vec<Color>>) {        
         let background_color = self.read_palette_entry(0);
 
         let mut pixels = vec![vec![(0, 0, 0, 0); 256]; 224];
