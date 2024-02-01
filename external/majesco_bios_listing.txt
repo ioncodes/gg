@@ -240,6 +240,7 @@ void* const __return_addr  {Frame offset 0}
 
 { Continuation of function entry }
 
+000000d7  // Probably just wastes some time to wait for VBlank
 000000d7  2b         DEC HL
 000000d8  7d         LD A,L
 000000d9  b4         OR H
