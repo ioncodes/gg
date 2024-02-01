@@ -2,7 +2,7 @@ use snafu::prelude::*;
 use z80::instruction::Opcode;
 
 #[derive(Debug, Snafu)]
-pub(crate) enum GgError {
+pub enum GgError {
     #[snafu(display("I/O request not fulfilled"))]
     IoRequestNotFulfilled,
     #[snafu(display("Bus request out of bounds {address}"))]

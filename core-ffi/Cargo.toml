@@ -9,3 +9,6 @@ crate-type = ["cdylib"]
 [dependencies]
 core = { path = "../core" }
 lazy_static = "1.4.0"
+
+[build-dependencies]
+cbindgen = "0.26.0"

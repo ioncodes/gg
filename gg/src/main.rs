@@ -23,7 +23,11 @@ fn main() {
     system.load_cartridge(sonic2[..0xc000].as_ref()); // todo: need this cause of mapper
 
     loop {
-        let redraw = system.tick();
+        let redraw = match system.tick() {
+            Ok(redraw) => redraw,
+            Err(error) => panic!("{}", error)
+        };
+
         if redraw {
             draw_frame(&mut pixels.frame_mut(), &system.render());
             pixels.render().unwrap();

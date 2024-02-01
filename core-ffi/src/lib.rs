@@ -15,7 +15,10 @@ pub extern "C" fn gg_init() {
 #[no_mangle]
 pub extern "C" fn gg_tick(buffer: *mut std::ffi::c_uchar) -> bool {
     let mut system = SYSTEM.lock().unwrap();
-    let redraw = system.tick();
+    let redraw = match system.tick() {
+        Ok(redraw) => redraw,
+        Err(_) => return false
+    };
 
     if redraw {
         let (background_color, frame) = system.render();

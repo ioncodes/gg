@@ -52,7 +52,7 @@ impl System {
         previous_value
     }
 
-    pub fn tick(&mut self) -> bool {
+    pub fn tick(&mut self) -> Result<bool, GgError> {
         // Execute pre-tick Lua script
         let current_pc_before_tick = self.cpu.registers.pc;
         if self.lua.hook_exists(current_pc_before_tick, HookType::PreTick) {
@@ -63,8 +63,6 @@ impl System {
         // Process tick for all components
         let result = self.cpu.tick(&mut self.bus);
         match result {
-            Err(GgError::OpcodeNotImplemented { opcode: _ }) => panic!("{}", self),
-            Err(GgError::DecoderError { msg }) => panic!("Decoder error: {}\n{}", msg, self),
             Err(GgError::BreakpointHit) => {
                 debug!("{}", self);
 
@@ -78,8 +76,10 @@ impl System {
 
                 self.cpu.resume_execution();
 
-                return self.ready_to_redraw();
+                return Ok(self.ready_to_redraw());
             },
+            Err(GgError::OpcodeNotImplemented { opcode: _ }) => return Err(result.err().unwrap()),
+            Err(GgError::DecoderError { msg: _ }) => return Err(result.err().unwrap()),
             _ => {}
         };
         self.vdp.tick(&mut self.bus);
@@ -94,7 +94,7 @@ impl System {
         }
 
         // Let the caller know if VRAM is dirty and if we reached VBlank to cause a redraw
-        self.ready_to_redraw()
+        Ok(self.ready_to_redraw())
     }
 
     pub fn render(&mut self) -> (Color, Vec<Color>) {
