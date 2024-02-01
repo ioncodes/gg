@@ -7,7 +7,7 @@ use crate::lua_engine::{LuaEngine, HookType};
 use crate::vdp::{Color, Vdp};
 
 pub struct System {
-    pub(crate) cpu: Cpu,
+    pub cpu: Cpu,
     pub(crate) bus: Bus,
     pub(crate) vdp: Vdp,
     lua: LuaEngine

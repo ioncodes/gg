@@ -7,17 +7,19 @@ use z80::{
     instruction::{Opcode, Reg16, Reg8, Register},
 };
 
-pub(crate) struct Registers {
-    pub(crate) a: u8,
-    pub(crate) b: u8,
-    pub(crate) c: u8,
-    pub(crate) d: u8,
-    pub(crate) e: u8,
-    pub(crate) h: u8,
-    pub(crate) l: u8,
-    pub(crate) f: u8,
-    pub(crate) pc: u16,
-    pub(crate) sp: u16,
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct Registers {
+    pub a: u8,
+    pub b: u8,
+    pub c: u8,
+    pub d: u8,
+    pub e: u8,
+    pub h: u8,
+    pub l: u8,
+    pub f: u8,
+    pub pc: u16,
+    pub sp: u16,
 }
 
 bitflags! {
@@ -33,8 +35,8 @@ bitflags! {
     }
 }
 
-pub(crate) struct Cpu {
-    pub(crate) registers: Registers,
+pub struct Cpu {
+    pub registers: Registers,
     pub(crate) flags: Flags,
     ignore_next_breakpoint: bool
 }

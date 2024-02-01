@@ -36,3 +36,10 @@ pub extern "C" fn gg_tick(buffer: *mut std::ffi::c_uchar) -> bool {
 
     false
 }
+
+#[no_mangle]
+pub extern "C" fn gg_fetch_registers(registers: *mut core::cpu::Registers) {
+    let system = SYSTEM.lock().unwrap();
+    let regs = system.cpu.registers.clone();
+    unsafe { std::ptr::write(registers, regs); }
+}
