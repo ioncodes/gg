@@ -19,8 +19,8 @@ fn main() {
     let lua_script = String::from(include_str!("../../external/test.lua"));
 
     let mut system = System::new(Some(lua_script));
-    system.load_rom(bios, true);
-    system.load_rom(sonic2[..0xc000].as_ref(), false); // todo: need this cause of mapper
+    system.load_bios(bios);
+    system.load_cartridge(sonic2[..0xc000].as_ref()); // todo: need this cause of mapper
 
     loop {
         let redraw = system.tick();

@@ -23,20 +23,33 @@ impl System {
         }
     }
 
-    pub fn load_rom(&mut self, data: &[u8], is_bios: bool) {
-        if !is_bios {
-            self.bus.bios_enabled = false;
-        }
+    pub fn load_roms(&mut self, bios: &[u8], cartridge: &[u8]) {
+        self.load_bios(bios);
+        self.load_cartridge(cartridge);
+    }
 
-        for i in 0..data.len() {
-            self.bus
-                .write(i as u16, data[i])
-                .expect("Failed to write to bus while loading into ROM");
-        }
+    pub fn load_bios(&mut self, data: &[u8]) {
+        let previous_value = self.enable_bios();
+        self.load_rom(data);
+        self.bus.bios_enabled = previous_value;
+    }
 
-        if !is_bios {
-            self.bus.bios_enabled = true;
-        }
+    pub fn load_cartridge(&mut self, data: &[u8]) {
+        let previous_value = self.disable_bios();
+        self.load_rom(data);
+        self.bus.bios_enabled = previous_value;
+    }
+
+    pub fn disable_bios(&mut self) -> bool {
+        let previous_value = self.bus.bios_enabled;
+        self.bus.bios_enabled = false;
+        previous_value
+    }
+
+    pub fn enable_bios(&mut self) -> bool {
+        let previous_value = self.bus.bios_enabled;
+        self.bus.bios_enabled = true;
+        previous_value
     }
 
     pub fn tick(&mut self) -> bool {
@@ -86,6 +99,14 @@ impl System {
 
     pub fn render(&mut self) -> (Color, Vec<Color>) {
         self.vdp.render_background()
+    }
+
+    pub(crate) fn load_rom(&mut self, data: &[u8]) {
+        for i in 0..data.len() {
+            self.bus
+                .write(i as u16, data[i])
+                .expect("Failed to write to bus while loading into ROM");
+        }
     }
 
     fn ready_to_redraw(&self) -> bool {
