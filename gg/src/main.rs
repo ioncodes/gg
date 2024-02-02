@@ -1,38 +1,44 @@
 use env_logger::Builder;
-use log::Level;
-use pixels::{Pixels, SurfaceTexture};
+use log::{Level, error};
+use pixels::wgpu::PresentMode;
+use pixels::{Pixels, PixelsBuilder, SurfaceTexture};
 use winit::dpi::LogicalSize;
-use winit::event_loop::EventLoop;
+use winit::event::{Event, VirtualKeyCode};
+use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::{Window, WindowBuilder};
+use winit_input_helper::WinitInputHelper;
 
 use core::system::System;
 use core::vdp::{Color, INTERNAL_HEIGHT, INTERNAL_WIDTH};
 
-const RENDER_SCALE: usize = 2;
+const RENDER_SCALE: usize = 4;
 
 fn main() {
     initialize_logging();
-    let (_, _, mut pixels) = initialize_renderer();
+    let (window, event_loop, mut pixels) = initialize_renderer();
+    let mut input = WinitInputHelper::new();
 
-    let bios = include_bytes!("../../external/majbios.gg");
-    let sonic2 = include_bytes!("../../external/sonic2.gg");
-    let lua_script = String::from(include_str!("../../external/test.lua"));
+    let mut system = initialize_system();
 
-    let mut system = System::new(Some(lua_script));
-    system.load_bios(bios);
-    system.load_cartridge(sonic2[..0xc000].as_ref()); // todo: need this cause of mapper
-
-    loop {
-        let redraw = match system.tick() {
-            Ok(redraw) => redraw,
-            Err(error) => panic!("{}", error)
-        };
-
-        if redraw {
+    event_loop.run(move |event, _, control_flow| {
+        if let Event::RedrawRequested(_) = event {
             draw_frame(&mut pixels.frame_mut(), &system.render());
             pixels.render().unwrap();
         }
-    }
+
+        if input.update(&event) {
+            if input.key_pressed(VirtualKeyCode::Escape) || input.close_requested() {
+                *control_flow = ControlFlow::Exit;
+                return;
+            }
+        }
+
+        match system.tick() {
+            Ok(true) => window.request_redraw(),
+            Ok(false) => (),
+            Err(error) => error!("Encountered error: {}", error)
+        };
+    });
 }
 
 fn draw_frame(frame_dst: &mut [u8], frame_src: &(Color, Vec<Color>)) {
@@ -45,6 +51,18 @@ fn draw_frame(frame_dst: &mut [u8], frame_src: &(Color, Vec<Color>)) {
     }
 }
 
+fn initialize_system() -> System {
+    let bios = include_bytes!("../../external/majbios.gg");
+    let sonic2 = include_bytes!("../../external/sonic2.gg");
+    let lua_script = String::from(include_str!("../../external/test.lua"));
+
+    let mut system = System::new(Some(lua_script));
+    system.load_bios(bios);
+    system.load_cartridge(sonic2[..0xc000].as_ref()); // todo: need this cause of mapper
+
+    system
+}
+
 fn initialize_renderer() -> (Window, EventLoop<()>, Pixels) {
     let event_loop = EventLoop::new();
     let window = {
@@ -53,6 +71,7 @@ fn initialize_renderer() -> (Window, EventLoop<()>, Pixels) {
             .with_title("geegee")
             .with_inner_size(size)
             .with_min_inner_size(size)
+            .with_resizable(false)
             .build(&event_loop)
             .unwrap()
     };
@@ -60,7 +79,10 @@ fn initialize_renderer() -> (Window, EventLoop<()>, Pixels) {
     let pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(INTERNAL_WIDTH as u32, INTERNAL_HEIGHT as u32, surface_texture).unwrap()
+        PixelsBuilder::new(INTERNAL_WIDTH as u32, INTERNAL_HEIGHT as u32, surface_texture)
+            .present_mode(PresentMode::Immediate)
+            .build()
+            .unwrap()
     };
 
     (window, event_loop, pixels)

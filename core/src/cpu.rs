@@ -7,8 +7,6 @@ use z80::{
     instruction::{Opcode, Reg16, Reg8, Register},
 };
 
-#[repr(C)]
-#[derive(Clone, Copy)]
 pub struct Registers {
     pub a: u8,
     pub b: u8,
@@ -97,9 +95,9 @@ impl Cpu {
                     Opcode::Outi(_) => Handlers::outi(self, bus, &instruction),
                     _ => {
                         error!("Invalid opcode: {}", instruction.opcode);
-                        Err(GgError::OpcodeNotImplemented {
+                        return Err(GgError::OpcodeNotImplemented {
                             opcode: instruction.opcode,
-                        })
+                        });
                     }
                 };
 

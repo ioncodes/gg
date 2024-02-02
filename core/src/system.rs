@@ -63,24 +63,10 @@ impl System {
         // Process tick for all components
         let result = self.cpu.tick(&mut self.bus);
         match result {
-            Err(GgError::BreakpointHit) => {
-                debug!("{}", self);
-
-                use std::io;
-                use std::io::prelude::*;
-
-                info!("Press any key to continue...");
-
-                let mut stdin = io::stdin();
-                let _ = stdin.read(&mut [0u8]).unwrap();
-
-                self.cpu.resume_execution();
-
-                return Ok(self.ready_to_redraw());
-            },
-            Err(GgError::OpcodeNotImplemented { opcode: _ }) => return Err(result.err().unwrap()),
-            Err(GgError::DecoderError { msg: _ }) => return Err(result.err().unwrap()),
-            _ => {}
+            Err(GgError::IoRequestNotFulfilled) => (),
+            Err(GgError::JumpNotTaken) => (),
+            Err(error) => return Err(error),
+            _ => ()
         };
         self.vdp.tick(&mut self.bus);
 
