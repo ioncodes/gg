@@ -15,4 +15,8 @@ pub enum GgError {
     JumpNotTaken,
     #[snafu(display("Breakpoint hit"))]
     BreakpointHit,
+    #[snafu(display("Invalid interrupt mode: {mode}"))]
+    InvalidInterruptMode { mode: u8},
+    #[snafu(display("Missing operand implementation for instruction: {instruction}"))]
+    InvalidOpcodeImplementation { instruction: Opcode },
 }

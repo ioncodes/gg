@@ -1,3 +1,5 @@
+use log::error;
+
 use crate::bus::Bus;
 use crate::cpu::Cpu;
 use crate::error::GgError;
@@ -63,7 +65,10 @@ impl System {
         match result {
             Err(GgError::IoRequestNotFulfilled) => (),
             Err(GgError::JumpNotTaken) => (),
-            Err(error) => return Err(error),
+            Err(e) => {
+                error!("Identified error at address: {:04x}", self.cpu.registers.pc);
+                return Err(e)
+            },
             _ => ()
         };
         self.vdp.tick(&mut self.bus);

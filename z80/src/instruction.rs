@@ -81,6 +81,7 @@ pub enum Opcode {
     Pop(Register, usize),
     ResetBit(Immediate, Operand, usize),
     SetBit(Immediate, Operand, usize),
+    SetInterruptMode(Immediate, usize),
     Unknown(usize),
 }
 
@@ -156,6 +157,7 @@ impl fmt::Display for Opcode {
             Opcode::ResetBit(op1, op2, _) => write!(f, "res {}, {}", op1, op2),
             Opcode::SetBit(op1, op2, _) => write!(f, "set {}, {}", op1, op2),
             Opcode::Outi(_) => write!(f, "outi"),
+            Opcode::SetInterruptMode(op, _) => write!(f, "im {}", op),
             Opcode::Unknown(_) => unreachable!("Unknown opcode"),
         }
     }

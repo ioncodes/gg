@@ -63,11 +63,14 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 1,
             ),
+            (None, 0x03) => Opcode::Increment(Operand::Register(Register::Reg16(Reg16::BC), false), 1),
+            (None, 0x04) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::B), false), 1),
             (None, 0x06) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
                 2,
             ),
+            (None, 0x0c) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::C), false), 1),
             (None, 0x0e) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
@@ -88,6 +91,7 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::DE), true),
                 1,
             ),
+            (None, 0x1c) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::E), false), 1),
             (None, 0x20) => Opcode::JumpRelative(Condition::NotZero, Immediate::S8(self.data[offset + 1] as i8), 2),
             (None, 0x21) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
@@ -109,6 +113,7 @@ impl<'a> Disassembler<'a> {
                 3,
             ),
             (None, 0x2b) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::HL), false), 1),
+            (None, 0x2c) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::L), false), 1),
             (None, 0x31) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::SP), false),
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
@@ -119,10 +124,27 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 3,
             ),
+            (None, 0x33) => Opcode::Increment(
+                Operand::Register(Register::Reg16(Reg16::SP), false),
+                1,
+            ),
+            (None, 0x34) => Opcode::Increment(
+                Operand::Register(Register::Reg16(Reg16::HL), true),
+                1,
+            ),
+            (None, 0x36) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::HL), true),
+                Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
+                2,
+            ),
             (None, 0x3a) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), true),
                 3,
+            ),
+            (None, 0x3c) => Opcode::Increment(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                1,
             ),
             (None, 0x3e) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
@@ -209,10 +231,50 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 1,
             ),
+            (None, 0x56) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                Operand::Register(Register::Reg16(Reg16::HL), true),
+                1,
+            ),
+            (None, 0x66) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                Operand::Register(Register::Reg16(Reg16::HL), true),
+                1,
+            ),
+            (None, 0x70) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::HL), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                2,
+            ),
+            (None, 0x71) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::HL), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                2,
+            ),
+            (None, 0x72) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::HL), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                2,
+            ),
+            (None, 0x73) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::HL), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                2,
+            ),
+            (None, 0x74) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::HL), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                2,
+            ),
             (None, 0x75) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 Operand::Register(Register::Reg8(Reg8::L), false),
                 1,
+            ),
+            (None, 0x77) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::HL), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                2,
             ),
             (None, 0x7a) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
@@ -299,6 +361,9 @@ impl<'a> Disassembler<'a> {
             (Some(0xed), 0xb0) => Opcode::LoadIndirectRepeat(2),
             (Some(0xed), 0xb3) => Opcode::OutIndirectRepeat(2),
             (Some(0xed), 0x45) => Opcode::ReturnFromNmi(2),
+            (Some(0xed), 0x46) => Opcode::SetInterruptMode(Immediate::U8(0), 2),
+            (Some(0xed), 0x56) => Opcode::SetInterruptMode(Immediate::U8(1), 2),
+            (Some(0xed), 0x5e) => Opcode::SetInterruptMode(Immediate::U8(2), 2),
 
             // Default decode error case
             _ => Opcode::Unknown(0),
@@ -338,6 +403,7 @@ impl<'a> Disassembler<'a> {
             Opcode::ResetBit(_, _, length) => length,
             Opcode::SetBit(_, _, length) => length,
             Opcode::Outi(length) => length,
+            Opcode::SetInterruptMode(_, length) => length,
             Opcode::Unknown(length) => length,
         }
     }

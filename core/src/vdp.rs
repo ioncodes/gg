@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::{bus::Bus, io::IoMode, memory::Memory};
+use crate::{bus::Bus, io::{IoBus, IoMode}, memory::Memory};
 use bitmatch::bitmatch;
 use log::{debug, error, trace};
 
@@ -39,6 +39,7 @@ impl Pattern {
 pub(crate) enum Mode {
     VramWrite,
     CramWrite,
+    VramRead,
     None,
 }
 
@@ -89,7 +90,7 @@ impl Vdp {
 
     pub(crate) fn tick(&mut self, bus: &mut Bus) {
         self.handle_io(bus);
-        self.handle_control_data();
+        self.handle_control_data(&mut bus.io);
         self.handle_counters();
     }
 
@@ -167,7 +168,7 @@ impl Vdp {
     }
 
     #[bitmatch]
-    fn handle_control_data(&mut self) {
+    fn handle_control_data(&mut self, io: &mut IoBus) {
         loop {
             if self.control_data.len() >= 2 {
                 trace!("VDP control type: {:08b}", self.control_data[1]);
@@ -200,6 +201,21 @@ impl Vdp {
                             // registers 11..15 have no effect when written to
                             _ => error!("Invalid VDP register: {:08b}", register),
                         }
+                    }
+                    "00??_????" => {
+                        // Read from VRAM requests are denoted by a 0b00 at bit 15 and 14 of the 2nd byte in the control data.
+                        // The rest adds up to a VRAM address.
+                        let control_byte1 = self.control_data.pop_front().unwrap();
+                        let control_byte2 = self.control_data.pop_front().unwrap();
+                        let address = (((control_byte2 & 0b0011_1111) as u16) << 8) | (control_byte1 as u16);
+                        let value = self.vram.read(address);
+                        self.registers.address += 1;
+                        if self.registers.address >= 0x4000 {
+                            self.registers.address = self.registers.address - 0x4000;
+                        }
+                        debug!("Setting address register to {:04x}", address);
+                        io.push(DATA_PORT, value, IoMode::Write, false);
+                        self.mode = Mode::VramRead;
                     }
                     "01??_????" => {
                         // Write to VRAM requests are denoted by a 0b01 at bit 15 and 14 of the 2nd byte in the control data.
@@ -308,6 +324,13 @@ impl Vdp {
 
                     // Force a rerender
                     self.vram_dirty = true;
+                }
+                Mode::VramRead => {
+                    // Read data bytes from VRAM
+                    buffer.push_back(self.vram.read(self.registers.address));
+                    for byte in buffer {
+                        bus.io.push(DATA_PORT, byte, IoMode::Write, true);
+                    }
                 }
                 Mode::None => {
                     error!("Received byte on data port ({:02x}) without being in a specific mode", DATA_PORT);

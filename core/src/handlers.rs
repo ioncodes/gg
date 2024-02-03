@@ -1,3 +1,4 @@
+use crate::cpu::InterruptMode;
 use crate::error::GgError;
 use crate::{
     bus::Bus,
@@ -29,6 +30,22 @@ impl Handlers {
                     bus.write_word(dst, imm)?;
                 } else {
                     cpu.set_register_u16(dst_register, imm);
+                }
+
+                Ok(())
+            }
+            Opcode::Load(
+                Operand::Register(Register::Reg16(dst_register), dst_deref),
+                Operand::Immediate(Immediate::U8(src_imm), false),
+                _,
+            ) => {
+                if dst_deref {
+                    let reg = cpu.get_register_u16(dst_register);
+                    let dst = bus.read_word(reg)?;
+                    bus.write(dst, src_imm)?;
+                } else {
+                    // is this even possibel?
+                    cpu.set_register_u16(dst_register, src_imm as u16);
                 }
 
                 Ok(())
@@ -95,7 +112,7 @@ impl Handlers {
                 cpu.set_register_u8(dst_reg, src);
                 Ok(())
             }
-            _ => panic!("Invalid opcode for load instruction: {}", instruction.opcode),
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
         }
     }
 
@@ -108,12 +125,12 @@ impl Handlers {
                 }
                 Err(GgError::JumpNotTaken)
             }
-            _ => panic!("Invalid opcode for jump instruction: {}", instruction.opcode),
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
         }
     }
 
-    pub(crate) fn disable_interrupts(_cpu: &mut Cpu, _bus: &mut Bus, _instruction: &Instruction) -> Result<(), GgError> {
-        trace!("Disabling interrupts");
+    pub(crate) fn disable_interrupts(cpu: &mut Cpu, _bus: &mut Bus, _instruction: &Instruction) -> Result<(), GgError> {
+        cpu.interrupts_enabled = false;
         Ok(())
     }
 
@@ -153,7 +170,7 @@ impl Handlers {
                 let src = cpu.get_register_u8(src_reg);
                 (dst, src)
             },
-            _ => panic!("Invalid opcode for out instruction: {}", instruction.opcode),
+            _ => return Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
         };
 
         bus.push_io_data(port, value, IoMode::Write, false);
@@ -176,7 +193,7 @@ impl Handlers {
 
                 Err(GgError::IoRequestNotFulfilled)
             }
-            _ => panic!("Invalid opcode for out instruction: {}", instruction.opcode),
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
         }
     }
 
@@ -217,7 +234,7 @@ impl Handlers {
                 }
                 Ok(())
             }
-            _ => panic!("Invalid opcode for jump relative instruction: {}", instruction.opcode),
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
         }
     }
 
@@ -229,7 +246,7 @@ impl Handlers {
                 cpu.set_register_u16(Reg16::PC, imm);
                 Ok(())
             }
-            _ => panic!("Invalid opcode for call instruction: {}", instruction.opcode),
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
         }
     }
 
@@ -243,7 +260,7 @@ impl Handlers {
                 }
                 Err(GgError::JumpNotTaken)
             }
-            _ => panic!("Invalid opcode for return instruction: {}", instruction.opcode),
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
         }
     }
 
@@ -285,7 +302,7 @@ impl Handlers {
 
                 Ok(())
             }
-            _ => panic!("Invalid opcode for or instruction: {}", instruction.opcode),
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
         }
     }
 
@@ -296,7 +313,7 @@ impl Handlers {
                 cpu.push_stack(bus, src)?;
                 Ok(())
             }
-            _ => panic!("Invalid opcode for push instruction: {}", instruction.opcode),
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
         }
     }
 
@@ -307,7 +324,7 @@ impl Handlers {
                 cpu.set_register_u16(dst_reg, dst);
                 Ok(())
             }
-            _ => panic!("Invalid opcode for pop instruction: {}", instruction.opcode),
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
         }
     }
 
@@ -327,7 +344,7 @@ impl Handlers {
 
                 Ok(())
             }
-            _ => panic!("Invalid opcode for inc instruction: {}", instruction.opcode),
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
         }
     }
 
@@ -347,7 +364,7 @@ impl Handlers {
 
                 Ok(())
             }
-            _ => panic!("Invalid opcode for dec instruction: {}", instruction.opcode),
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
         }
     }
 
@@ -363,7 +380,7 @@ impl Handlers {
                 cpu.set_register_u8(dst_reg, result);
                 Ok(())
             }
-            _ => panic!("Invalid opcode for reset bit instruction: {}", instruction.opcode),
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
         }
     }
 
@@ -382,7 +399,7 @@ impl Handlers {
 
                 Ok(())
             }
-            _ => panic!("Invalid opcode for decrement and jump relative instruction: {}", instruction.opcode),
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
         }
     }
 
@@ -404,7 +421,7 @@ impl Handlers {
 
                 Ok(())
             }
-            _ => panic!("Invalid opcode for xor instruction: {}", instruction.opcode),
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
         }
     }
 
@@ -435,7 +452,17 @@ impl Handlers {
                 cpu.set_register_u16(Reg16::PC, imm as u16);
                 Ok(())
             }
-            _ => panic!("Invalid opcode for restart instruction: {}", instruction.opcode),   
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),   
+        }
+    }
+
+    pub(crate) fn set_interrupt_mode(cpu: &mut Cpu, _bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::SetInterruptMode(Immediate::U8(mode), _) => {
+                cpu.interrupt_mode = InterruptMode::from(mode)?;
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
         }
     }
 

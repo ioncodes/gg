@@ -7,6 +7,7 @@ use z80::{
     instruction::{Opcode, Reg16, Reg8, Register},
 };
 
+#[derive(Debug, Clone, Copy)]
 pub struct Registers {
     pub a: u8,
     pub b: u8,
@@ -33,9 +34,28 @@ bitflags! {
     }
 }
 
+pub(crate) enum InterruptMode {
+    IM0,
+    IM1,
+    IM2,
+}
+
+impl InterruptMode {
+    pub(crate) fn from(value: u8) -> Result<InterruptMode, GgError> {
+        match value {
+            0 => Ok(InterruptMode::IM0),
+            1 => Ok(InterruptMode::IM1),
+            2 => Ok(InterruptMode::IM2),
+            _ => Err(GgError::InvalidInterruptMode { mode: value }),
+        }
+    }
+}
+
 pub struct Cpu {
     pub registers: Registers,
     pub(crate) flags: Flags,
+    pub(crate) interrupts_enabled: bool,
+    pub(crate) interrupt_mode: InterruptMode,
 }
 
 impl Cpu {
@@ -54,6 +74,8 @@ impl Cpu {
                 sp: 0,
             },
             flags: Flags::empty(),
+            interrupts_enabled: true,
+            interrupt_mode: InterruptMode::IM0,
         }
     }
 
@@ -92,13 +114,22 @@ impl Cpu {
                     Opcode::Xor(_, _) => Handlers::xor(self, bus, &instruction),
                     Opcode::Outi(_) => Handlers::outi(self, bus, &instruction),
                     Opcode::Restart(_, _) => Handlers::restart(self, bus, &instruction),
+                    Opcode::SetInterruptMode(_, _) => Handlers::set_interrupt_mode(self, bus, &instruction),
                     _ => {
-                        error!("Invalid opcode: {}", instruction.opcode);
+                        error!("Invalid opcode: {}\n{}", instruction.opcode, self);
                         return Err(GgError::OpcodeNotImplemented {
                             opcode: instruction.opcode,
                         });
                     }
                 };
+
+                match result {
+                    Err(GgError::BusRequestOutOfBounds { address }) => {
+                        error!("Bus request out of bounds: {:04x}\n{}", address, self);
+                        return Err(GgError::BusRequestOutOfBounds { address });
+                    },
+                    _ => ()
+                }
 
                 let io_skip = match result {
                     Err(GgError::IoRequestNotFulfilled) => {
