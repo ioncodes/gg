@@ -10,6 +10,7 @@ use winit_input_helper::WinitInputHelper;
 
 use core::system::System;
 use core::vdp::{Color, INTERNAL_HEIGHT, INTERNAL_WIDTH};
+use std::sync::mpsc::{self, Receiver, Sender};
 
 const RENDER_SCALE: usize = 4;
 
@@ -18,12 +19,26 @@ fn main() {
     let (window, event_loop, mut pixels) = initialize_renderer();
     let mut input = WinitInputHelper::new();
 
-    let mut system = initialize_system();
-    let mut emulator_paused = false;
+    let (tx, rx): (Sender<(Color, Vec<Color>)>, Receiver<(Color, Vec<Color>)>) = mpsc::channel();
+
+    std::thread::spawn(move || {
+        let mut system = initialize_system();
+        let mut emulator_paused = false;
+
+        while !emulator_paused {
+            match system.tick() {
+                Ok(true) => tx.send(system.render()).unwrap(),
+                Ok(false) => (),
+                Err(error) => {
+                    error!("Encountered error: {}", error);
+                    emulator_paused = true;
+                }
+            };
+        }
+    });
 
     event_loop.run(move |event, _, control_flow| {
         if let Event::RedrawRequested(_) = event {
-            draw_frame(&mut pixels.frame_mut(), &system.render());
             pixels.render().unwrap();
         }
 
@@ -34,18 +49,13 @@ fn main() {
             }
         }
 
-        if emulator_paused {
-            return;
+        match rx.try_recv() {
+            Ok(frame) => {
+                draw_frame(&mut pixels.frame_mut(), &frame);
+                window.request_redraw();
+            },
+            _ => (),
         }
-
-        match system.tick() {
-            Ok(true) => window.request_redraw(),
-            Ok(false) => (),
-            Err(error) => {
-                error!("Encountered error: {}", error);
-                emulator_paused = true;
-            }
-        };
     });
 }
 
