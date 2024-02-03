@@ -69,7 +69,8 @@ pub struct Vdp {
     pub(crate) vram: Memory,
     pub(crate) cram: Memory,
     mode: Mode,
-    pub(crate) vram_dirty: bool
+    pub(crate) vram_dirty: bool,
+    pub(crate) buffer: Vec<u8>,
 }
 
 impl Vdp {
@@ -84,13 +85,14 @@ impl Vdp {
             vram: Memory::new(16 * 1024, 0x0000),
             cram: Memory::new(64, 0x0000),
             mode: Mode::None,
-            vram_dirty: false
+            vram_dirty: false,
+            buffer: Vec::new(),
         }
     }
 
     pub(crate) fn tick(&mut self, bus: &mut Bus) {
         self.handle_io(bus);
-        self.handle_control_data(&mut bus.io);
+        self.handle_control_data();
         self.handle_counters();
     }
 
@@ -168,7 +170,7 @@ impl Vdp {
     }
 
     #[bitmatch]
-    fn handle_control_data(&mut self, io: &mut IoBus) {
+    fn handle_control_data(&mut self) {
         loop {
             if self.control_data.len() >= 2 {
                 trace!("VDP control type: {:08b}", self.control_data[1]);
@@ -214,7 +216,7 @@ impl Vdp {
                             self.registers.address = self.registers.address - 0x4000;
                         }
                         debug!("Setting address register to {:04x}", address);
-                        io.push(DATA_PORT, value, IoMode::Write, false);
+                        self.buffer.push(value);
                         self.mode = Mode::VramRead;
                     }
                     "01??_????" => {
