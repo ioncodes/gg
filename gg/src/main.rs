@@ -19,6 +19,7 @@ fn main() {
     let mut input = WinitInputHelper::new();
 
     let mut system = initialize_system();
+    let mut emulator_paused = false;
 
     event_loop.run(move |event, _, control_flow| {
         if let Event::RedrawRequested(_) = event {
@@ -33,10 +34,17 @@ fn main() {
             }
         }
 
+        if emulator_paused {
+            return;
+        }
+
         match system.tick() {
             Ok(true) => window.request_redraw(),
             Ok(false) => (),
-            Err(error) => error!("Encountered error: {}", error)
+            Err(error) => {
+                error!("Encountered error: {}", error);
+                emulator_paused = true;
+            }
         };
     });
 }
