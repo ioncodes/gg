@@ -6,7 +6,7 @@ use crate::{
 };
 use core::panic;
 use log::trace;
-use z80::instruction::{self, Condition, Immediate, Instruction, Opcode, Operand, Reg16, Reg8, Register};
+use z80::instruction::{Condition, Immediate, Instruction, Opcode, Operand, Reg16, Reg8, Register};
 
 pub(crate) struct Handlers;
 

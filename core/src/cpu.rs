@@ -36,7 +36,6 @@ bitflags! {
 pub struct Cpu {
     pub registers: Registers,
     pub(crate) flags: Flags,
-    ignore_next_breakpoint: bool
 }
 
 impl Cpu {
@@ -55,7 +54,6 @@ impl Cpu {
                 sp: 0,
             },
             flags: Flags::empty(),
-            ignore_next_breakpoint: false,
         }
     }
 
@@ -210,10 +208,6 @@ impl Cpu {
         log::trace!("Popped {:04x} from stack at {:04x}", value, self.registers.sp);
         self.registers.sp += 2;
         Ok(value)
-    }
-
-    pub(crate) fn resume_execution(&mut self) {
-        self.ignore_next_breakpoint = true;
     }
 }
 

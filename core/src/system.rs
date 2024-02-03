@@ -1,5 +1,3 @@
-use log::{debug, info};
-
 use crate::bus::Bus;
 use crate::cpu::Cpu;
 use crate::error::GgError;
