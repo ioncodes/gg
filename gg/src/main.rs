@@ -30,7 +30,7 @@ fn main() {
                 Ok(true) => tx.send(system.render()).unwrap(),
                 Ok(false) => (),
                 Err(error) => {
-                    error!("Encountered error: {}", error);
+                    error!("{}", error);
                     emulator_paused = true;
                 }
             };
@@ -121,6 +121,7 @@ fn initialize_logging() {
 
     Builder::new()
         .filter(Some("core"), default_log_level)
+        .filter(Some("gg"), default_log_level)
         .format_timestamp(None)
         .init();
 }

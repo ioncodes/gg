@@ -6,7 +6,7 @@ use crate::{
 };
 use core::panic;
 use log::trace;
-use z80::instruction::{Condition, Immediate, Instruction, Opcode, Operand, Reg16, Reg8, Register};
+use z80::instruction::{self, Condition, Immediate, Instruction, Opcode, Operand, Reg16, Reg8, Register};
 
 pub(crate) struct Handlers;
 
@@ -425,6 +425,18 @@ impl Handlers {
         cpu.flags.set(Flags::SUBTRACT, true);
 
         Ok(())
+    }
+
+    pub(crate) fn restart(cpu: &mut Cpu, bus: &mut Bus, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::Restart(Immediate::U8(imm), _) => {
+                let pc = cpu.get_register_u16(Reg16::PC);
+                cpu.push_stack(bus, pc + 1)?;
+                cpu.set_register_u16(Reg16::PC, imm as u16);
+                Ok(())
+            }
+            _ => panic!("Invalid opcode for restart instruction: {}", instruction.opcode),   
+        }
     }
 
     // Helpers

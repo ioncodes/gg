@@ -21,6 +21,25 @@ impl Bus {
         }
     }
 
+    pub(crate) fn process_io(&mut self) {
+        /*
+            Port $3E : Memory control
+            D7 : Expansion slot enable (1= disabled, 0= enabled)
+            D6 : Cartridge slot enable (1= disabled, 0= enabled)
+            D5 : Card slot disabled (1= disabled, 0= enabled)
+            D4 : Work RAM disabled (1= disabled, 0= enabled)
+            D3 : BIOS ROM disabled (1= disabled, 0= enabled)
+            D2 : I/O chip disabled (1= disabled, 0= enabled)
+            D1 : Unknown
+            D0 : Unknown
+         */
+        
+        if self.io.has_pending(0x3e, IoMode::Write) {
+            let value = self.io.pop(0x3e, false).unwrap();
+            self.bios_enabled = value & 0b0000_1000 == 0;
+        }
+    }
+
     pub(crate) fn push_io_data(&mut self, port: u8, value: u8, mode: IoMode, is_answer: bool) {
         self.io.push(port, value, mode, is_answer);
     }

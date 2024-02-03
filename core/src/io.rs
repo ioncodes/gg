@@ -50,6 +50,8 @@ impl IoBus {
                 // These are handled by the VDP (read) or PSG (write), ignore.
                 0xbe..=0xbf => (),
                 0x7e..=0x7f => (),
+                // This one is handled by the bus itself
+                0x3e => (),
                 _ => warn!("Encountered I/O port with no default setting: {:02x}", port),
             }
         }

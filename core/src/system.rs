@@ -72,6 +72,7 @@ impl System {
 
         // Execute other components here (e.g. VDP or I/O interaction)
         self.bus.io.process_default();
+        self.bus.process_io();
 
         // Execute post-tick Lua script
         if self.lua.hook_exists(current_pc_before_tick, HookType::PostTick) {

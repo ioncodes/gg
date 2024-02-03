@@ -93,6 +93,7 @@ impl Cpu {
                     Opcode::DecrementAndJumpRelative(_, _) => Handlers::decrement_and_jump_relative(self, bus, &instruction),
                     Opcode::Xor(_, _) => Handlers::xor(self, bus, &instruction),
                     Opcode::Outi(_) => Handlers::outi(self, bus, &instruction),
+                    Opcode::Restart(_, _) => Handlers::restart(self, bus, &instruction),
                     _ => {
                         error!("Invalid opcode: {}", instruction.opcode);
                         return Err(GgError::OpcodeNotImplemented {
@@ -114,6 +115,7 @@ impl Cpu {
                     // only skip the PC increment if we actually returned somewhere
                     Opcode::Jump(_, _, _) => result.is_ok(),
                     Opcode::Return(_, _) => result.is_ok(),
+                    Opcode::Restart(_, _) => result.is_ok(),
                     _ => false,
                 };
 
