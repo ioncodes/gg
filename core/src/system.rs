@@ -3,6 +3,7 @@ use log::error;
 use crate::bus::Bus;
 use crate::cpu::Cpu;
 use crate::error::GgError;
+
 use crate::lua_engine::{LuaEngine, HookType};
 use crate::vdp::{Color, Vdp};
 
@@ -61,21 +62,17 @@ impl System {
         }
 
         // Process tick for all components
-        let result = self.cpu.tick(&mut self.bus);
+        let result = self.cpu.tick(&mut self.bus, &mut self.vdp);
         match result {
             Err(GgError::IoRequestNotFulfilled) => (),
             Err(GgError::JumpNotTaken) => (),
             Err(e) => {
                 error!("Identified error at address: {:04x}", self.cpu.registers.pc);
-                return Err(e)
+                return Err(e);
             },
             _ => ()
         };
         self.vdp.tick(&mut self.bus);
-
-        // Execute other components here (e.g. VDP or I/O interaction)
-        self.bus.io.process_default();
-        self.bus.process_io();
 
         // Execute post-tick Lua script
         if self.lua.hook_exists(current_pc_before_tick, HookType::PostTick) {

@@ -1,21 +1,27 @@
 use std::collections::VecDeque;
 
-use crate::{bus::Bus, io::{IoBus, IoMode}, memory::Memory};
-use bitmatch::bitmatch;
+use crate::{bus::Bus, error::GgError, io::Controller, memory::Memory};
 use log::{debug, error, trace};
 
 // todo: ????
 //const H_COUNTER_COUNT: u8 = 171;
 //const NTSC_SCANLINE_COUNT: u16 = 262; // 60 frames
-const V_COUNTER_PORT: u8 = 0x7e;
-const CONTROL_PORT: u8 = 0xbf;
-const DATA_PORT: u8 = 0xbe;
+pub(crate) const V_COUNTER_PORT: u8 = 0x7e;
+pub(crate) const CONTROL_PORT: u8 = 0xbf;
+pub(crate) const DATA_PORT: u8 = 0xbe;
 // const PAL_SCANLINE_COUNT: u8 = 312;
 
 pub const INTERNAL_WIDTH: usize = 256;
 pub const INTERNAL_HEIGHT: usize = 224;
 
 pub type Color = (u8, u8, u8, u8);
+
+enum IoMode {
+    VramRead,
+    VramWrite,
+    CramWrite,
+    None
+}
 
 #[derive(Debug)]
 pub(crate) struct Pattern {
@@ -24,7 +30,9 @@ pub(crate) struct Pattern {
 
 impl Pattern {
     pub(crate) fn new() -> Pattern {
-        Pattern { data: [[(0, 0, 0, 0); 8]; 8] }
+        Pattern {
+            data: [[(0, 0, 0, 0); 8]; 8],
+        }
     }
 
     pub(crate) fn set_pixel(&mut self, x: u8, y: u8, color: Color) {
@@ -34,13 +42,6 @@ impl Pattern {
     pub(crate) fn get_pixel(&self, x: u8, y: u8) -> Color {
         self.data[y as usize][x as usize]
     }
-}
-
-pub(crate) enum Mode {
-    VramWrite,
-    CramWrite,
-    VramRead,
-    None,
 }
 
 #[derive(Default, Debug)]
@@ -68,9 +69,10 @@ pub struct Vdp {
     registers: Registers,
     pub(crate) vram: Memory,
     pub(crate) cram: Memory,
-    mode: Mode,
+    cram_latch: Option<u8>,
     pub(crate) vram_dirty: bool,
     pub(crate) buffer: Vec<u8>,
+    io_mode: IoMode
 }
 
 impl Vdp {
@@ -84,15 +86,16 @@ impl Vdp {
             registers: Registers::default(),
             vram: Memory::new(16 * 1024, 0x0000),
             cram: Memory::new(64, 0x0000),
-            mode: Mode::None,
+            cram_latch: None,
             vram_dirty: false,
             buffer: Vec::new(),
+            io_mode: IoMode::None
         }
     }
 
-    pub(crate) fn tick(&mut self, bus: &mut Bus) {
-        self.handle_io(bus);
-        self.handle_control_data();
+    pub(crate) fn tick(&mut self, _bus: &mut Bus) {
+        //self.handle_io(bus);
+        //self.handle_control_data();
         self.handle_counters();
     }
 
@@ -100,13 +103,13 @@ impl Vdp {
         self.v == 0
     }
 
-    pub fn render_background(&mut self) -> (Color, Vec<Color>) {        
+    pub fn render_background(&mut self) -> (Color, Vec<Color>) {
         let background_color = self.read_palette_entry(0);
 
         let mut pixels = vec![(0, 0, 0, 0); INTERNAL_WIDTH * INTERNAL_HEIGHT];
 
         debug!("Rendering background");
-        
+
         for row in 0..28 {
             for column in 0..32 {
                 let name_table_addr = self.get_name_table_addr(column, row);
@@ -122,7 +125,7 @@ impl Vdp {
                 // pattern_base_addr = character/tile location in VRAM.
                 // Each character/tile is 8x8 pixels, and each pixel consists of 4 bits.
                 // So each character/tile is 32 bytes (64 pixels).
-                
+
                 let mut pattern = Pattern::new();
                 for line in 0..8 {
                     let line_base_addr = pattern_base_addr + (line * 4);
@@ -169,177 +172,176 @@ impl Vdp {
         (background_color, pixels)
     }
 
-    #[bitmatch]
-    fn handle_control_data(&mut self) {
-        loop {
-            if self.control_data.len() >= 2 {
-                trace!("VDP control type: {:08b}", self.control_data[1]);
+    // #[bitmatch]
+    // fn handle_control_data(&mut self) {
+    //     loop {
+    //         if self.control_data.len() >= 2 {
+    //             trace!("VDP control type: {:08b}", self.control_data[1]);
 
-                #[bitmatch]
-                match self.control_data[1] {
-                    "1000_????" => {
-                        /*
-                         * Set VDP register:
-                         * To set data in a VDP register, the data is inputted in  the first byte. The second byte is used
-                         * to indicate the register where the data is to be transferred.
-                         * The bottom four bits (R3 to R0) of the second byte designate the data transfer destination
-                         * registers (#0 to #10). b7 must be“1”and b6 to b4 must be“0”.
-                         */
+    //             #[bitmatch]
+    //             match self.control_data[1] {
+    //                 "1000_????" => {
+    //                     /*
+    //                      * Set VDP register:
+    //                      * To set data in a VDP register, the data is inputted in  the first byte. The second byte is used
+    //                      * to indicate the register where the data is to be transferred.
+    //                      * The bottom four bits (R3 to R0) of the second byte designate the data transfer destination
+    //                      * registers (#0 to #10). b7 must be“1”and b6 to b4 must be“0”.
+    //                      */
+    //                     let value = self.control_data.pop_front().unwrap();
+    //                     let register = self.control_data.pop_front().unwrap() & 0b0000_1111;
+    //                     match register {
+    //                         0b0000_0000 => self.registers.r0 = value,
+    //                         0b0000_0001 => self.registers.r1 = value,
+    //                         0b0000_0010 => self.registers.r2 = value,
+    //                         0b0000_0011 => self.registers.r3 = value,
+    //                         0b0000_0100 => self.registers.r4 = value,
+    //                         0b0000_0101 => self.registers.r5 = value,
+    //                         0b0000_0110 => self.registers.r6 = value,
+    //                         0b0000_0111 => self.registers.r7 = value,
+    //                         0b0000_1000 => self.registers.r8 = value,
+    //                         0b0000_1001 => self.registers.r9 = value,
+    //                         0b0000_1010 => self.registers.r10 = value,
+    //                         // registers 11..15 have no effect when written to
+    //                         _ => error!("Invalid VDP register: {:08b}", register),
+    //                     }
+    //                 }
+    //                 "00??_????" => {
+    //                     // Read from VRAM requests are denoted by a 0b00 at bit 15 and 14 of the 2nd byte in the control data.
+    //                     // The rest adds up to a VRAM address.
+    //                     let control_byte1 = self.control_data.pop_front().unwrap();
+    //                     let control_byte2 = self.control_data.pop_front().unwrap();
+    //                     let address = (((control_byte2 & 0b0011_1111) as u16) << 8) | (control_byte1 as u16);
+    //                     let value = self.vram.read(address);
+    //                     self.registers.address += 1;
+    //                     if self.registers.address >= 0x4000 {
+    //                         self.registers.address = self.registers.address - 0x4000;
+    //                     }
+    //                     debug!("Setting address register to {:04x}", address);
+    //                     self.buffer.push(value);
+    //                     self.mode = Mode::VramRead;
+    //                 }
+    //                 "01??_????" => {
+    //                     // Write to VRAM requests are denoted by a 0b01 at bit 15 and 14 of the 2nd byte in the control data.
+    //                     // The rest adds up to a VRAM address.
+    //                     let control_byte1 = self.control_data.pop_front().unwrap();
+    //                     let control_byte2 = self.control_data.pop_front().unwrap();
+    //                     let address = (((control_byte2 & 0b0011_1111) as u16) << 8) | (control_byte1 as u16);
+    //                     self.registers.address = address;
+    //                     debug!("Setting address register to {:04x}", address);
+    //                     self.mode = Mode::VramWrite;
+    //                 }
+    //                 "11??_????" => {
+    //                     // Write to CRAM requests are denoted by a 0b11 at bit 15 and 14 of the 2nd byte in the control data.
+    //                     // The rest adds up to a CRAM address.
+    //                     let control_byte1 = self.control_data.pop_front().unwrap();
+    //                     let control_byte2 = self.control_data.pop_front().unwrap();
+    //                     let address = (((control_byte2 & 0b0011_1111) as u16) << 8) | (control_byte1 as u16);
+    //                     self.registers.address = address;
+    //                     debug!("Setting address register to {:04x}", address);
+    //                     self.mode = Mode::CramWrite;
+    //                 }
+    //                 _ => error!("Seemingly unimplemented control data found: {:02x?}", self.control_data),
+    //             }
+    //         } else {
+    //             break;
+    //         }
+    //     }
+    // }
 
-                        let value = self.control_data.pop_front().unwrap();
-                        let register = self.control_data.pop_front().unwrap() & 0b0000_1111;
-                        match register {
-                            0b0000_0000 => self.registers.r0 = value,
-                            0b0000_0001 => self.registers.r1 = value,
-                            0b0000_0010 => self.registers.r2 = value,
-                            0b0000_0011 => self.registers.r3 = value,
-                            0b0000_0100 => self.registers.r4 = value,
-                            0b0000_0101 => self.registers.r5 = value,
-                            0b0000_0110 => self.registers.r6 = value,
-                            0b0000_0111 => self.registers.r7 = value,
-                            0b0000_1000 => self.registers.r8 = value,
-                            0b0000_1001 => self.registers.r9 = value,
-                            0b0000_1010 => self.registers.r10 = value,
-                            // registers 11..15 have no effect when written to
-                            _ => error!("Invalid VDP register: {:08b}", register),
-                        }
-                    }
-                    "00??_????" => {
-                        // Read from VRAM requests are denoted by a 0b00 at bit 15 and 14 of the 2nd byte in the control data.
-                        // The rest adds up to a VRAM address.
-                        let control_byte1 = self.control_data.pop_front().unwrap();
-                        let control_byte2 = self.control_data.pop_front().unwrap();
-                        let address = (((control_byte2 & 0b0011_1111) as u16) << 8) | (control_byte1 as u16);
-                        let value = self.vram.read(address);
-                        self.registers.address += 1;
-                        if self.registers.address >= 0x4000 {
-                            self.registers.address = self.registers.address - 0x4000;
-                        }
-                        debug!("Setting address register to {:04x}", address);
-                        self.buffer.push(value);
-                        self.mode = Mode::VramRead;
-                    }
-                    "01??_????" => {
-                        // Write to VRAM requests are denoted by a 0b01 at bit 15 and 14 of the 2nd byte in the control data.
-                        // The rest adds up to a VRAM address.
-                        let control_byte1 = self.control_data.pop_front().unwrap();
-                        let control_byte2 = self.control_data.pop_front().unwrap();
-                        let address = (((control_byte2 & 0b0011_1111) as u16) << 8) | (control_byte1 as u16);
-                        self.registers.address = address;
-                        debug!("Setting address register to {:04x}", address);
-                        self.mode = Mode::VramWrite;
-                    }
-                    "11??_????" => {
-                        // Write to CRAM requests are denoted by a 0b11 at bit 15 and 14 of the 2nd byte in the control data.
-                        // The rest adds up to a CRAM address.
-                        let control_byte1 = self.control_data.pop_front().unwrap();
-                        let control_byte2 = self.control_data.pop_front().unwrap();
-                        let address = (((control_byte2 & 0b0011_1111) as u16) << 8) | (control_byte1 as u16);
-                        self.registers.address = address;
-                        debug!("Setting address register to {:04x}", address);
-                        self.mode = Mode::CramWrite;
-                    }
-                    _ => error!("Seemingly unimplemented control data found: {:02x?}", self.control_data),
-                }
-            } else {
-                break;
-            }
-        }
-    }
+    // fn handle_io(&mut self, bus: &mut Bus) {
+    //     if let Some(_) = bus.io.pop(V_COUNTER_PORT, false) {
+    //         trace!("I/O request for V counter: {:02x}", self.v);
+    //         bus.push_io_data(V_COUNTER_PORT, self.v, IoMode::Read, true);
+    //     }
 
-    fn handle_io(&mut self, bus: &mut Bus) {
-        if let Some(_) = bus.io.pop(V_COUNTER_PORT, false) {
-            trace!("I/O request for V counter: {:02x}", self.v);
-            bus.push_io_data(V_COUNTER_PORT, self.v, IoMode::Read, true);
-        }
+    //     if let Some(buffer) = bus.io.pop_all(CONTROL_PORT) {
+    //         debug!("Received buffer via I/O control port ({:02x}): {:02x?}", CONTROL_PORT, buffer);
+    //         self.control_data.extend(buffer);
+    //     }
 
-        if let Some(buffer) = bus.io.pop_all(CONTROL_PORT) {
-            debug!("Received buffer via I/O control port ({:02x}): {:02x?}", CONTROL_PORT, buffer);
-            self.control_data.extend(buffer);
-        }
+    //     if let Some(mut buffer) = bus.io.pop_all(DATA_PORT) {
+    //         debug!("Received buffer via I/O data port ({:02x}): {:02x?}", DATA_PORT, buffer);
 
-        if let Some(mut buffer) = bus.io.pop_all(DATA_PORT) {
-            debug!("Received buffer via I/O data port ({:02x}): {:02x?}", DATA_PORT, buffer);
+    //         match self.mode {
+    //             Mode::VramWrite => {
+    //                 // Write data bytes to VRAM
 
-            match self.mode {
-                Mode::VramWrite => {
-                    // Write data bytes to VRAM
+    //                 let bytes_to_write = buffer.len();
 
-                    let bytes_to_write = buffer.len();
+    //                 loop {
+    //                     if buffer.is_empty() {
+    //                         break;
+    //                     }
 
-                    loop {
-                        if buffer.is_empty() {
-                            break;
-                        }
+    //                     let value = buffer.pop_front().unwrap();
+    //                     self.vram.write(self.registers.address, value);
 
-                        let value = buffer.pop_front().unwrap();
-                        self.vram.write(self.registers.address, value);
+    //                     self.registers.address += 1;
+    //                     if self.registers.address >= 0x4000 {
+    //                         self.registers.address = self.registers.address - 0x4000;
+    //                     }
+    //                 }
 
-                        self.registers.address += 1;
-                        if self.registers.address >= 0x4000 {
-                            self.registers.address = self.registers.address - 0x4000;
-                        }
-                    }
+    //                 debug!("Wrote {} bytes to {:04x} @ VRAM", bytes_to_write, self.registers.address);
 
-                    debug!("Wrote {} bytes to {:04x} @ VRAM", bytes_to_write, self.registers.address);
+    //                 // Force a rerender
+    //                 self.vram_dirty = true;
+    //             }
+    //             Mode::CramWrite => {
+    //                 // Write data bytes to CRAM
+    //                 // "If the address register exceeds the CRAM size (32 or 64 bytes), the high bits are ignored so it will always address CRAM;""
+    //                 // "for example, address $1000 wil read from CRAM address $00.""
 
-                    // Force a rerender
-                    self.vram_dirty = true;
-                }
-                Mode::CramWrite => {
-                    // Write data bytes to CRAM
-                    // "If the address register exceeds the CRAM size (32 or 64 bytes), the high bits are ignored so it will always address CRAM;""
-                    // "for example, address $1000 wil read from CRAM address $00.""
+    //                 // Even writes to CRAM get cached in a latch, whereas odd writes write to the CRAM along with the latched byte
+    //                 // todo: isn't this just a copy routine basically? aka, what we did before the rewrite?
 
-                    // Even writes to CRAM get cached in a latch, whereas odd writes write to the CRAM along with the latched byte
-                    // todo: isn't this just a copy routine basically? aka, what we did before the rewrite?
+    //                 let mut latch: Option<u8> = None;
+    //                 loop {
+    //                     if buffer.is_empty() {
+    //                         break;
+    //                     }
 
-                    let mut latch: Option<u8> = None;
-                    loop {
-                        if buffer.is_empty() {
-                            break;
-                        }
+    //                     let address = self.registers.address & 0b0000_0000_0111_1111;
 
-                        let address = self.registers.address & 0b0000_0000_0111_1111;
+    //                     if address % 2 == 0 {
+    //                         latch = buffer.pop_front();
+    //                     } else {
+    //                         let value = buffer.pop_front().unwrap();
+    //                         if let Some(latched_value) = latch {
+    //                             self.cram.write(address, latched_value);
+    //                         }
+    //                         self.cram.write(address - 1, value);
+    //                         debug!(
+    //                             "Wrote 1-2 bytes [current: {:02x}, latched: {:02x?}] to {:04x} @ CRAM",
+    //                             value,
+    //                             latch,
+    //                             address - 1
+    //                         );
+    //                     }
 
-                        if address % 2 == 0 {
-                            latch = buffer.pop_front();
-                        } else {
-                            let value = buffer.pop_front().unwrap();
-                            if let Some(latched_value) = latch {
-                                self.cram.write(address, latched_value);
-                            }
-                            self.cram.write(address - 1, value);
-                            debug!(
-                                "Wrote 1-2 bytes [current: {:02x}, latched: {:02x?}] to {:04x} @ CRAM",
-                                value,
-                                latch,
-                                address - 1
-                            );
-                        }
+    //                     self.registers.address += 1;
+    //                     if self.registers.address >= 0x40 {
+    //                         self.registers.address = self.registers.address - 0x40;
+    //                     }
+    //                 }
 
-                        self.registers.address += 1;
-                        if self.registers.address >= 0x40 {
-                            self.registers.address = self.registers.address - 0x40;
-                        }
-                    }
-
-                    // Force a rerender
-                    self.vram_dirty = true;
-                }
-                Mode::VramRead => {
-                    // Read data bytes from VRAM
-                    buffer.push_back(self.vram.read(self.registers.address));
-                    for byte in buffer {
-                        bus.io.push(DATA_PORT, byte, IoMode::Write, true);
-                    }
-                }
-                Mode::None => {
-                    error!("Received byte on data port ({:02x}) without being in a specific mode", DATA_PORT);
-                }
-            }
-        }
-    }
+    //                 // Force a rerender
+    //                 self.vram_dirty = true;
+    //             }
+    //             Mode::VramRead => {
+    //                 // Read data bytes from VRAM
+    //                 buffer.push_back(self.vram.read(self.registers.address));
+    //                 for byte in buffer {
+    //                     bus.io.push(DATA_PORT, byte, IoMode::Write, true);
+    //                 }
+    //             }
+    //             Mode::None => {
+    //                 error!("Received byte on data port ({:02x}) without being in a specific mode", DATA_PORT);
+    //             }
+    //         }
+    //     }
+    // }
 
     fn handle_counters(&mut self) {
         /*
@@ -406,6 +408,140 @@ impl Vdp {
         let b = (((palette & 0b0000_1111_0000_0000) << 4) >> 8) as u8;
 
         (r, g, b, 0xff)
+    }
+}
+
+impl Controller for Vdp {
+    fn read_io(&self, port: u8) -> Result<u8, GgError> {
+        match port {
+            V_COUNTER_PORT => Ok(self.v),
+            _ => {
+                error!("Invalid port for VDP I/O controller (read): {:02x}", port);
+                Err(GgError::IoControllerInvalidPort)
+            }
+        }
+    }
+
+    fn write_io(&mut self, port: u8, value: u8) -> Result<(), GgError> {
+        match port {
+            CONTROL_PORT => {
+                self.control_data.push_back(value);
+                if self.control_data.len() >= 2 {
+                    trace!("VDP control type: {:08b}", self.control_data[1]);
+
+                    match self.control_data[1] & 0b1100_0000 {
+                        0b1000_0000 => {
+                            /*
+                             * Set VDP register:
+                             * To set data in a VDP register, the data is inputted in the first byte. The second byte is used
+                             * to indicate the register where the data is to be transferred.
+                             * The bottom four bits (R3 to R0) of the second byte designate the data transfer destination
+                             * registers (#0 to #10). b7 must be“1”and b6 to b4 must be“0”.
+                             */
+
+                            let value = self.control_data.pop_front().unwrap();
+                            let register = self.control_data.pop_front().unwrap() & 0b0000_1111;
+                            match register {
+                                0b0000_0000 => self.registers.r0 = value,
+                                0b0000_0001 => self.registers.r1 = value,
+                                0b0000_0010 => self.registers.r2 = value,
+                                0b0000_0011 => self.registers.r3 = value,
+                                0b0000_0100 => self.registers.r4 = value,
+                                0b0000_0101 => self.registers.r5 = value,
+                                0b0000_0110 => self.registers.r6 = value,
+                                0b0000_0111 => self.registers.r7 = value,
+                                0b0000_1000 => self.registers.r8 = value,
+                                0b0000_1001 => self.registers.r9 = value,
+                                0b0000_1010 => self.registers.r10 = value,
+                                // registers 11..15 have no effect when written to
+                                _ => error!("Invalid VDP register: {:08b}", register),
+                            }
+                        }
+                        0b0000_0000 => {
+                            // Read from VRAM requests are denoted by a 0b00 at bit 15 and 14 of the 2nd byte in the control data.
+                            // The rest adds up to a VRAM address.
+                            let control_byte1 = self.control_data.pop_front().unwrap();
+                            let control_byte2 = self.control_data.pop_front().unwrap();
+                            let address = (((control_byte2 & 0b0011_1111) as u16) << 8) | (control_byte1 as u16);
+                            let value = self.vram.read(address);
+
+                            self.registers.address += 1;
+                            self.registers.address %= 0x3fff; // ensure we wrap around
+                            
+                            debug!("Setting address register to {:04x}", address);
+                            self.buffer.push(value);
+
+                            self.io_mode = IoMode::VramRead;
+                        }
+                        0b0100_0000 => {
+                            // Write to VRAM requests are denoted by a 0b01 at bit 15 and 14 of the 2nd byte in the control data.
+                            // The rest adds up to a VRAM address.
+                            let control_byte1 = self.control_data.pop_front().unwrap();
+                            let control_byte2 = self.control_data.pop_front().unwrap();
+                            let address = (((control_byte2 & 0b0011_1111) as u16) << 8) | (control_byte1 as u16);
+                            self.registers.address = address;
+                            debug!("Setting address register to {:04x}", address);
+
+                            self.io_mode = IoMode::VramWrite;
+                        }
+                        0b1100_0000 => {
+                            // Write to CRAM requests are denoted by a 0b11 at bit 15 and 14 of the 2nd byte in the control data.
+                            // The rest adds up to a CRAM address.
+                            let control_byte1 = self.control_data.pop_front().unwrap();
+                            let control_byte2 = self.control_data.pop_front().unwrap();
+                            let address = (((control_byte2 & 0b0011_1111) as u16) << 8) | (control_byte1 as u16);
+                            self.registers.address = address;
+                            debug!("Setting address register to {:04x}", address);
+
+                            self.io_mode = IoMode::CramWrite;
+                        }
+                        _ => error!("Seemingly unimplemented control data found: {:08b}", self.control_data[1]),
+                    }
+                }
+
+                Ok(())
+            }
+            DATA_PORT => {
+                match self.io_mode {
+                    IoMode::VramWrite => {
+                        self.vram.write(self.registers.address, value);
+
+                        self.registers.address += 1;
+                        self.registers.address %= 0x3fff; // ensure we wrap around
+
+                        // Force a rerender
+                        self.vram_dirty = true;
+                    }
+                    IoMode::CramWrite => {
+                        let address = self.registers.address & 0b0000_0000_0111_1111;
+                        if address % 2 == 0 {
+                            self.cram_latch = Some(value);
+                        } else {
+                            let latched_value = self.cram_latch.unwrap();
+                            self.cram.write(self.registers.address, latched_value);
+                            self.cram.write(self.registers.address - 1, value);
+                            self.cram_latch = None;
+
+                            // Force a rerender
+                            self.vram_dirty = true; // todo: lol
+                        }
+
+                        self.registers.address += 1;
+                        self.registers.address %= 0x3f;
+                    }
+                    _ => {
+                        // todo: lmao
+                        error!("Received byte on data port ({:02x}) without being in a specific mode", DATA_PORT);
+                    }
+                }
+
+                Ok(())
+            }
+            _ => {
+                error!("Invalid port for VDP I/O controller (write): {:02x}", port);
+                Err(GgError::IoControllerInvalidPort)
+            }
+        }
     }
 }
 

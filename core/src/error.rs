@@ -19,4 +19,6 @@ pub enum GgError {
     InvalidInterruptMode { mode: u8},
     #[snafu(display("Missing operand implementation for instruction: {instruction}"))]
     InvalidOpcodeImplementation { instruction: Opcode },
+    #[snafu(display("Invalid port for I/O controller"))]
+    IoControllerInvalidPort
 }
