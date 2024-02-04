@@ -1,22 +1,28 @@
 use crate::error::GgError;
 use crate::io::Controller;
+use crate::mapper::Mapper;
 use crate::memory::Memory;
 
 pub(crate) const MEMORY_CONTROL_PORT: u8 = 0x3e;
+//pub(crate) const MEMORY_REGISTER_RAM_MAPPING: u16 = 0xfffc;
+pub(crate) const MEMORY_REGISTER_CR_BANK_SELECT_0: u16 = 0xfffd;
+pub(crate) const MEMORY_REGISTER_CR_BANK_SELECT_1: u16 = 0xfffe;
+pub(crate) const MEMORY_REGISTER_CR_BANK_SELECT_2: u16 = 0xffff;
+
 
 pub(crate) struct Bus {
-    pub(crate) rom: Memory,      // 0x0000 - 0xbfff
-    pub(crate) ram: Memory,      // 0xc000 - 0xffff
-    pub(crate) bios_rom: Memory, // only for BIOS. enabled on startup, disabled by end of BIOS
-    pub(crate) bios_enabled: bool,
-    gear_to_gear_cache: Option<u8> // cache for Gear to Gear communication (ports 0..6)
+    pub(crate) rom: Box<dyn Mapper>,  // 0x0000 - 0xbfff
+    pub(crate) ram: Memory<u16>,      // 0xc000 - 0xffff
+    pub(crate) bios_rom: Memory<u16>, // Only for BIOS. Enabled on startup, disabled by end of BIOS
+    pub(crate) bios_enabled: bool,    // BIOS is enabled by default
+    gear_to_gear_cache: Option<u8>    // cache for Gear to Gear communication (ports 0..6)
 }
 
 impl Bus {
-    pub(crate) fn new() -> Bus {
+    pub(crate) fn new(rom: impl Mapper + 'static) -> Bus {
         Bus {
-            rom: Memory::new(0x1024 * 16, 0x0000),
-            ram: Memory::new(0x1024 * 16, 0xc000),
+            rom: Box::new(rom),
+            ram: Memory::new(0x1024 * 16, 0x0000), /* changed from 0xc000 */
             bios_rom: Memory::new(0x400, 0x0000),
             bios_enabled: true,
             gear_to_gear_cache: None
@@ -25,86 +31,124 @@ impl Bus {
 
     #[allow(unused_comparisons)]
     pub(crate) fn read(&self, mut address: u16) -> Result<u8, GgError> {
-        if address == 0xfffc || address == 0xfffd || address == 0xfffe || address == 0xffff {
-            address = address - 0xe000; // System RAM mirror
-        }
-
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
             return Ok(self.bios_rom.read(address));
         }
 
-        if address >= 0x0000 && address < 0xc000 {
-            return Ok(self.rom.read(address));
+        if address >= 0x0000 && address < 0x4000 {
+            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_0)? as usize;
+            return Ok(self.rom.read_from_bank(bank, address));
+        }
+
+        if address >= 0x4000 && address < 0x8000 {
+            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_1)? as usize;
+            return Ok(self.rom.read_from_bank(bank, address - 0x4000));
+        }
+
+        if address >= 0x8000 && address < 0xc000 {
+            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
+            return Ok(self.rom.read_from_bank(bank, address - 0x8000));
         }
 
         if address >= 0xc000 && address <= 0xffff {
             return Ok(self.ram.read(address));
         }
 
-        Err(GgError::BusRequestOutOfBounds { address })
+        Err(GgError::BusRequestOutOfBounds { address: address as usize })
     }
 
     #[allow(unused_comparisons)]
     pub(crate) fn read_word(&self, mut address: u16) -> Result<u16, GgError> {
-        if address == 0xfffc || address == 0xfffd || address == 0xfffe || address == 0xffff {
-            address = address - 0xe000;
-        }
-
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
             return Ok(self.bios_rom.read_word(address));
         }
 
-        if address >= 0x0000 && address < 0xc000 {
-            return Ok(self.rom.read_word(address));
+        if address >= 0x0000 && address < 0x4000 {
+            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_0)? as usize;
+            return Ok(self.rom.read_word_from_bank(bank, address));
+        }
+
+        if address >= 0x4000 && address < 0x8000 {
+            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_1)? as usize;
+            return Ok(self.rom.read_word_from_bank(bank, address - 0x4000));
+        }
+
+        if address >= 0x8000 && address < 0xc000 {
+            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
+            return Ok(self.rom.read_word_from_bank(bank, address - 0x8000));
         }
 
         if address >= 0xc000 && address <= 0xffff {
             return Ok(self.ram.read_word(address));
         }
 
-        Err(GgError::BusRequestOutOfBounds { address })
+        Err(GgError::BusRequestOutOfBounds { address: address as usize })
     }
 
     #[allow(unused_comparisons)]
     pub(crate) fn write(&mut self, mut address: u16, value: u8) -> Result<(), GgError> {
-        if address == 0xfffc || address == 0xfffd || address == 0xfffe || address == 0xffff {
-            address = address - 0xe000;
-        }
-
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
             return Ok(self.bios_rom.write(address, value));
         }
 
-        if address >= 0x0000 && address < 0xc000 {
-            return Ok(self.rom.write(address, value));
+        if address >= 0x0000 && address < 0x4000 {
+            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_0)? as usize;
+            return Ok(self.rom.write_to_bank(bank, address, value));
+        }
+
+        if address >= 0x4000 && address < 0x8000 {
+            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_1)? as usize;
+            return Ok(self.rom.write_to_bank(bank, address - 0x4000, value));
+        }
+
+        if address >= 0x8000 && address < 0xc000 {
+            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
+            return Ok(self.rom.write_to_bank(bank, address - 0x8000, value));
         }
 
         if address >= 0xc000 && address <= 0xffff {
             return Ok(self.ram.write(address, value));
         }
 
-        Err(GgError::BusRequestOutOfBounds { address })
+        Err(GgError::BusRequestOutOfBounds { address: address as usize })
     }
 
     #[allow(unused_comparisons)]
     pub(crate) fn write_word(&mut self, mut address: u16, value: u16) -> Result<(), GgError> {
-        if address == 0xfffc || address == 0xfffd || address == 0xfffe || address == 0xffff {
-            address = address - 0xe000;
-        }
-
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
             return Ok(self.bios_rom.write_word(address, value));
         }
 
-        if address >= 0x0000 && address < 0xc000 {
-            return Ok(self.rom.write_word(address, value));
+        if address >= 0x0000 && address < 0x4000 {
+            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_0)? as usize;
+            return Ok(self.rom.write_word_to_bank(bank, address, value));
+        }
+
+        if address >= 0x4000 && address < 0x8000 {
+            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_1)? as usize;
+            return Ok(self.rom.write_word_to_bank(bank, address - 0x4000, value));
+        }
+
+        if address >= 0x8000 && address < 0xc000 {
+            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
+            return Ok(self.rom.write_word_to_bank(bank, address - 0x8000, value));
         }
 
         if address >= 0xc000 && address <= 0xffff {
             return Ok(self.ram.write_word(address, value));
         }
 
-        Err(GgError::BusRequestOutOfBounds { address })
+        Err(GgError::BusRequestOutOfBounds { address: address as usize })
+    }
+
+    pub(crate) fn write_passthrough(&mut self, address: usize, value: u8) -> Result<(), GgError> {
+        if self.bios_enabled {
+            self.bios_rom.write(address as u16, value)
+        } else {
+            self.rom.write(address, value)
+        }
+
+        Ok(())
     }
 }
 

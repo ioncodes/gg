@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use log::error;
 
 use crate::bus::Bus;
@@ -5,6 +7,7 @@ use crate::cpu::Cpu;
 use crate::error::GgError;
 
 use crate::lua_engine::{LuaEngine, HookType};
+use crate::mapper::SegaMapper;
 use crate::vdp::{Color, Vdp};
 
 pub struct System {
@@ -16,9 +19,12 @@ pub struct System {
 
 impl System {
     pub fn new(lua_script: Option<String>) -> System {
+        // todo: figure out mapper
+        let mapper = SegaMapper::new(0);
+
         System {
             cpu: Cpu::new(),
-            bus: Bus::new(),
+            bus: Bus::new(mapper),
             vdp: Vdp::new(),
             lua: LuaEngine::new(lua_script)
         }
@@ -36,10 +42,12 @@ impl System {
     }
 
     pub fn load_cartridge(&mut self, data: &[u8]) {
+        self.bus.rom.resize(data.len());
+
         let previous_value = self.disable_bios();
         self.load_rom(data);
         self.bus.bios_enabled = previous_value;
-    }
+     }
 
     pub fn disable_bios(&mut self) -> bool {
         let previous_value = self.bus.bios_enabled;
@@ -91,7 +99,7 @@ impl System {
     pub(crate) fn load_rom(&mut self, data: &[u8]) {
         for i in 0..data.len() {
             self.bus
-                .write(i as u16, data[i])
+                .write_passthrough(i, data[i])
                 .expect("Failed to write to bus while loading into ROM");
         }
     }

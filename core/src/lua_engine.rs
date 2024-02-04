@@ -157,7 +157,7 @@ impl LuaEngine {
 
         if features.contains(&"memory".to_string()) {
             let memory_table = ctx.create_table().unwrap();
-            memory_table.set("rom", bus.rom.buffer.clone()).unwrap();
+            memory_table.set("rom", bus.rom.memory().buffer.clone()).unwrap();
             memory_table.set("ram", bus.ram.buffer.clone()).unwrap();
             memory_table.set("bios_rom", bus.bios_rom.buffer.clone()).unwrap();
             globals.set("memory", memory_table).unwrap();

@@ -1,7 +1,7 @@
 FEATURES = {
     "cpu",
     "vdp",
-    -- "memory"
+    "memory"
 }
 
 function _dump_vram()
@@ -10,6 +10,21 @@ function _dump_vram()
     str = ""
     for i = 1,0x4000 do
         str = str .. string.format("%02x ", vdp["vram"][i])
+
+        if i % 16 == 0 then
+            str = string.format("%04x: %s", i - 0x10, str)
+            log(str)
+            str = ""
+        end
+    end
+end
+
+function _dump_ram()
+    log("RAM:")
+    
+    str = ""
+    for i = 1,(0x1024 * 16) do
+        str = str .. string.format("%02x ", memory["ram"][i])
 
         if i % 16 == 0 then
             str = string.format("%04x: %s", i - 0x10, str)
@@ -45,9 +60,14 @@ function post_vram_copy_hook()
     _dump_vram()
 end
 
-install_hook(0x9f, PRE_TICK, "post_sega_license_hook")
+function post_mapper_setup_hook()
+    log("Selected bank: " .. string.format("%02x", memory["ram"][0xfffe + 1]))
+end
+
+-- install_hook(0x9f, PRE_TICK, "post_sega_license_hook")
 -- install_hook(0x135, PRE_TICK, "vdp_set_address_hook")
 -- install_hook(0x139, PRE_TICK, "out_hook")
 -- install_hook(0x157, POST_TICK, "outi_hook")
 -- install_hook(0xbc, PRE_TICK, "post_unknown_function_hook")
-install_hook(0xd4, PRE_TICK, "post_vram_copy_hook")
+-- install_hook(0xd4, PRE_TICK, "post_vram_copy_hook")
+install_hook(0x0a, POST_TICK, "post_mapper_setup_hook")

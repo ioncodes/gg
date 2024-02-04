@@ -6,7 +6,7 @@ pub enum GgError {
     #[snafu(display("I/O request not fulfilled"))]
     IoRequestNotFulfilled,
     #[snafu(display("Bus request out of bounds {address}"))]
-    BusRequestOutOfBounds { address: u16 },
+    BusRequestOutOfBounds { address: usize },
     #[snafu(display("Opcode not implemented {opcode}"))]
     OpcodeNotImplemented { opcode: Opcode },
     #[snafu(display("Decoder errored with message: {msg}"))]

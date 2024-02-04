@@ -160,7 +160,7 @@ fn initialize_system() -> System {
 
     let mut system = System::new(Some(lua_script));
     system.load_bios(bios);
-    system.load_cartridge(sonic2[..0xc000].as_ref()); // todo: need this cause of mapper
+    system.load_cartridge(sonic2.as_ref()); // todo: need this cause of mapper
 
     system
 }

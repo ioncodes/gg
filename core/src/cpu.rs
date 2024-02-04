@@ -87,7 +87,7 @@ impl Cpu {
             bus.read(self.registers.pc + 3).unwrap(),
         ];
         let disasm = Disassembler::new(&data);
-
+        
         match disasm.decode(0) {
             Ok(instruction) => {
                 trace!("[{:04x}] {}", self.registers.pc, instruction.opcode);

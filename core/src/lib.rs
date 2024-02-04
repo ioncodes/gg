@@ -6,6 +6,7 @@ mod handlers;
 mod io;
 mod memory;
 mod lua_engine;
+mod mapper;
 
 pub mod cpu;
 pub mod vdp;
