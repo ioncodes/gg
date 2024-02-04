@@ -30,7 +30,7 @@ impl Bus {
     }
 
     #[allow(unused_comparisons)]
-    pub(crate) fn read(&self, mut address: u16) -> Result<u8, GgError> {
+    pub(crate) fn read(&self, address: u16) -> Result<u8, GgError> {
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
             return Ok(self.bios_rom.read(address));
         }
@@ -58,7 +58,7 @@ impl Bus {
     }
 
     #[allow(unused_comparisons)]
-    pub(crate) fn read_word(&self, mut address: u16) -> Result<u16, GgError> {
+    pub(crate) fn read_word(&self, address: u16) -> Result<u16, GgError> {
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
             return Ok(self.bios_rom.read_word(address));
         }
@@ -86,7 +86,7 @@ impl Bus {
     }
 
     #[allow(unused_comparisons)]
-    pub(crate) fn write(&mut self, mut address: u16, value: u8) -> Result<(), GgError> {
+    pub(crate) fn write(&mut self, address: u16, value: u8) -> Result<(), GgError> {
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
             return Ok(self.bios_rom.write(address, value));
         }
@@ -114,7 +114,7 @@ impl Bus {
     }
 
     #[allow(unused_comparisons)]
-    pub(crate) fn write_word(&mut self, mut address: u16, value: u16) -> Result<(), GgError> {
+    pub(crate) fn write_word(&mut self, address: u16, value: u16) -> Result<(), GgError> {
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
             return Ok(self.bios_rom.write_word(address, value));
         }

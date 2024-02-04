@@ -1,5 +1,3 @@
-use std::io::Write;
-
 use log::error;
 
 use crate::bus::Bus;
