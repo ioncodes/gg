@@ -460,6 +460,42 @@ impl Handlers {
         }
     }
 
+    pub(crate) fn and(cpu: &mut Cpu, _bus: &mut Bus, _vdp: &mut Vdp, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::And(Operand::Register(Register::Reg8(src_reg), false), _) => {
+                let a = cpu.get_register_u8(Reg8::A);
+                let src = cpu.get_register_u8(src_reg);
+                let result = a & src;
+
+                cpu.set_register_u8(Reg8::A, result);
+
+                cpu.flags.set(Flags::ZERO, result == 0);
+                cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
+
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+        }
+    }
+
+    pub(crate) fn subtract(cpu: &mut Cpu, _bus: &mut Bus, _vdp: &mut Vdp, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::Subtract(Operand::Register(Register::Reg8(src_reg), false), _) => {
+                let a = cpu.get_register_u8(Reg8::A);
+                let src = cpu.get_register_u8(src_reg);
+                let result = a.wrapping_sub(src);
+
+                cpu.set_register_u8(Reg8::A, result);
+
+                cpu.flags.set(Flags::ZERO, result == 0);
+                cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
+
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+        }
+    }
+
     // Helpers
 
     fn check_cpu_flag(cpu: &Cpu, condition: Condition) -> bool {

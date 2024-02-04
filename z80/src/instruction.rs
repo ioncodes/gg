@@ -79,9 +79,11 @@ pub enum Opcode {
     Return(Condition, usize),
     Push(Register, usize),
     Pop(Register, usize),
+    Subtract(Operand, usize),
     ResetBit(Immediate, Operand, usize),
     SetBit(Immediate, Operand, usize),
     SetInterruptMode(Immediate, usize),
+    And(Operand, usize),
     Unknown(usize),
 }
 
@@ -145,6 +147,7 @@ impl fmt::Display for Opcode {
             Opcode::Increment(op, _) => write!(f, "inc {}", op),
             Opcode::DecrementAndJumpRelative(op, _) => write!(f, "djnz {}", op),
             Opcode::Restart(op, _) => write!(f, "rst {}", op),
+            Opcode::Subtract(op, _) => write!(f, "sub {}", op),
             Opcode::Return(op, _) => {
                 write!(f, "ret")?;
                 if *op != Condition::None {
@@ -158,6 +161,7 @@ impl fmt::Display for Opcode {
             Opcode::SetBit(op1, op2, _) => write!(f, "set {}, {}", op1, op2),
             Opcode::Outi(_) => write!(f, "outi"),
             Opcode::SetInterruptMode(op, _) => write!(f, "im {}", op),
+            Opcode::And(op, _) => write!(f, "and {}", op),
             Opcode::Unknown(_) => unreachable!("Unknown opcode"),
         }
     }

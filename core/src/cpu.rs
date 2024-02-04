@@ -115,8 +115,10 @@ impl Cpu {
                     Opcode::Outi(_) => Handlers::outi(self, bus, vdp, &instruction),
                     Opcode::Restart(_, _) => Handlers::restart(self, bus, vdp, &instruction),
                     Opcode::SetInterruptMode(_, _) => Handlers::set_interrupt_mode(self, bus, vdp, &instruction),
+                    Opcode::Subtract(_, _) => Handlers::subtract(self, bus, vdp, &instruction),
+                    Opcode::And(_, _) => Handlers::and(self, bus, vdp, &instruction),
                     _ => {
-                        error!("Invalid opcode: {}\n{}", instruction.opcode, self);
+                        error!("Hanlder missing for instruction: {}\n{}", instruction.opcode, self);
                         return Err(GgError::OpcodeNotImplemented {
                             opcode: instruction.opcode,
                         });

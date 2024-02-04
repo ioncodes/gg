@@ -20,5 +20,7 @@ pub enum GgError {
     #[snafu(display("Missing operand implementation for instruction: {instruction}"))]
     InvalidOpcodeImplementation { instruction: Opcode },
     #[snafu(display("Invalid port for I/O controller"))]
-    IoControllerInvalidPort
+    IoControllerInvalidPort,
+    #[snafu(display("Invalid VDP I/O mode set"))]
+    VdpInvalidIoMode,
 }

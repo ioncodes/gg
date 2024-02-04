@@ -70,7 +70,9 @@ impl<'a> Disassembler<'a> {
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
                 2,
             ),
+            (None, 0x0b) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::BC), false), 1),
             (None, 0x0c) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::C), false), 1),
+            (None, 0x0d) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::C), false), 1),
             (None, 0x0e) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
@@ -91,7 +93,9 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::DE), true),
                 1,
             ),
+            (None, 0x1b) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::DE), false), 1),
             (None, 0x1c) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::E), false), 1),
+            (None, 0x1d) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::E), false), 1),
             (None, 0x20) => Opcode::JumpRelative(Condition::NotZero, Immediate::S8(self.data[offset + 1] as i8), 2),
             (None, 0x21) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
@@ -114,6 +118,7 @@ impl<'a> Disassembler<'a> {
             ),
             (None, 0x2b) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::HL), false), 1),
             (None, 0x2c) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::L), false), 1),
+            (None, 0x2d) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::L), false), 1),
             (None, 0x31) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::SP), false),
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
@@ -124,14 +129,8 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 3,
             ),
-            (None, 0x33) => Opcode::Increment(
-                Operand::Register(Register::Reg16(Reg16::SP), false),
-                1,
-            ),
-            (None, 0x34) => Opcode::Increment(
-                Operand::Register(Register::Reg16(Reg16::HL), true),
-                1,
-            ),
+            (None, 0x33) => Opcode::Increment(Operand::Register(Register::Reg16(Reg16::SP), false), 1),
+            (None, 0x34) => Opcode::Increment(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
             (None, 0x36) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
@@ -142,10 +141,9 @@ impl<'a> Disassembler<'a> {
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), true),
                 3,
             ),
-            (None, 0x3c) => Opcode::Increment(
-                Operand::Register(Register::Reg8(Reg8::A), false),
-                1,
-            ),
+            (None, 0x3b) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::SP), false), 1),
+            (None, 0x3c) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::A), false), 1),
+            (None, 0x3d) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::A), false), 1),
             (None, 0x3e) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
@@ -244,27 +242,27 @@ impl<'a> Disassembler<'a> {
             (None, 0x70) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 Operand::Register(Register::Reg8(Reg8::B), false),
-                2,
+                1,
             ),
             (None, 0x71) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 Operand::Register(Register::Reg8(Reg8::C), false),
-                2,
+                1,
             ),
             (None, 0x72) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 Operand::Register(Register::Reg8(Reg8::D), false),
-                2,
+                1,
             ),
             (None, 0x73) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 Operand::Register(Register::Reg8(Reg8::E), false),
-                2,
+                1,
             ),
             (None, 0x74) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 Operand::Register(Register::Reg8(Reg8::H), false),
-                2,
+                1,
             ),
             (None, 0x75) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
@@ -274,7 +272,12 @@ impl<'a> Disassembler<'a> {
             (None, 0x77) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 Operand::Register(Register::Reg8(Reg8::A), false),
-                2,
+                1,
+            ),
+            (None, 0x79) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                1,
             ),
             (None, 0x7a) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
@@ -306,6 +309,22 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 1,
             ),
+            (None, 0x90) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::B), false), 1),
+            (None, 0x91) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::C), false), 1),
+            (None, 0x92) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::D), false), 1),
+            (None, 0x93) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::E), false), 1),
+            (None, 0x94) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::H), false), 1),
+            (None, 0x95) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::L), false), 1),
+            (None, 0x96) => Opcode::Subtract(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
+            (None, 0x97) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::A), false), 1),
+            (None, 0xa0) => Opcode::And(Operand::Register(Register::Reg8(Reg8::B), false), 1),
+            (None, 0xa1) => Opcode::And(Operand::Register(Register::Reg8(Reg8::C), false), 1),
+            (None, 0xa2) => Opcode::And(Operand::Register(Register::Reg8(Reg8::D), false), 1),
+            (None, 0xa3) => Opcode::And(Operand::Register(Register::Reg8(Reg8::E), false), 1),
+            (None, 0xa4) => Opcode::And(Operand::Register(Register::Reg8(Reg8::H), false), 1),
+            (None, 0xa5) => Opcode::And(Operand::Register(Register::Reg8(Reg8::L), false), 1),
+            (None, 0xa6) => Opcode::And(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
+            (None, 0xa7) => Opcode::And(Operand::Register(Register::Reg8(Reg8::A), false), 1),
             (None, 0xaf) => Opcode::Xor(Operand::Register(Register::Reg8(Reg8::A), false), 1),
             (None, 0xb0) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::B), false), 1),
             (None, 0xb1) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::C), false), 1),
@@ -404,6 +423,8 @@ impl<'a> Disassembler<'a> {
             Opcode::SetBit(_, _, length) => length,
             Opcode::Outi(length) => length,
             Opcode::SetInterruptMode(_, length) => length,
+            Opcode::And(_, length) => length,
+            Opcode::Subtract(_, length) => length,
             Opcode::Unknown(length) => length,
         }
     }
