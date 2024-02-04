@@ -58,73 +58,70 @@ impl Handlers {
                 bus.write(dst, src)?;
                 Ok(())
             }
-            Opcode::Load(
-                Operand::Register(Register::Reg8(dst_register), false),
-                Operand::Immediate(Immediate::U8(src_imm), false),
-                _
-            ) => {
+            Opcode::Load(Operand::Register(Register::Reg8(dst_register), false), Operand::Immediate(Immediate::U8(src_imm), false), _) => {
                 cpu.set_register_u8(dst_register, src_imm);
                 Ok(())
-            },
-            Opcode::Load(
-                Operand::Register(Register::Reg8(dst_register), false),
-                Operand::Immediate(Immediate::U16(src_imm), true),
-                _
-            ) => {
+            }
+            Opcode::Load(Operand::Register(Register::Reg8(dst_register), false), Operand::Immediate(Immediate::U16(src_imm), true), _) => {
                 let src = bus.read(src_imm)?;
                 cpu.set_register_u8(dst_register, src);
                 Ok(())
-            },
+            }
             Opcode::Load(
                 Operand::Register(Register::Reg8(dst_register), false),
                 Operand::Register(Register::Reg16(src_register), true),
-                _
+                _,
             ) => {
                 let src = cpu.get_register_u16(src_register);
                 let src = bus.read(src)?;
                 cpu.set_register_u8(dst_register, src);
                 Ok(())
             }
-            Opcode::Load(
-                Operand::Immediate(Immediate::U16(dst_imm), true),
-                Operand::Register(Register::Reg16(src_register), false),
-                _
-            ) => {
+            Opcode::Load(Operand::Immediate(Immediate::U16(dst_imm), true), Operand::Register(Register::Reg16(src_register), false), _) => {
                 bus.write_word(dst_imm, cpu.get_register_u16(src_register))?;
                 Ok(())
             }
-            Opcode::Load(
-                Operand::Immediate(Immediate::U16(dst_imm), true),
-                Operand::Register(Register::Reg8(src_register), false), 
-                _
-            ) => {
+            Opcode::Load(Operand::Immediate(Immediate::U16(dst_imm), true), Operand::Register(Register::Reg8(src_register), false), _) => {
                 bus.write(dst_imm, cpu.get_register_u8(src_register))?;
                 Ok(())
             }
-            Opcode::Load(
-                Operand::Register(Register::Reg8(dst_reg), false),
-                Operand::Register(Register::Reg8(src_reg), false), 
-                _
-            ) => {
+            Opcode::Load(Operand::Register(Register::Reg8(dst_reg), false), Operand::Register(Register::Reg8(src_reg), false), _) => {
                 let src = cpu.get_register_u8(src_reg);
                 cpu.set_register_u8(dst_reg, src);
                 Ok(())
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
         }
     }
 
-    pub(crate) fn jump(cpu: &mut Cpu, _bus: &mut Bus, _vdp: &mut Vdp, instruction: &Instruction) -> Result<(), GgError> {
-        match instruction.opcode {
-            Opcode::Jump(condition, Immediate::U16(imm), _) => {
+    pub(crate) fn jump(cpu: &mut Cpu, bus: &mut Bus, _vdp: &mut Vdp, instruction: &Instruction) -> Result<(), GgError> {
+        let dst = match instruction.opcode {
+            Opcode::Jump(condition, Operand::Immediate(Immediate::U16(imm), deref), _) => {
                 if Handlers::check_cpu_flag(&cpu, condition) {
-                    cpu.set_register_u16(Reg16::PC, imm);
-                    return Ok(());
+                    Ok(if deref { bus.read_word(imm)? } else { imm })
+                } else {
+                    Err(GgError::JumpNotTaken)
                 }
-                Err(GgError::JumpNotTaken)
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
-        }
+            Opcode::Jump(condition, Operand::Register(Register::Reg16(reg), deref), _) => {
+                let dst = cpu.get_register_u16(reg);
+                if Handlers::check_cpu_flag(&cpu, condition) {
+                    Ok(if deref { bus.read_word(dst)? } else { dst })
+                } else {
+                    Err(GgError::JumpNotTaken)
+                }
+            }
+            _ => {
+                return Err(GgError::InvalidOpcodeImplementation {
+                    instruction: instruction.opcode,
+                })
+            }
+        }?;
+
+        cpu.set_register_u16(Reg16::PC, dst);
+        Ok(())
     }
 
     pub(crate) fn disable_interrupts(cpu: &mut Cpu, _bus: &mut Bus, _vdp: &mut Vdp, _instruction: &Instruction) -> Result<(), GgError> {
@@ -162,13 +159,17 @@ impl Handlers {
         let (port, value) = match instruction.opcode {
             Opcode::Out(Operand::Immediate(Immediate::U8(dst_port), true), Operand::Register(Register::Reg8(src_reg), false), _) => {
                 (dst_port, cpu.get_register_u8(src_reg))
-            },
+            }
             Opcode::Out(Operand::Register(Register::Reg8(dst_port), true), Operand::Register(Register::Reg8(src_reg), false), _) => {
                 let dst = cpu.get_register_u8(dst_port);
                 let src = cpu.get_register_u8(src_reg);
                 (dst, src)
-            },
-            _ => return Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+            }
+            _ => {
+                return Err(GgError::InvalidOpcodeImplementation {
+                    instruction: instruction.opcode,
+                })
+            }
         };
 
         cpu.write_io(port, value, vdp, bus)?;
@@ -178,16 +179,14 @@ impl Handlers {
 
     pub(crate) fn in_(cpu: &mut Cpu, bus: &mut Bus, vdp: &mut Vdp, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
-            Opcode::In(
-                Operand::Register(Register::Reg8(dst_reg), false),
-                Operand::Immediate(Immediate::U8(src_port), true), 
-                _
-            ) => {
+            Opcode::In(Operand::Register(Register::Reg8(dst_reg), false), Operand::Immediate(Immediate::U8(src_port), true), _) => {
                 let imm = cpu.read_io(src_port, vdp, bus)?;
                 cpu.set_register_u8(dst_reg, imm);
                 Ok(())
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
         }
     }
 
@@ -197,7 +196,7 @@ impl Handlers {
                 let a = cpu.get_register_u8(Reg8::A);
                 let result = a.wrapping_sub(imm);
                 (a < imm, result == 0)
-            },
+            }
             Opcode::Compare(Operand::Register(Register::Reg16(src_reg), true), _) => {
                 let src = {
                     let reg = cpu.get_register_u16(src_reg);
@@ -206,7 +205,7 @@ impl Handlers {
                 let a = cpu.get_register_u8(Reg8::A);
                 let result = a.wrapping_sub(src);
                 (a < src, result == 0)
-            },
+            }
             _ => panic!("Invalid opcode for compare instruction: {}", instruction.opcode),
         };
 
@@ -228,7 +227,9 @@ impl Handlers {
                 }
                 Ok(())
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
         }
     }
 
@@ -240,7 +241,9 @@ impl Handlers {
                 cpu.set_register_u16(Reg16::PC, imm);
                 Ok(())
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
         }
     }
 
@@ -254,7 +257,9 @@ impl Handlers {
                 }
                 Err(GgError::JumpNotTaken)
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
         }
     }
 
@@ -296,7 +301,9 @@ impl Handlers {
 
                 Ok(())
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
         }
     }
 
@@ -307,7 +314,9 @@ impl Handlers {
                 cpu.push_stack(bus, src)?;
                 Ok(())
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
         }
     }
 
@@ -318,7 +327,9 @@ impl Handlers {
                 cpu.set_register_u16(dst_reg, dst);
                 Ok(())
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
         }
     }
 
@@ -338,7 +349,9 @@ impl Handlers {
 
                 Ok(())
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
         }
     }
 
@@ -358,27 +371,29 @@ impl Handlers {
 
                 Ok(())
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
         }
     }
 
     pub(crate) fn reset_bit(cpu: &mut Cpu, _bus: &mut Bus, _vdp: &mut Vdp, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
-            Opcode::ResetBit(
-                Immediate::U8(bit), 
-                Operand::Register(Register::Reg8(dst_reg), false), 
-                _
-            ) => {
+            Opcode::ResetBit(Immediate::U8(bit), Operand::Register(Register::Reg8(dst_reg), false), _) => {
                 let dst = cpu.get_register_u8(dst_reg);
                 let result = dst & !(1 << bit);
                 cpu.set_register_u8(dst_reg, result);
                 Ok(())
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
         }
     }
 
-    pub(crate) fn decrement_and_jump_relative(cpu: &mut Cpu, _bus: &mut Bus, _vdp: &mut Vdp, instruction: &Instruction) -> Result<(), GgError> {
+    pub(crate) fn decrement_and_jump_relative(
+        cpu: &mut Cpu, _bus: &mut Bus, _vdp: &mut Vdp, instruction: &Instruction,
+    ) -> Result<(), GgError> {
         match instruction.opcode {
             Opcode::DecrementAndJumpRelative(Immediate::S8(imm), _) => {
                 let condition = cpu.get_register_u8(Reg8::B);
@@ -393,7 +408,9 @@ impl Handlers {
 
                 Ok(())
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
         }
     }
 
@@ -415,7 +432,9 @@ impl Handlers {
 
                 Ok(())
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
         }
     }
 
@@ -446,7 +465,9 @@ impl Handlers {
                 cpu.set_register_u16(Reg16::PC, imm as u16);
                 Ok(())
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),   
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
         }
     }
 
@@ -456,7 +477,9 @@ impl Handlers {
                 cpu.interrupt_mode = InterruptMode::from(mode)?;
                 Ok(())
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
         }
     }
 
@@ -474,7 +497,9 @@ impl Handlers {
 
                 Ok(())
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
         }
     }
 
@@ -492,8 +517,42 @@ impl Handlers {
 
                 Ok(())
             }
-            _ => Err(GgError::InvalidOpcodeImplementation { instruction: instruction.opcode }),
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
         }
+    }
+
+    pub(crate) fn add(cpu: &mut Cpu, _bus: &mut Bus, _vdp: &mut Vdp, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::Add(Operand::Register(Register::Reg8(dst_reg), false), Operand::Register(Register::Reg8(src_reg), false), _) => {
+                let src = cpu.get_register_u8(src_reg);
+                let dst = cpu.get_register_u8(dst_reg);
+                let result = dst.wrapping_add(src);
+
+                cpu.set_register_u8(dst_reg, result);
+
+                cpu.flags.set(Flags::ZERO, result == 0);
+                cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
+            }
+            Opcode::Add(Operand::Register(Register::Reg16(dst_reg), false), Operand::Register(Register::Reg16(src_reg), false), _) => {
+                let src = cpu.get_register_u16(src_reg);
+                let dst = cpu.get_register_u16(dst_reg);
+                let result = dst.wrapping_add(src);
+
+                cpu.set_register_u16(dst_reg, result);
+
+                cpu.flags.set(Flags::ZERO, result == 0);
+                cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
+            }
+            _ => {
+                return Err(GgError::InvalidOpcodeImplementation {
+                    instruction: instruction.opcode,
+                })
+            }
+        }
+
+        Ok(())
     }
 
     // Helpers

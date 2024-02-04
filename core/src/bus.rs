@@ -26,7 +26,7 @@ impl Bus {
     #[allow(unused_comparisons)]
     pub(crate) fn read(&self, mut address: u16) -> Result<u8, GgError> {
         if address == 0xfffc || address == 0xfffd || address == 0xfffe || address == 0xffff {
-            address = address - 0xe000;
+            address = address - 0xe000; // System RAM mirror
         }
 
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {

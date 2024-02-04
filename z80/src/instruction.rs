@@ -65,7 +65,7 @@ pub enum Opcode {
     In(Operand, Operand, usize),
     Compare(Operand, usize), // todo: ?
     JumpRelative(Condition, Immediate, usize),
-    Jump(Condition, Immediate, usize),
+    Jump(Condition, Operand, usize),
     DecrementAndJumpRelative(Immediate, usize),
     Xor(Operand, usize),
     Or(Operand, usize),
@@ -80,6 +80,7 @@ pub enum Opcode {
     Push(Register, usize),
     Pop(Register, usize),
     Subtract(Operand, usize),
+    Add(Operand, Operand, usize),
     ResetBit(Immediate, Operand, usize),
     SetBit(Immediate, Operand, usize),
     SetInterruptMode(Immediate, usize),
@@ -148,6 +149,7 @@ impl fmt::Display for Opcode {
             Opcode::DecrementAndJumpRelative(op, _) => write!(f, "djnz {}", op),
             Opcode::Restart(op, _) => write!(f, "rst {}", op),
             Opcode::Subtract(op, _) => write!(f, "sub {}", op),
+            Opcode::Add(op1, op2, _) => write!(f, "add {}, {}", op1, op2),
             Opcode::Return(op, _) => {
                 write!(f, "ret")?;
                 if *op != Condition::None {
