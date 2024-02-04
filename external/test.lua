@@ -61,7 +61,9 @@ function post_vram_copy_hook()
 end
 
 function post_mapper_setup_hook()
-    log("Selected bank: " .. string.format("%02x", memory["ram"][0xfffe + 1]))
+    log("Bank Slot 0: " .. string.format("%02x", memory["ram"][0xfffd + 1]))
+    log("Bank Slot 1: " .. string.format("%02x", memory["ram"][0xfffe + 1]))
+    log("Bank Slot 2: " .. string.format("%02x", memory["ram"][0xffff + 1]))
 end
 
 -- install_hook(0x9f, PRE_TICK, "post_sega_license_hook")
