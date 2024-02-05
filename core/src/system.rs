@@ -6,12 +6,14 @@ use crate::error::GgError;
 
 use crate::lua_engine::{LuaEngine, HookType};
 use crate::mapper::SegaMapper;
+use crate::psg::Psg;
 use crate::vdp::{Color, Vdp};
 
 pub struct System {
     pub cpu: Cpu,
     pub(crate) bus: Bus,
     pub(crate) vdp: Vdp,
+    pub(crate) psg: Psg,
     lua: LuaEngine
 }
 
@@ -24,6 +26,7 @@ impl System {
             cpu: Cpu::new(),
             bus: Bus::new(mapper),
             vdp: Vdp::new(),
+            psg: Psg::new(),
             lua: LuaEngine::new(lua_script)
         }
     }
@@ -68,7 +71,7 @@ impl System {
         }
 
         // Process tick for all components
-        let result = self.cpu.tick(&mut self.bus, &mut self.vdp);
+        let result = self.cpu.tick(&mut self.bus, &mut self.vdp, &mut self.psg);
         match result {
             Err(GgError::IoRequestNotFulfilled) => (),
             Err(GgError::JumpNotTaken) => (),

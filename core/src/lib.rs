@@ -11,3 +11,4 @@ mod mapper;
 pub mod cpu;
 pub mod vdp;
 pub mod system;
+pub mod psg;
