@@ -1,7 +1,7 @@
 use crate::{bus::{Bus, MEMORY_CONTROL_PORT}, error::GgError, handlers::Handlers, io::Controller, psg::Psg, vdp::{Vdp, CONTROL_PORT, DATA_PORT, V_COUNTER_PORT}};
 use bitflags::bitflags;
 use log::{debug, error, trace};
-use std::{collections::HashMap, fmt};
+use std::fmt;
 use z80::{
     disassembler::Disassembler,
     instruction::{Opcode, Reg16, Reg8, Register},
