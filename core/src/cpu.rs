@@ -1,7 +1,7 @@
 use crate::{bus::{Bus, MEMORY_CONTROL_PORT}, error::GgError, handlers::Handlers, io::Controller, psg::Psg, vdp::{Vdp, CONTROL_PORT, DATA_PORT, V_COUNTER_PORT}};
 use bitflags::bitflags;
 use log::{debug, error, trace};
-use std::fmt;
+use std::{collections::HashMap, fmt};
 use z80::{
     disassembler::Disassembler,
     instruction::{Opcode, Reg16, Reg8, Register},
@@ -91,33 +91,34 @@ impl Cpu {
         match disasm.decode(0) {
             Ok(instruction) => {
                 trace!("[{:04x}] {}", self.registers.pc, instruction.opcode);
-
+                
+                let mut handlers = Handlers::new(self, bus, vdp, psg);
                 let result = match instruction.opcode {
-                    Opcode::Jump(_, _, _) => Handlers::jump(self, bus, vdp, psg, &instruction),
-                    Opcode::DisableInterrupts(_) => Handlers::disable_interrupts(self, bus, vdp, psg, &instruction),
-                    Opcode::Load(_, _, _) => Handlers::load(self, bus, vdp, psg, &instruction),
-                    Opcode::LoadIndirectRepeat(_) => Handlers::load_indirect_repeat(self, bus, vdp, psg, &instruction),
-                    Opcode::Out(_, _, _) => Handlers::out(self, bus, vdp, psg, &instruction),
-                    Opcode::In(_, _, _) => Handlers::in_(self, bus, vdp, psg, &instruction),
-                    Opcode::Compare(_, _) => Handlers::compare(self, bus, vdp, psg, &instruction),
-                    Opcode::JumpRelative(_, _, _) => Handlers::jump_relative(self, bus, vdp, psg, &instruction),
-                    Opcode::CallUnconditional(_, _) => Handlers::call_unconditional(self, bus, vdp, psg, &instruction),
-                    Opcode::Return(_, _) => Handlers::return_(self, bus, vdp, psg, &instruction),
-                    Opcode::OutIndirectRepeat(_) => Handlers::out_indirect_repeat(self, bus, vdp, psg, &instruction),
-                    Opcode::Or(_, _) => Handlers::or(self, bus, vdp, psg, &instruction),
-                    Opcode::Push(_, _) => Handlers::push(self, bus, vdp, psg, &instruction),
-                    Opcode::Pop(_, _) => Handlers::pop(self, bus, vdp, psg, &instruction),
-                    Opcode::Increment(_, _) => Handlers::increment(self, bus, vdp, psg, &instruction),
-                    Opcode::Decrement(_, _) => Handlers::decrement(self, bus, vdp, psg, &instruction),
-                    Opcode::ResetBit(_, _, _) => Handlers::reset_bit(self, bus, vdp, psg, &instruction),
-                    Opcode::DecrementAndJumpRelative(_, _) => Handlers::decrement_and_jump_relative(self, bus, vdp, psg, &instruction),
-                    Opcode::Xor(_, _) => Handlers::xor(self, bus, vdp, psg, &instruction),
-                    Opcode::Outi(_) => Handlers::outi(self, bus, vdp, psg, &instruction),
-                    Opcode::Restart(_, _) => Handlers::restart(self, bus, vdp, psg, &instruction),
-                    Opcode::SetInterruptMode(_, _) => Handlers::set_interrupt_mode(self, bus, vdp, psg, &instruction),
-                    Opcode::Subtract(_, _) => Handlers::subtract(self, bus, vdp, psg, &instruction),
-                    Opcode::Add(_, _, _) => Handlers::add(self, bus, vdp, psg, &instruction),
-                    Opcode::And(_, _) => Handlers::and(self, bus, vdp, psg, &instruction),
+                    Opcode::Jump(_, _, _) => handlers.jump(&instruction),
+                    Opcode::DisableInterrupts(_) => handlers.disable_interrupts(&instruction),
+                    Opcode::Load(_, _, _) => handlers.load(&instruction),
+                    Opcode::LoadIndirectRepeat(_) => handlers.load_indirect_repeat(&instruction),
+                    Opcode::Out(_, _, _) => handlers.out(&instruction),
+                    Opcode::In(_, _, _) => handlers.in_(&instruction),
+                    Opcode::Compare(_, _) => handlers.compare(&instruction),
+                    Opcode::JumpRelative(_, _, _) => handlers.jump_relative(&instruction),
+                    Opcode::CallUnconditional(_, _) => handlers.call_unconditional(&instruction),
+                    Opcode::Return(_, _) => handlers.return_(&instruction),
+                    Opcode::OutIndirectRepeat(_) => handlers.out_indirect_repeat(&instruction),
+                    Opcode::Or(_, _) => handlers.or(&instruction),
+                    Opcode::Push(_, _) => handlers.push(&instruction),
+                    Opcode::Pop(_, _) => handlers.pop(&instruction),
+                    Opcode::Increment(_, _) => handlers.increment(&instruction),
+                    Opcode::Decrement(_, _) => handlers.decrement(&instruction),
+                    Opcode::ResetBit(_, _, _) => handlers.reset_bit(&instruction),
+                    Opcode::DecrementAndJumpRelative(_, _) => handlers.decrement_and_jump_relative(&instruction),
+                    Opcode::Xor(_, _) => handlers.xor(&instruction),
+                    Opcode::Outi(_) => handlers.outi(&instruction),
+                    Opcode::Restart(_, _) => handlers.restart(&instruction),
+                    Opcode::SetInterruptMode(_, _) => handlers.set_interrupt_mode(&instruction),
+                    Opcode::Subtract(_, _) => handlers.subtract(&instruction),
+                    Opcode::Add(_, _, _) => handlers.add(&instruction),
+                    Opcode::And(_, _) => handlers.and(&instruction),
                     _ => {
                         error!("Hanlder missing for instruction: {}\n{}", instruction.opcode, self);
                         return Err(GgError::OpcodeNotImplemented {
@@ -176,7 +177,7 @@ impl Cpu {
         Ok(())
     }
 
-    pub(crate) fn read_io(&self, port: u8, vdp: &mut Vdp, bus: &mut Bus, psg: &mut Psg) -> Result<u8, GgError> {
+    pub(crate) fn read_io(&self, port: u8, vdp: &mut Vdp, bus: &mut Bus, _psg: &mut Psg) -> Result<u8, GgError> {
         match port {
             0x00..=0x06 => bus.read_io(port),
             DATA_PORT | CONTROL_PORT | V_COUNTER_PORT => vdp.read_io(port),
