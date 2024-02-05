@@ -1,5 +1,5 @@
 [workspace]
 resolver = "2"
 members = [
-    "gg", "core", "z80"
+    "gg", "emu", "z80"
 ]

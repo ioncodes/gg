@@ -150,6 +150,29 @@ impl Bus {
 
         Ok(())
     }
+
+    /// Translate a 16-bit CPU address to a 32-bit ROM address 
+    #[allow(unused_comparisons)]
+    pub(crate) fn translate_address_to_real(&self, address: u16) -> Result<usize, GgError> {
+        let address = address as usize;
+
+        if address >= 0x0000 && address < 0x4000 {
+            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_0)? as usize;
+            return Ok(bank * 0x4000 + address);
+        }
+
+        if address >= 0x4000 && address < 0x8000 {
+            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_1)? as usize;
+            return Ok(bank * 0x4000 + address - 0x4000);
+        }
+
+        if address >= 0x8000 && address < 0xc000 {
+            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
+            return Ok(bank * 0x4000 + address - 0x8000);
+        }
+
+        Err(GgError::BusRequestOutOfBounds { address })
+    }
 }
 
 impl Controller for Bus {

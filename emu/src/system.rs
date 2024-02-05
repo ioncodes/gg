@@ -77,6 +77,7 @@ impl System {
             Err(GgError::JumpNotTaken) => (),
             Err(e) => {
                 error!("Identified error at address: {:04x}", self.cpu.registers.pc);
+                error!("Real address in ROM: {:08x}", self.bus.translate_address_to_real(self.cpu.registers.pc).unwrap());
                 return Err(e);
             },
             _ => ()

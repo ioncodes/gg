@@ -295,27 +295,27 @@ impl<'a> Handlers<'a> {
     }
 
     pub(crate) fn or(&mut self, instruction: &Instruction) -> Result<(), GgError> {
-        match instruction.opcode {
-            Opcode::Or(Operand::Register(Register::Reg8(src_reg), false), _) => {
-                let a = self.cpu.get_register_u8(Reg8::A);
-                let src = self.cpu.get_register_u8(src_reg);
-                let result = a | src;
-
-                self.cpu.set_register_u8(Reg8::A, result);
-
-                self.cpu.flags.set(Flags::ZERO, result == 0);
-                self.cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
-                // FIXME: self.cpu.flags.set(Flags::PARITY_OR_OVERFLOW, )
-                self.cpu.flags.set(Flags::SUBTRACT, false);
-                self.cpu.flags.set(Flags::HALF_CARRY, false);
-                self.cpu.flags.set(Flags::CARRY, false);
-
-                Ok(())
-            }
-            _ => Err(GgError::InvalidOpcodeImplementation {
+        let src = match instruction.opcode {
+            Opcode::Or(Operand::Register(Register::Reg8(src_reg), false), _) => self.cpu.get_register_u8(src_reg),
+            Opcode::Or(Operand::Immediate(Immediate::U8(imm), false), _) => imm,
+            _ => return Err(GgError::InvalidOpcodeImplementation {
                 instruction: instruction.opcode,
             }),
-        }
+        };
+
+        let a = self.cpu.get_register_u8(Reg8::A);
+        let result = a | src;
+
+        self.cpu.set_register_u8(Reg8::A, result);
+
+        self.cpu.flags.set(Flags::ZERO, result == 0);
+        self.cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
+        // FIXME: self.cpu.flags.set(Flags::PARITY_OR_OVERFLOW, )
+        self.cpu.flags.set(Flags::SUBTRACT, false);
+        self.cpu.flags.set(Flags::HALF_CARRY, false);
+        self.cpu.flags.set(Flags::CARRY, false);
+
+        Ok(())
     }
 
     pub(crate) fn push(&mut self, instruction: &Instruction) -> Result<(), GgError> {
@@ -495,23 +495,23 @@ impl<'a> Handlers<'a> {
     }
 
     pub(crate) fn and(&mut self, instruction: &Instruction) -> Result<(), GgError> {
-        match instruction.opcode {
-            Opcode::And(Operand::Register(Register::Reg8(src_reg), false), _) => {
-                let a = self.cpu.get_register_u8(Reg8::A);
-                let src = self.cpu.get_register_u8(src_reg);
-                let result = a & src;
-
-                self.cpu.set_register_u8(Reg8::A, result);
-
-                self.cpu.flags.set(Flags::ZERO, result == 0);
-                self.cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
-
-                Ok(())
-            }
-            _ => Err(GgError::InvalidOpcodeImplementation {
+        let src = match instruction.opcode {
+            Opcode::And(Operand::Register(Register::Reg8(src_reg), false), _) => self.cpu.get_register_u8(src_reg),
+            Opcode::And(Operand::Immediate(Immediate::U8(imm), false), _) => imm,
+            _ => return Err(GgError::InvalidOpcodeImplementation {
                 instruction: instruction.opcode,
             }),
-        }
+        };
+
+        let a = self.cpu.get_register_u8(Reg8::A);
+        let result = a & src;
+
+        self.cpu.set_register_u8(Reg8::A, result);
+
+        self.cpu.flags.set(Flags::ZERO, result == 0);
+        self.cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
+
+        Ok(())
     }
 
     pub(crate) fn subtract(&mut self, instruction: &Instruction) -> Result<(), GgError> {
@@ -564,6 +564,26 @@ impl<'a> Handlers<'a> {
         }
 
         Ok(())
+    }
+
+    pub(crate) fn subtract_with_carry(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::SubtractWithCarry(Register::Reg16(dst_reg), Register::Reg16(src_reg), _) => {
+                let src = self.cpu.get_register_u16(src_reg);
+                let dst = self.cpu.get_register_u16(dst_reg);
+                let carry = if self.cpu.flags.contains(Flags::CARRY) { 1 } else { 0 };
+                let result = dst.wrapping_sub(src).wrapping_sub(carry);
+                self.cpu.set_register_u16(dst_reg, result);
+
+                self.cpu.flags.set(Flags::ZERO, result == 0);
+                self.cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
+
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
     }
 
     // Helpers

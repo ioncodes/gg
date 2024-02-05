@@ -58,6 +58,7 @@ pub enum Operand {
 #[derive(PartialEq, Copy, Clone)]
 pub enum Opcode {
     DisableInterrupts(usize),
+    EnableInterrupts(usize),
     Load(Operand, Operand, usize),
     LoadIndirectRepeat(usize),
     Out(Operand, Operand, usize),
@@ -85,6 +86,7 @@ pub enum Opcode {
     SetBit(Immediate, Operand, usize),
     SetInterruptMode(Immediate, usize),
     And(Operand, usize),
+    SubtractWithCarry(Register, Register, usize),
     Unknown(usize),
 }
 
@@ -119,11 +121,13 @@ impl fmt::Display for Opcode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Opcode::DisableInterrupts(_) => write!(f, "di"),
+            Opcode::EnableInterrupts(_) => write!(f, "ei"),
             Opcode::Load(op1, op2, _) => write!(f, "ld {}, {}", op1, op2),
             Opcode::LoadIndirectRepeat(_) => write!(f, "ldir"),
             Opcode::Out(op1, op2, _) => write!(f, "out {}, {}", op1, op2),
             Opcode::In(op1, op2, _) => write!(f, "in {}, {}", op1, op2),
             Opcode::Compare(op1, _) => write!(f, "cp {}", op1),
+            Opcode::SubtractWithCarry(op1, op2, _) => write!(f, "sbc {}, {}", op1, op2),
             Opcode::JumpRelative(op1, op2, _) => {
                 write!(f, "jr")?;
                 if *op1 != Condition::None {

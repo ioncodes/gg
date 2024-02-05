@@ -90,7 +90,12 @@ impl Cpu {
         
         match disasm.decode(0) {
             Ok(instruction) => {
-                trace!("[{:04x}] {}", self.registers.pc, instruction.opcode);
+                let prefix = if self.registers.pc < 0xc000 { "rom" } else { "ram" };
+                let real_pc_addr = match bus.translate_address_to_real(self.registers.pc) {
+                    Ok(rom_addr) => rom_addr,
+                    Err(_) => self.registers.pc as usize, // This can happen if we execute code in RAM (example: end of BIOS)
+                };
+                trace!("[{}:{:04x}->{:08x}] {}", prefix, self.registers.pc, real_pc_addr, instruction.opcode);
                 
                 let mut handlers = Handlers::new(self, bus, vdp, psg);
                 let result = match instruction.opcode {
@@ -119,6 +124,7 @@ impl Cpu {
                     Opcode::Subtract(_, _) => handlers.subtract(&instruction),
                     Opcode::Add(_, _, _) => handlers.add(&instruction),
                     Opcode::And(_, _) => handlers.and(&instruction),
+                    Opcode::SubtractWithCarry(_, _, _) => handlers.subtract_with_carry(&instruction),
                     _ => {
                         error!("Hanlder missing for instruction: {}\n{}", instruction.opcode, self);
                         return Err(GgError::OpcodeNotImplemented {

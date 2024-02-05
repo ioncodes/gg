@@ -6,9 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-core = { path = "../core" }
+emu = { path = "../emu" }
 log = "0.4.20"
 env_logger = "0.10.1"
-eframe = "0.25.0"
-resize = "0.8.4"
-crossbeam = "0.8.4"
+raylib = { version = "4.5.0", git = "https://github.com/raylib-rs/raylib-rs", branch = "4.5.0" }
