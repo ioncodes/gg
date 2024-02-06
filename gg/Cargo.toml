@@ -9,4 +9,5 @@ edition = "2021"
 emu = { path = "../emu" }
 log = "0.4.20"
 env_logger = "0.10.1"
-raylib = { version = "4.5.0", git = "https://github.com/raylib-rs/raylib-rs", branch = "4.5.0" }
+eframe = "0.26.0"
+egui = { version = "0.26.0" }
