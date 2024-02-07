@@ -22,7 +22,7 @@ pub struct Registers {
 }
 
 bitflags! {
-    pub(crate) struct Flags: u8 {
+    pub struct Flags: u8 {
         const CARRY = 0b0000_0001;
         const SUBTRACT = 0b0000_0010;
         const PARITY_OR_OVERFLOW = 0b0000_0100;
@@ -34,7 +34,7 @@ bitflags! {
     }
 }
 
-pub(crate) enum InterruptMode {
+pub enum InterruptMode {
     IM0,
     IM1,
     IM2,
@@ -49,13 +49,21 @@ impl InterruptMode {
             _ => Err(GgError::InvalidInterruptMode { mode: value }),
         }
     }
+
+    pub fn to_u8(&self) -> u8 {
+        match self {
+            InterruptMode::IM0 => 0,
+            InterruptMode::IM1 => 1,
+            InterruptMode::IM2 => 2,
+        }
+    }
 }
 
 pub struct Cpu {
     pub registers: Registers,
-    pub(crate) flags: Flags,
-    pub(crate) interrupts_enabled: bool,
-    pub(crate) interrupt_mode: InterruptMode,
+    pub flags: Flags,
+    pub interrupts_enabled: bool,
+    pub interrupt_mode: InterruptMode,
 }
 
 impl Cpu {

@@ -1,10 +1,11 @@
 use crate::memory::Memory;
 
-pub(crate) trait Mapper {
+pub trait Mapper {
     fn read_from_bank(&self, bank: usize, offset: u16) -> u8;
     fn write_to_bank(&mut self, bank: usize, offset: u16, value: u8);
     fn resize(&mut self, new_size: usize);
     fn memory(&self) -> &Memory<usize>;
+    fn name(&self) -> String;
     
     fn read_word_from_bank(&self, bank: usize, addr: u16) -> u16 {
         let low = self.read_from_bank(bank, addr) as u16;
@@ -45,8 +46,8 @@ pub(crate) trait Mapper {
     }
 }
 
-pub(crate) struct SegaMapper {
-    pub(crate) rom: Memory<usize>,
+pub struct SegaMapper {
+    pub rom: Memory<usize>,
 }
 
 impl SegaMapper {
@@ -74,5 +75,9 @@ impl Mapper for SegaMapper {
 
     fn memory(&self) -> &Memory<usize> {
         &self.rom
+    }
+
+    fn name(&self) -> String {
+        String::from("Sega Mapper")
     }
 }

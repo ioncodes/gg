@@ -1,6 +1,6 @@
 use crate::{error::GgError, io::Controller};
 
-pub(crate) struct Psg { }
+pub struct Psg { }
 
 impl Psg {
     pub(crate) fn new() -> Psg {

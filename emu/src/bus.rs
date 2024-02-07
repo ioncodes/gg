@@ -10,11 +10,11 @@ pub(crate) const MEMORY_REGISTER_CR_BANK_SELECT_1: u16 = 0xfffe;
 pub(crate) const MEMORY_REGISTER_CR_BANK_SELECT_2: u16 = 0xffff;
 
 
-pub(crate) struct Bus {
-    pub(crate) rom: Box<dyn Mapper>,  // 0x0000 - 0xbfff
-    pub(crate) ram: Memory<u16>,      // 0xc000 - 0xffff
-    pub(crate) bios_rom: Memory<u16>, // Only for BIOS. Enabled on startup, disabled by end of BIOS
-    pub(crate) bios_enabled: bool,    // BIOS is enabled by default
+pub struct Bus {
+    pub rom: Box<dyn Mapper>,  // 0x0000 - 0xbfff
+    pub ram: Memory<u16>,      // 0xc000 - 0xffff
+    pub bios_rom: Memory<u16>, // Only for BIOS. Enabled on startup, disabled by end of BIOS
+    pub bios_enabled: bool,    // BIOS is enabled by default
     gear_to_gear_cache: Option<u8>    // cache for Gear to Gear communication (ports 0..6)
 }
 
@@ -30,7 +30,7 @@ impl Bus {
     }
 
     #[allow(unused_comparisons)]
-    pub(crate) fn read(&self, address: u16) -> Result<u8, GgError> {
+    pub fn read(&self, address: u16) -> Result<u8, GgError> {
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
             return Ok(self.bios_rom.read(address));
         }
@@ -58,7 +58,7 @@ impl Bus {
     }
 
     #[allow(unused_comparisons)]
-    pub(crate) fn read_word(&self, address: u16) -> Result<u16, GgError> {
+    pub fn read_word(&self, address: u16) -> Result<u16, GgError> {
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
             return Ok(self.bios_rom.read_word(address));
         }
@@ -86,7 +86,7 @@ impl Bus {
     }
 
     #[allow(unused_comparisons)]
-    pub(crate) fn write(&mut self, address: u16, value: u8) -> Result<(), GgError> {
+    pub fn write(&mut self, address: u16, value: u8) -> Result<(), GgError> {
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
             return Ok(self.bios_rom.write(address, value));
         }
@@ -114,7 +114,7 @@ impl Bus {
     }
 
     #[allow(unused_comparisons)]
-    pub(crate) fn write_word(&mut self, address: u16, value: u16) -> Result<(), GgError> {
+    pub fn write_word(&mut self, address: u16, value: u16) -> Result<(), GgError> {
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
             return Ok(self.bios_rom.write_word(address, value));
         }
@@ -153,7 +153,7 @@ impl Bus {
 
     /// Translate a 16-bit CPU address to a 32-bit ROM address 
     #[allow(unused_comparisons)]
-    pub(crate) fn translate_address_to_real(&self, address: u16) -> Result<usize, GgError> {
+    pub fn translate_address_to_real(&self, address: u16) -> Result<usize, GgError> {
         let address = address as usize;
 
         if address >= 0x0000 && address < 0x4000 {

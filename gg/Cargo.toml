@@ -11,3 +11,4 @@ log = "0.4.20"
 env_logger = "0.10.1"
 eframe = "0.26.0"
 egui = { version = "0.26.0" }
+z80 = { path = "../z80" }

@@ -1,7 +1,7 @@
 use std::ops::*;
 
-pub(crate) struct Memory<T> {
-    pub(crate) buffer: Vec<u8>,
+pub struct Memory<T> {
+    pub buffer: Vec<u8>,
     pub(crate) base_address: T,
 }
 

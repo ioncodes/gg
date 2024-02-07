@@ -11,9 +11,9 @@ use crate::vdp::{Color, Vdp};
 
 pub struct System {
     pub cpu: Cpu,
-    pub(crate) bus: Bus,
-    pub(crate) vdp: Vdp,
-    pub(crate) psg: Psg,
+    pub bus: Bus,
+    pub vdp: Vdp,
+    pub psg: Psg,
     lua: LuaEngine
 }
 

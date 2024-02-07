@@ -61,14 +61,14 @@ pub(crate) struct Registers {
 }
 
 pub struct Vdp {
-    pub(crate) v: u8,
-    pub(crate) h: u8,
+    pub v: u8,
+    pub h: u8,
     v_2nd_loop: bool,
     h_2nd_loop: bool,
     control_data: VecDeque<u8>,
     registers: Registers,
-    pub(crate) vram: Memory<u16>,
-    pub(crate) cram: Memory<u16>,
+    pub vram: Memory<u16>,
+    pub cram: Memory<u16>,
     cram_latch: Option<u8>,
     pub(crate) vram_dirty: bool,
     pub(crate) buffer: Vec<u8>,
