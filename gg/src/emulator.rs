@@ -1,11 +1,16 @@
+use std::collections::VecDeque;
+
 use eframe::CreationContext;
-use egui::{vec2, CentralPanel, Color32, ColorImage, Image, TextureHandle, TextureOptions, Window};
+use egui::{vec2, CentralPanel, Color32, ColorImage, Image, ScrollArea, TextureHandle, TextureOptions, Window};
 use emu::{
     system::System,
     vdp::{Color, INTERNAL_HEIGHT, INTERNAL_WIDTH},
 };
 use log::error;
-use z80::{disassembler::Disassembler, instruction::Instruction};
+use z80::{
+    disassembler::Disassembler,
+    instruction::{Instruction, Opcode},
+};
 
 pub(crate) const SCALE: usize = 4;
 
@@ -13,6 +18,7 @@ pub(crate) struct Emulator {
     system: System,
     background_color: Color,
     dissasembly_cache: Vec<Instruction>,
+    trace: VecDeque<(u16, Opcode)>,
     paused: bool,
     stepping: bool,
     break_condition_active: bool,
@@ -61,7 +67,7 @@ impl eframe::App for Emulator {
                 });
             });
 
-        Window::new("Debugger").resizable(false).show(ctx, |ui| {            
+        Window::new("Debugger").resizable(false).show(ctx, |ui| {
             ui.horizontal(|ui| {
                 if ui.button("Resume").clicked() {
                     self.paused = false;
@@ -71,7 +77,14 @@ impl eframe::App for Emulator {
             });
 
             ui.horizontal(|ui| {
-                ui.label(format!("ROM: {}", if self.system.bus.bios_enabled { String::from("BIOS") } else { format!("Cartridge ({})", self.system.bus.rom.name()) }));
+                ui.label(format!(
+                    "ROM: {}",
+                    if self.system.bus.bios_enabled {
+                        String::from("BIOS")
+                    } else {
+                        format!("Cartridge ({})", self.system.bus.rom.name())
+                    }
+                ));
             });
 
             ui.separator();
@@ -86,8 +99,7 @@ impl eframe::App for Emulator {
         });
 
         Window::new("CPU / VDP").resizable(false).show(ctx, |ui| {
-            ui.heading("> CPU Registers");
-            ui.spacing();
+            ui.heading("CPU Registers");
 
             ui.vertical(|ui| {
                 ui.label(format!(
@@ -115,9 +127,13 @@ impl eframe::App for Emulator {
                     "HL: {:02x}{:02x}",
                     self.system.cpu.registers.h, self.system.cpu.registers.l
                 ));
+                ui.label(format!("IX: {:04x}", self.system.cpu.registers.ix));
+                ui.label(format!("IY: {:04x}", self.system.cpu.registers.iy));
             });
 
-            ui.heading("> CPU Interrupts");
+            ui.separator();
+        
+            ui.heading("CPU Interrupts");
             ui.horizontal(|ui| {
                 ui.checkbox(&mut self.system.cpu.interrupts_enabled, "Interrupts Enabled");
 
@@ -126,8 +142,7 @@ impl eframe::App for Emulator {
 
             ui.separator();
 
-            ui.heading("> VDP Registers");
-            ui.spacing();
+            ui.heading("VDP Registers");
 
             ui.vertical(|ui| {
                 ui.label(format!("V: {:02x}", self.system.vdp.v));
@@ -141,6 +156,14 @@ impl eframe::App for Emulator {
                 ui.label(format!("{:04x}: {}", addr, instr.opcode));
                 addr += instr.length as u16;
             }
+        });
+
+        Window::new("Trace").resizable(false).max_height(500.0).show(ctx, |ui| {
+            ScrollArea::vertical().stick_to_bottom(true).show(ui, |ui| {
+                for instr in &self.trace {
+                    ui.label(format!("{:04x}: {}", instr.0, instr.1));
+                }
+            });
         });
 
         ctx.request_repaint();
@@ -170,12 +193,15 @@ impl Emulator {
             break_condition: String::new(),
             background_color: (0, 0, 0, 0),
             paused: true,
+            trace: VecDeque::with_capacity(1024),
             stepping: false,
             texture,
         }
     }
 
     fn run(&mut self, steps: usize) -> bool {
+        let mut new_frame_available = false;
+
         for _ in 0..steps {
             if self.break_condition_active {
                 let addr = u16::from_str_radix(&self.break_condition, 16);
@@ -186,8 +212,22 @@ impl Emulator {
                 }
             }
 
+            match self.system.decode_instr_at_pc() {
+                Ok(instr) => {
+                    if self.trace.len() == 1024 {
+                        self.trace.pop_front();
+                    }
+
+                    self.trace.push_back((self.system.cpu.registers.pc, instr.opcode))
+                }
+                Err(e) => error!("{}", e),
+            }
+
             match self.system.tick() {
-                Ok(true) => return true,
+                Ok(true) => {
+                    new_frame_available = true;
+                    break;
+                }
                 Ok(false) => (),
                 Err(e) => {
                     error!("{}", e);
@@ -211,15 +251,15 @@ impl Emulator {
                 Ok(instr) => {
                     current_offset += instr.length;
                     self.dissasembly_cache.push(instr);
-                },
+                }
                 Err(e) => {
                     error!("{}", e);
                     break;
-                },
+                }
             }
         }
 
-        false
+        new_frame_available
     }
 
     fn render(&mut self) {

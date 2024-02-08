@@ -17,6 +17,10 @@ pub enum Reg8 {
     H,
     L,
     F,
+    IYH,
+    IYL,
+    IXH,
+    IXL,
 }
 
 #[derive(PartialEq, Copy, Clone)]
@@ -25,10 +29,10 @@ pub enum Reg16 {
     BC,
     DE,
     HL,
-    IX,
-    IY,
     SP,
     PC,
+    IX(Option<i8>),
+    IY(Option<i8>)
 }
 
 #[derive(PartialEq, Copy, Clone)]
@@ -221,6 +225,10 @@ impl fmt::Display for Reg8 {
             Reg8::H => write!(f, "h"),
             Reg8::L => write!(f, "l"),
             Reg8::F => write!(f, "f"),
+            Reg8::IYH => write!(f, "iyh"),
+            Reg8::IYL => write!(f, "iyl"),
+            Reg8::IXH => write!(f, "ixh"),
+            Reg8::IXL => write!(f, "ixl"),
         }
     }
 }
@@ -232,10 +240,22 @@ impl fmt::Display for Reg16 {
             Reg16::BC => write!(f, "bc"),
             Reg16::DE => write!(f, "de"),
             Reg16::HL => write!(f, "hl"),
-            Reg16::IX => write!(f, "ix"),
-            Reg16::IY => write!(f, "iy"),
             Reg16::SP => write!(f, "sp"),
             Reg16::PC => write!(f, "pc"),
+            Reg16::IX(offset) => {
+                if let Some(offset) = offset {
+                    write!(f, "ix+#{:01x}", offset)
+                } else {
+                    write!(f, "ix")
+                }
+            },
+            Reg16::IY(offset) => {
+                if let Some(offset) = offset {
+                    write!(f, "iy+#{:01x}", offset)
+                } else {
+                    write!(f, "iy")
+                }
+            },
         }
     }
 }

@@ -4,7 +4,7 @@ use log::{debug, error, trace};
 use std::fmt;
 use z80::{
     disassembler::Disassembler,
-    instruction::{Opcode, Reg16, Reg8, Register},
+    instruction::{Instruction, Opcode, Reg16, Reg8, Register},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -17,6 +17,8 @@ pub struct Registers {
     pub h: u8,
     pub l: u8,
     pub f: u8,
+    pub ix: u16,
+    pub iy: u16,
     pub pc: u16,
     pub sp: u16,
 }
@@ -78,6 +80,8 @@ impl Cpu {
                 h: 0,
                 l: 0,
                 f: 0,
+                ix: 0,
+                iy: 0,
                 pc: 0,
                 sp: 0,
             },
@@ -87,7 +91,7 @@ impl Cpu {
         }
     }
 
-    pub(crate) fn tick(&mut self, bus: &mut Bus, vdp: &mut Vdp, psg: &mut Psg) -> Result<(), GgError> {
+    pub(crate) fn decode_at_pc(&self, bus: &mut Bus) -> Result<Instruction, String> {
         let data = vec![
             bus.read(self.registers.pc).unwrap(),
             bus.read(self.registers.pc + 1).unwrap(),
@@ -95,8 +99,13 @@ impl Cpu {
             bus.read(self.registers.pc + 3).unwrap(),
         ];
         let disasm = Disassembler::new(&data);
-        
-        match disasm.decode(0) {
+        disasm.decode(0)
+    }
+
+    pub(crate) fn tick(&mut self, bus: &mut Bus, vdp: &mut Vdp, psg: &mut Psg) -> Result<Instruction, GgError> {
+        let instr = self.decode_at_pc(bus);
+
+        match instr {
             Ok(instruction) => {
                 let prefix = if self.registers.pc < 0xc000 { "rom" } else { "ram" };
                 let real_pc_addr = match bus.translate_address_to_real(self.registers.pc) {
@@ -170,7 +179,11 @@ impl Cpu {
                     self.registers.pc += instruction.length as u16;
                 }
 
-                result
+                if result.is_ok() {
+                    Ok(instruction)
+                } else {
+                    Err(result.unwrap_err())
+                }
             }
             Err(msg) => Err(GgError::DecoderError { msg }),
         }
@@ -211,6 +224,11 @@ impl Cpu {
     }
 
     pub(crate) fn get_register_u16(&self, register: Reg16) -> u16 {
+        let get_offset = |offset: Option<i8>| match offset {
+            Some(offset) => offset as i16,
+            None => 0,
+        };
+        
         match register {
             Reg16::AF => ((self.registers.a as u16) << 8) | (self.registers.f as u16),
             Reg16::BC => ((self.registers.b as u16) << 8) | (self.registers.c as u16),
@@ -218,11 +236,15 @@ impl Cpu {
             Reg16::HL => ((self.registers.h as u16) << 8) | (self.registers.l as u16),
             Reg16::SP => self.registers.sp,
             Reg16::PC => self.registers.pc,
-            _ => panic!("Invalid register: {}", register),
+            Reg16::IX(offset) => (self.registers.ix.wrapping_add_signed(get_offset(offset))) as u16,
+            Reg16::IY(offset) =>(self.registers.iy.wrapping_add_signed(get_offset(offset))) as u16,
         }
     }
 
     pub(crate) fn get_register_u8(&self, register: Reg8) -> u8 {
+        let high = |value: u16| (value >> 8) as u8;
+        let low = |value: u16| value as u8;
+
         match register {
             Reg8::A => self.registers.a,
             Reg8::B => self.registers.b,
@@ -232,6 +254,10 @@ impl Cpu {
             Reg8::H => self.registers.h,
             Reg8::L => self.registers.l,
             Reg8::F => self.registers.f,
+            Reg8::IYH => high(self.registers.iy),
+            Reg8::IYL => low(self.registers.iy),
+            Reg8::IXH => high(self.registers.ix),
+            Reg8::IXL => low(self.registers.ix),
         }
     }
 
@@ -255,7 +281,8 @@ impl Cpu {
             }
             Reg16::SP => self.registers.sp = value,
             Reg16::PC => self.registers.pc = value,
-            _ => panic!("Invalid register: {}", register),
+            Reg16::IX(_) => self.registers.ix = value,
+            Reg16::IY(_) => self.registers.iy = value,
         }
     }
 
@@ -268,7 +295,11 @@ impl Cpu {
             Reg8::E => self.registers.e = value,
             Reg8::H => self.registers.h = value,
             Reg8::L => self.registers.l = value,
-            _ => panic!("Invalid register: {}", register),
+            Reg8::F => self.registers.f = value,
+            Reg8::IYH => self.registers.iy = (self.registers.iy & 0x00ff) | ((value as u16) << 8),
+            Reg8::IYL => self.registers.iy = (self.registers.iy & 0xff00) | (value as u16),
+            Reg8::IXH => self.registers.ix = (self.registers.ix & 0x00ff) | ((value as u16) << 8),
+            Reg8::IXL => self.registers.ix = (self.registers.ix & 0xff00) | (value as u16),
         }
     }
 

@@ -1,4 +1,5 @@
 use log::error;
+use z80::instruction::Instruction;
 
 use crate::bus::Bus;
 use crate::cpu::Cpu;
@@ -60,6 +61,10 @@ impl System {
         let previous_value = self.bus.bios_enabled;
         self.bus.bios_enabled = true;
         previous_value
+    }
+
+    pub fn decode_instr_at_pc(&mut self) -> Result<Instruction, String> {
+        self.cpu.decode_at_pc(&mut self.bus)
     }
 
     pub fn tick(&mut self) -> Result<bool, GgError> {

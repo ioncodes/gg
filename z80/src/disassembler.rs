@@ -11,7 +11,7 @@ impl<'a> Disassembler<'a> {
 
     pub fn decode(&self, offset: usize) -> Result<Instruction, String> {
         let opcode = self.data[offset];
-        let (prefix, opcode) = if opcode == 0xed || opcode == 0xcb {
+        let (prefix, opcode) = if opcode == 0xed || opcode == 0xfd || opcode == 0xcb {
             (Some(opcode), self.data[offset + 1])
         } else {
             (None, opcode)
@@ -499,15 +499,31 @@ impl<'a> Disassembler<'a> {
             (None, 0xbe) => Opcode::Compare(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
             (None, 0xc0) => Opcode::Return(Condition::NotZero, 1),
             (None, 0xc1) => Opcode::Pop(Register::Reg16(Reg16::BC), 1),
-            (None, 0xc2) => Opcode::Jump(Condition::NotZero, Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false), 3),
-            (None, 0xc3) => Opcode::Jump(Condition::None, Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false), 3),
+            (None, 0xc2) => Opcode::Jump(
+                Condition::NotZero,
+                Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
+                3,
+            ),
+            (None, 0xc3) => Opcode::Jump(
+                Condition::None,
+                Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
+                3,
+            ),
             (None, 0xc5) => Opcode::Push(Register::Reg16(Reg16::BC), 1),
-            (None, 0xc6) => Opcode::Add(Operand::Register(Register::Reg8(Reg8::A), false), Operand::Immediate(Immediate::U8(self.data[offset + 1]), false), 2),
+            (None, 0xc6) => Opcode::Add(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
+                2,
+            ),
             (None, 0xc7) => Opcode::Restart(Immediate::U8(0x00), 1),
             (None, 0xc9) => Opcode::Return(Condition::None, 1),
             (None, 0xcd) => Opcode::CallUnconditional(Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false), 3),
             (None, 0xd1) => Opcode::Pop(Register::Reg16(Reg16::DE), 1),
-            (None, 0xd2) => Opcode::Jump(Condition::NotCarry,Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false), 3),
+            (None, 0xd2) => Opcode::Jump(
+                Condition::NotCarry,
+                Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
+                3,
+            ),
             (None, 0xd3) => Opcode::Out(
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), true), // todo: is true correct?
                 Operand::Register(Register::Reg8(Reg8::A), false),
@@ -528,7 +544,11 @@ impl<'a> Disassembler<'a> {
             (None, 0xe9) => Opcode::Jump(Condition::None, Operand::Register(Register::Reg16(Reg16::HL), true), 1),
             (None, 0xf0) => Opcode::Return(Condition::NotSign, 1),
             (None, 0xf1) => Opcode::Pop(Register::Reg16(Reg16::AF), 1),
-            (None, 0xf2) => Opcode::Jump(Condition::NotSign, Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false), 3),
+            (None, 0xf2) => Opcode::Jump(
+                Condition::NotSign,
+                Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
+                3,
+            ),
             (None, 0xf3) => Opcode::DisableInterrupts(1),
             (None, 0xf5) => Opcode::Push(Register::Reg16(Reg16::AF), 1),
             (None, 0xf6) => Opcode::Or(Operand::Immediate(Immediate::U8(self.data[offset + 1]), false), 2),
@@ -539,7 +559,11 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 1,
             ),
-            (None, 0xfa) => Opcode::Jump(Condition::Sign, Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false), 3),
+            (None, 0xfa) => Opcode::Jump(
+                Condition::Sign,
+                Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
+                3,
+            ),
             (None, 0xfb) => Opcode::EnableInterrupts(1),
             (None, 0xfe) => Opcode::Compare(Operand::Immediate(Immediate::U8(self.data[offset + 1]), false), 2),
 
@@ -563,6 +587,24 @@ impl<'a> Disassembler<'a> {
             (Some(0xed), 0x46) => Opcode::SetInterruptMode(Immediate::U8(0), 2),
             (Some(0xed), 0x56) => Opcode::SetInterruptMode(Immediate::U8(1), 2),
             (Some(0xed), 0x5e) => Opcode::SetInterruptMode(Immediate::U8(2), 2),
+
+            // 0xFD PREFIX
+            (Some(0xfd), 0xe1) => Opcode::Pop(Register::Reg16(Reg16::IY(None)), 2),
+            (Some(0xfd), 0x66) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(self.data[offset + 2] as i8))), true),
+                3,
+            ),
+            (Some(0xfd), 0x6e) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(self.data[offset + 2] as i8))), true),
+                3,
+            ),
+            (Some(0xfd), 0x7e) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(self.data[offset + 2] as i8))), true),
+                3,
+            ),
 
             // Default decode error case
             _ => Opcode::Unknown(0),
