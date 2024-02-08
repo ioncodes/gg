@@ -1,9 +1,10 @@
 use std::collections::VecDeque;
 
-use eframe::CreationContext;
-use egui::{
-    scroll_area::ScrollBarVisibility, vec2, CentralPanel, Color32, ColorImage, Image, Key, ScrollArea, SidePanel, TextureHandle, TextureOptions, Window
+use eframe::egui::{
+    self, ComboBox, scroll_area::ScrollBarVisibility, vec2, CentralPanel, Color32, ColorImage, Context, Image, Key, ScrollArea, SidePanel,
+    TextureHandle, TextureOptions, Window,
 };
+use eframe::CreationContext;
 use emu::{
     bus::{MEMORY_REGISTER_CR_BANK_SELECT_0, MEMORY_REGISTER_CR_BANK_SELECT_1, MEMORY_REGISTER_CR_BANK_SELECT_2},
     system::System,
@@ -17,6 +18,9 @@ use z80::{
 
 pub(crate) const SCALE: usize = 4;
 
+#[derive(PartialEq)]
+enum MemoryView { Rom, Ram, Vram, Cram }
+
 pub(crate) struct Emulator {
     system: System,
     background_color: Color,
@@ -28,6 +32,7 @@ pub(crate) struct Emulator {
     break_condition_active: bool,
     break_condition: String,
     texture: TextureHandle,
+    memory_view: MemoryView
 }
 
 impl eframe::App for Emulator {
@@ -93,10 +98,11 @@ impl Emulator {
             trace: VecDeque::with_capacity(1024),
             stepping: false,
             texture,
+            memory_view: MemoryView::Rom
         }
     }
 
-    fn draw_debugger(&mut self, ctx: &egui::Context) {
+    fn draw_debugger(&mut self, ctx: &Context) {
         Window::new("Background Layer")
             .resizable(false)
             .max_width(INTERNAL_WIDTH as f32)
@@ -222,6 +228,46 @@ impl Emulator {
                 rom2_bank.unwrap_or(0),
                 self.system.bus.translate_address_to_real(0x8000).unwrap_or(0)
             ));
+        });
+
+        Window::new("Memory").resizable(false).min_width(500.0).show(ctx, |ui| {
+            ComboBox::from_label("Source").selected_text("ROM").show_ui(ui, |ui| {
+                ui.selectable_value(&mut self.memory_view, MemoryView::Rom, "ROM");
+                ui.selectable_value(&mut self.memory_view, MemoryView::Ram, "RAM");
+                ui.selectable_value(&mut self.memory_view, MemoryView::Vram, "VRAM");
+                ui.selectable_value(&mut self.memory_view, MemoryView::Cram, "CRAM");
+            });
+
+            ui.add_space(3.0);
+
+            let range = match self.memory_view {
+                MemoryView::Rom => (0x0000..0xc000).into_iter(),
+                MemoryView::Ram => (0xc000..0xffff).into_iter(),
+                MemoryView::Vram => (0x0000..0x4000).into_iter(),
+                MemoryView::Cram => (0x0000..0x40).into_iter(),
+            };
+
+            ScrollArea::vertical().max_height(200.0).show(ui, |ui| {
+                ui.vertical(|ui| {
+                    for base_addr in range.step_by(16) {
+                        let mut line = format!("0x{:04x} |", base_addr);
+
+                        for offset in 0..16 {
+                            let addr = base_addr + offset;
+
+                            let value = match self.memory_view {
+                                MemoryView::Rom | MemoryView::Ram => self.system.bus.read(addr as u16).unwrap_or(0x69),
+                                MemoryView::Vram => self.system.vdp.vram.read(addr as u16),
+                                MemoryView::Cram => self.system.vdp.cram.read(addr as u16)
+                            };
+
+                            line += &format!(" {:02x}", value);
+                        }
+
+                        ui.label(line);
+                    }
+                });
+            });
         });
 
         SidePanel::right("Right Panel").show(ctx, |ui| {

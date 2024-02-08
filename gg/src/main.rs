@@ -1,7 +1,7 @@
 mod emulator;
 
 use eframe::NativeOptions;
-use egui::{FontFamily, FontId, Style, TextStyle, ViewportBuilder, Visuals};
+use eframe::egui::{FontFamily, FontId, Style, TextStyle, ViewportBuilder, Visuals};
 use emu::vdp::{INTERNAL_HEIGHT, INTERNAL_WIDTH};
 use emulator::{Emulator, SCALE};
 use env_logger::Builder;
