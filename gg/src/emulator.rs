@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 use eframe::CreationContext;
 use egui::{vec2, CentralPanel, Color32, ColorImage, Image, ScrollArea, TextureHandle, TextureOptions, Window};
 use emu::{
+    bus::{MEMORY_REGISTER_CR_BANK_SELECT_0, MEMORY_REGISTER_CR_BANK_SELECT_1, MEMORY_REGISTER_CR_BANK_SELECT_2},
     system::System,
     vdp::{Color, INTERNAL_HEIGHT, INTERNAL_WIDTH},
 };
@@ -129,10 +130,12 @@ impl eframe::App for Emulator {
                 ));
                 ui.label(format!("IX: {:04x}", self.system.cpu.registers.ix));
                 ui.label(format!("IY: {:04x}", self.system.cpu.registers.iy));
+                ui.label("Flags: SZ-H-PNC");
+                ui.label(format!("       {:08b}", self.system.cpu.flags.bits()));
             });
 
             ui.separator();
-        
+
             ui.heading("CPU Interrupts");
             ui.horizontal(|ui| {
                 ui.checkbox(&mut self.system.cpu.interrupts_enabled, "Interrupts Enabled");
@@ -148,6 +151,27 @@ impl eframe::App for Emulator {
                 ui.label(format!("V: {:02x}", self.system.vdp.v));
                 ui.label(format!("H: {:02x}", self.system.vdp.h));
             });
+        });
+
+        Window::new("ROM Mapping").resizable(false).show(ctx, |ui| {
+            let rom0_bank = self.system.bus.read(MEMORY_REGISTER_CR_BANK_SELECT_0);
+            let rom1_bank = self.system.bus.read(MEMORY_REGISTER_CR_BANK_SELECT_1);
+            let rom2_bank = self.system.bus.read(MEMORY_REGISTER_CR_BANK_SELECT_2);
+            ui.label(format!(
+                "ROM (#{:02x}): {:08x}",
+                rom0_bank.unwrap_or(0),
+                self.system.bus.translate_address_to_real(0x0000).unwrap_or(0)
+            ));
+            ui.label(format!(
+                "ROM (#{:02x}): {:08x}",
+                rom1_bank.unwrap_or(0),
+                self.system.bus.translate_address_to_real(0x4000).unwrap_or(0)
+            ));
+            ui.label(format!(
+                "ROM (#{:02x}): {:08x}",
+                rom2_bank.unwrap_or(0),
+                self.system.bus.translate_address_to_real(0x8000).unwrap_or(0)
+            ));
         });
 
         Window::new("Disassembly").resizable(false).max_height(100.0).show(ctx, |ui| {

@@ -142,6 +142,10 @@ impl Cpu {
                     Opcode::Add(_, _, _) => handlers.add(&instruction),
                     Opcode::And(_, _) => handlers.and(&instruction),
                     Opcode::SubtractWithCarry(_, _, _) => handlers.subtract_with_carry(&instruction),
+                    Opcode::RotateRightCarry(_) => handlers.rotate_right_carry(&instruction),
+                    Opcode::RotateRightCarrySwap(_) => handlers.rotate_right_carry_swap(&instruction),
+                    Opcode::RotateRightCarrySideeffect(_, _) => handlers.rotate_right_carry_sideeffect(&instruction),
+                    Opcode::RotateRightCarrySwapSideeffect(_, _) => handlers.rotate_right_carry_swap_sideeffect(&instruction),
                     _ => {
                         error!("Hanlder missing for instruction: {}\n{}", instruction.opcode, self);
                         return Err(GgError::OpcodeNotImplemented {
@@ -236,8 +240,8 @@ impl Cpu {
             Reg16::HL => ((self.registers.h as u16) << 8) | (self.registers.l as u16),
             Reg16::SP => self.registers.sp,
             Reg16::PC => self.registers.pc,
-            Reg16::IX(offset) => (self.registers.ix.wrapping_add_signed(get_offset(offset))) as u16,
-            Reg16::IY(offset) =>(self.registers.iy.wrapping_add_signed(get_offset(offset))) as u16,
+            Reg16::IX(offset) => self.registers.ix.wrapping_add_signed(get_offset(offset)),
+            Reg16::IY(offset) =>self.registers.iy.wrapping_add_signed(get_offset(offset)),
         }
     }
 

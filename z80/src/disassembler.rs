@@ -11,7 +11,7 @@ impl<'a> Disassembler<'a> {
 
     pub fn decode(&self, offset: usize) -> Result<Instruction, String> {
         let opcode = self.data[offset];
-        let (prefix, opcode) = if opcode == 0xed || opcode == 0xfd || opcode == 0xcb {
+        let (prefix, opcode) = if opcode == 0xdd || opcode == 0xed || opcode == 0xfd || opcode == 0xcb {
             (Some(opcode), self.data[offset + 1])
         } else {
             (None, opcode)
@@ -84,6 +84,7 @@ impl<'a> Disassembler<'a> {
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
                 2,
             ),
+            (None, 0x0f) => Opcode::RotateRightCarry(1),
             (None, 0x10) => Opcode::DecrementAndJumpRelative(Immediate::S8(self.data[offset + 1] as i8), 2),
             (None, 0x11) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::DE), false),
@@ -117,6 +118,7 @@ impl<'a> Disassembler<'a> {
             (None, 0x1b) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::DE), false), 1),
             (None, 0x1c) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::E), false), 1),
             (None, 0x1d) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::E), false), 1),
+            (None, 0x1f) => Opcode::RotateRightCarrySwap(1),
             (None, 0x20) => Opcode::JumpRelative(Condition::NotZero, Immediate::S8(self.data[offset + 1] as i8), 2),
             (None, 0x21) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
@@ -150,6 +152,7 @@ impl<'a> Disassembler<'a> {
             (None, 0x2b) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::HL), false), 1),
             (None, 0x2c) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::L), false), 1),
             (None, 0x2d) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::L), false), 1),
+            (None, 0x30) => Opcode::JumpRelative(Condition::NotCarry, Immediate::S8(self.data[offset + 1] as i8), 2),
             (None, 0x31) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::SP), false),
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
@@ -168,6 +171,7 @@ impl<'a> Disassembler<'a> {
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
                 2,
             ),
+            (None, 0x38) => Opcode::JumpRelative(Condition::Carry, Immediate::S8(self.data[offset + 1] as i8), 2),
             (None, 0x39) => Opcode::Add(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 Operand::Register(Register::Reg16(Reg16::SP), false),
@@ -304,6 +308,11 @@ impl<'a> Disassembler<'a> {
             (None, 0x58) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::E), false),
                 Operand::Register(Register::Reg8(Reg8::B), false),
+                1,
+            ),
+            (None, 0x5e) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                Operand::Register(Register::Reg16(Reg16::HL), true),
                 1,
             ),
             (None, 0x5f) => Opcode::Load(
@@ -516,6 +525,7 @@ impl<'a> Disassembler<'a> {
                 2,
             ),
             (None, 0xc7) => Opcode::Restart(Immediate::U8(0x00), 1),
+            (None, 0xc8) => Opcode::Return(Condition::Zero, 1),
             (None, 0xc9) => Opcode::Return(Condition::None, 1),
             (None, 0xcd) => Opcode::CallUnconditional(Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false), 3),
             (None, 0xd1) => Opcode::Pop(Register::Reg16(Reg16::DE), 1),
@@ -568,6 +578,22 @@ impl<'a> Disassembler<'a> {
             (None, 0xfe) => Opcode::Compare(Operand::Immediate(Immediate::U8(self.data[offset + 1]), false), 2),
 
             // 0xCB PREFIX
+            (Some(0xcb), 0x08) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), 0x09) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), 0x0a) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), 0x0b) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), 0x0c) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), 0x0d) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), 0x0e) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), 0x0f) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), 0x18) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), 0x19) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), 0x1a) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), 0x1b) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), 0x1c) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), 0x1d) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), 0x1e) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), 0x1f) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::A), false), 2),
             (Some(0xcb), 0xbf) => Opcode::ResetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::A), false), 2),
 
             // 0xED PREFIX
@@ -588,7 +614,41 @@ impl<'a> Disassembler<'a> {
             (Some(0xed), 0x56) => Opcode::SetInterruptMode(Immediate::U8(1), 2),
             (Some(0xed), 0x5e) => Opcode::SetInterruptMode(Immediate::U8(2), 2),
 
+            // 0xDD PREFIX
+            (Some(0xdd), 0x21) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::IX(None)), false),
+                Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), false),
+                4,
+            ),
+            (Some(0xdd), 0x22) => Opcode::Load(
+                Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
+                Operand::Register(Register::Reg16(Reg16::IX(None)), false),
+                4,
+            ),
+            (Some(0xdd), 0x23) => Opcode::Increment(Operand::Register(Register::Reg16(Reg16::IX(None)), false), 2),
+            (Some(0xdd), 0x36) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
+                Operand::Immediate(Immediate::U8(self.data[offset + 3]), false),
+                4,
+            ),
+            (Some(0xdd), 0x77) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                3,
+            ),
+            (Some(0xdd), 0x7e) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
+                3,
+            ),
+            (Some(0xdd), 0xae) => Opcode::Xor(Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true), 3),
+
             // 0xFD PREFIX
+            (Some(0xfd), 0x09) => Opcode::Add(
+                Operand::Register(Register::Reg16(Reg16::IY(None)), false),
+                Operand::Register(Register::Reg16(Reg16::BC), false),
+                2,
+            ),
             (Some(0xfd), 0xe1) => Opcode::Pop(Register::Reg16(Reg16::IY(None)), 2),
             (Some(0xfd), 0x66) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::H), false),
@@ -650,6 +710,10 @@ impl<'a> Disassembler<'a> {
             Opcode::And(_, length) => length,
             Opcode::Subtract(_, length) => length,
             Opcode::Add(_, _, length) => length,
+            Opcode::RotateRightCarry(length) => length,
+            Opcode::RotateRightCarrySwap(length) => length,
+            Opcode::RotateRightCarrySideeffect(_, length) => length,
+            Opcode::RotateRightCarrySwapSideeffect(_, length) => length,
             Opcode::Unknown(length) => length,
         }
     }

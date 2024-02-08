@@ -5,9 +5,9 @@ use crate::memory::Memory;
 
 pub(crate) const MEMORY_CONTROL_PORT: u8 = 0x3e;
 //pub(crate) const MEMORY_REGISTER_RAM_MAPPING: u16 = 0xfffc;
-pub(crate) const MEMORY_REGISTER_CR_BANK_SELECT_0: u16 = 0xfffd;
-pub(crate) const MEMORY_REGISTER_CR_BANK_SELECT_1: u16 = 0xfffe;
-pub(crate) const MEMORY_REGISTER_CR_BANK_SELECT_2: u16 = 0xffff;
+pub const MEMORY_REGISTER_CR_BANK_SELECT_0: u16 = 0xfffd;
+pub const MEMORY_REGISTER_CR_BANK_SELECT_1: u16 = 0xfffe;
+pub const MEMORY_REGISTER_CR_BANK_SELECT_2: u16 = 0xffff;
 
 
 pub struct Bus {

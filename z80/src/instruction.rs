@@ -91,14 +91,18 @@ pub enum Opcode {
     SetInterruptMode(Immediate, usize),
     And(Operand, usize),
     SubtractWithCarry(Register, Register, usize),
+    RotateRightCarry(usize),
+    RotateRightCarrySwap(usize),
+    RotateRightCarrySideeffect(Operand, usize),
+    RotateRightCarrySwapSideeffect(Operand, usize),
     Unknown(usize),
 }
 
 pub struct Instruction {
     pub opcode: Opcode,
     pub length: usize,
-    pub(crate) offset: usize,
-    pub(crate) _prefix: Option<u8>,
+    pub offset: usize,
+    pub _prefix: Option<u8>,
 }
 
 impl fmt::Display for Instruction {
@@ -172,6 +176,10 @@ impl fmt::Display for Opcode {
             Opcode::Outi(_) => write!(f, "outi"),
             Opcode::SetInterruptMode(op, _) => write!(f, "im {}", op),
             Opcode::And(op, _) => write!(f, "and {}", op),
+            Opcode::RotateRightCarry(_) => write!(f, "rrca"),
+            Opcode::RotateRightCarrySwap(_) => write!(f, "rra"),
+            Opcode::RotateRightCarrySideeffect(op, _) => write!(f, "rrc {}", op),
+            Opcode::RotateRightCarrySwapSideeffect(op, _) => write!(f, "rr {}", op),
             Opcode::Unknown(_) => unreachable!("Unknown opcode"),
         }
     }
