@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 
 use eframe::egui::{
     self, ComboBox, scroll_area::ScrollBarVisibility, vec2, CentralPanel, Color32, ColorImage, Context, Image, Key, ScrollArea, SidePanel,
@@ -21,6 +21,9 @@ pub(crate) const SCALE: usize = 4;
 #[derive(PartialEq)]
 enum MemoryView { Rom, Ram, Vram, Cram }
 
+#[derive(PartialEq, Copy, Clone, Debug)]
+enum Breakpoint { Read, Write, Execute }
+
 pub(crate) struct Emulator {
     system: System,
     background_color: Color,
@@ -32,7 +35,10 @@ pub(crate) struct Emulator {
     break_condition_active: bool,
     break_condition: String,
     texture: TextureHandle,
-    memory_view: MemoryView
+    memory_view: MemoryView,
+    breakpoints: HashMap<u16, Breakpoint>,
+    breakpoint: String,
+    breakpoint_condition: Breakpoint
 }
 
 impl eframe::App for Emulator {
@@ -98,7 +104,10 @@ impl Emulator {
             trace: VecDeque::with_capacity(1024),
             stepping: false,
             texture,
-            memory_view: MemoryView::Rom
+            memory_view: MemoryView::Rom,
+            breakpoints: HashMap::new(),
+            breakpoint: String::new(),
+            breakpoint_condition: Breakpoint::Execute
         }
     }
 
@@ -228,6 +237,32 @@ impl Emulator {
                 rom2_bank.unwrap_or(0),
                 self.system.bus.translate_address_to_real(0x8000).unwrap_or(0)
             ));
+        });
+
+        Window::new("Breakpoints").resizable(false).show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.text_edit_singleline(&mut self.breakpoint);
+
+                ComboBox::from_label("Condition").selected_text("Execute").show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.breakpoint_condition, Breakpoint::Execute, "Execute");
+                    ui.selectable_value(&mut self.breakpoint_condition, Breakpoint::Read, "Read");
+                    ui.selectable_value(&mut self.breakpoint_condition, Breakpoint::Write, "Write");
+                });
+
+                if ui.button("Add").clicked() {
+                    let addr = u16::from_str_radix(&self.breakpoint, 16);
+                    if let Ok(addr) = addr {
+                        self.breakpoints.insert(addr, self.breakpoint_condition);
+                        self.breakpoint.clear();
+                    }
+                }
+            });
+
+            ui.separator();
+
+            for (addr, condition) in &self.breakpoints {
+                ui.label(format!("{:04x}: {:?}", addr, condition));
+            }
         });
 
         Window::new("Memory").resizable(false).min_width(500.0).show(ctx, |ui| {
