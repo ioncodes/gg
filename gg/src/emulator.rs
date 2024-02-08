@@ -1,7 +1,9 @@
 use std::collections::VecDeque;
 
 use eframe::CreationContext;
-use egui::{vec2, CentralPanel, Color32, ColorImage, Image, ScrollArea, TextureHandle, TextureOptions, Window};
+use egui::{
+    scroll_area::ScrollBarVisibility, vec2, CentralPanel, Color32, ColorImage, Image, Key, ScrollArea, SidePanel, TextureHandle, TextureOptions, Window
+};
 use emu::{
     bus::{MEMORY_REGISTER_CR_BANK_SELECT_0, MEMORY_REGISTER_CR_BANK_SELECT_1, MEMORY_REGISTER_CR_BANK_SELECT_2},
     system::System,
@@ -22,6 +24,7 @@ pub(crate) struct Emulator {
     trace: VecDeque<(u16, Opcode)>,
     paused: bool,
     stepping: bool,
+    debugger_enabled: bool,
     break_condition_active: bool,
     break_condition: String,
     texture: TextureHandle,
@@ -40,12 +43,60 @@ impl eframe::App for Emulator {
             }
         }
 
+        if ctx.input(|i| i.key_pressed(Key::F1)) {
+            self.debugger_enabled = !self.debugger_enabled;
+            if !self.debugger_enabled {
+                self.paused = false;
+            } else {
+                self.paused = true;
+            }
+        }
+
         CentralPanel::default().show(ctx, |ui| {
             let image = Image::new(&self.texture);
             let image = image.fit_to_exact_size(vec2((INTERNAL_WIDTH * SCALE) as f32, (INTERNAL_HEIGHT * SCALE) as f32));
             image.paint_at(ui, ui.ctx().screen_rect());
         });
 
+        if self.debugger_enabled {
+            self.draw_debugger(ctx);
+        }
+
+        ctx.request_repaint();
+    }
+}
+
+impl Emulator {
+    pub(crate) fn new(cc: &CreationContext) -> Emulator {
+        let bios = include_bytes!("../../external/majbios.gg");
+        let sonic2 = include_bytes!("../../external/sonic2.gg");
+        let lua_script = String::from(include_str!("../../external/test.lua"));
+
+        let mut system = System::new(Some(lua_script));
+        system.load_bios(bios);
+        system.load_cartridge(sonic2.as_ref());
+
+        let texture = cc.egui_ctx.load_texture(
+            "frame",
+            ColorImage::new([INTERNAL_WIDTH, INTERNAL_HEIGHT], Color32::BLACK),
+            TextureOptions::NEAREST,
+        );
+
+        Emulator {
+            system,
+            dissasembly_cache: Vec::new(),
+            break_condition_active: false,
+            break_condition: String::new(),
+            background_color: (0, 0, 0, 0),
+            paused: true,
+            debugger_enabled: true,
+            trace: VecDeque::with_capacity(1024),
+            stepping: false,
+            texture,
+        }
+    }
+
+    fn draw_debugger(&mut self, ctx: &egui::Context) {
         Window::new("Background Layer")
             .resizable(false)
             .max_width(INTERNAL_WIDTH as f32)
@@ -87,8 +138,6 @@ impl eframe::App for Emulator {
                     }
                 ));
             });
-
-            ui.separator();
 
             ui.horizontal(|ui| {
                 ui.text_edit_singleline(&mut self.break_condition);
@@ -153,74 +202,48 @@ impl eframe::App for Emulator {
             });
         });
 
-        Window::new("ROM Mapping").resizable(false).show(ctx, |ui| {
+        Window::new("ROM Mappings").resizable(false).show(ctx, |ui| {
             let rom0_bank = self.system.bus.read(MEMORY_REGISTER_CR_BANK_SELECT_0);
             let rom1_bank = self.system.bus.read(MEMORY_REGISTER_CR_BANK_SELECT_1);
             let rom2_bank = self.system.bus.read(MEMORY_REGISTER_CR_BANK_SELECT_2);
+
             ui.label(format!(
-                "ROM (#{:02x}): {:08x}",
+                "ROM Bank #{:02x}: {:08x}",
                 rom0_bank.unwrap_or(0),
                 self.system.bus.translate_address_to_real(0x0000).unwrap_or(0)
             ));
             ui.label(format!(
-                "ROM (#{:02x}): {:08x}",
+                "ROM Bank #{:02x}: {:08x}",
                 rom1_bank.unwrap_or(0),
                 self.system.bus.translate_address_to_real(0x4000).unwrap_or(0)
             ));
             ui.label(format!(
-                "ROM (#{:02x}): {:08x}",
+                "ROM Bank #{:02x}: {:08x}",
                 rom2_bank.unwrap_or(0),
                 self.system.bus.translate_address_to_real(0x8000).unwrap_or(0)
             ));
         });
 
-        Window::new("Disassembly").resizable(false).max_height(100.0).show(ctx, |ui| {
+        SidePanel::right("Right Panel").show(ctx, |ui| {
+            ui.heading("Disassembly");
             let mut addr = self.system.cpu.registers.pc;
             for instr in &self.dissasembly_cache {
                 ui.label(format!("{:04x}: {}", addr, instr.opcode));
                 addr += instr.length as u16;
             }
+
+            ui.separator();
+            ui.heading("Trace");
+
+            ScrollArea::vertical()
+                .stick_to_bottom(true)
+                .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
+                .show(ui, |ui| {
+                    for instr in &self.trace {
+                        ui.label(format!("{:04x}: {}", instr.0, instr.1));
+                    }
+                });
         });
-
-        Window::new("Trace").resizable(false).max_height(500.0).show(ctx, |ui| {
-            ScrollArea::vertical().stick_to_bottom(true).show(ui, |ui| {
-                for instr in &self.trace {
-                    ui.label(format!("{:04x}: {}", instr.0, instr.1));
-                }
-            });
-        });
-
-        ctx.request_repaint();
-    }
-}
-
-impl Emulator {
-    pub(crate) fn new(cc: &CreationContext) -> Emulator {
-        let bios = include_bytes!("../../external/majbios.gg");
-        let sonic2 = include_bytes!("../../external/sonic2.gg");
-        let lua_script = String::from(include_str!("../../external/test.lua"));
-
-        let mut system = System::new(Some(lua_script));
-        system.load_bios(bios);
-        system.load_cartridge(sonic2.as_ref());
-
-        let texture = cc.egui_ctx.load_texture(
-            "frame",
-            ColorImage::new([INTERNAL_WIDTH, INTERNAL_HEIGHT], Color32::BLACK),
-            TextureOptions::NEAREST,
-        );
-
-        Emulator {
-            system,
-            dissasembly_cache: Vec::new(),
-            break_condition_active: false,
-            break_condition: String::new(),
-            background_color: (0, 0, 0, 0),
-            paused: true,
-            trace: VecDeque::with_capacity(1024),
-            stepping: false,
-            texture,
-        }
     }
 
     fn run(&mut self, steps: usize) -> bool {
