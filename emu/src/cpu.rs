@@ -133,7 +133,8 @@ impl Cpu {
                 let mut handlers = Handlers::new(self, bus, vdp, psg);
                 let result = match instruction.opcode {
                     Opcode::Jump(_, _, _) => handlers.jump(&instruction),
-                    Opcode::DisableInterrupts(_) => handlers.disable_interrupts(&instruction),
+                    Opcode::DisableInterrupts(_) => handlers.set_interrupt_state(false, &instruction),
+                    Opcode::EnableInterrupts(_) => handlers.set_interrupt_state(true, &instruction),
                     Opcode::Load(_, _, _) => handlers.load(&instruction),
                     Opcode::LoadIndirectRepeat(_) => handlers.load_indirect_repeat(&instruction),
                     Opcode::Out(_, _, _) => handlers.out(&instruction),
@@ -166,6 +167,7 @@ impl Cpu {
                     Opcode::RotateRightCarrySwapSideeffect(_, _) => handlers.rotate_right_carry_swap_sideeffect(&instruction),
                     Opcode::Complement(_) => handlers.complement(&instruction),
                     Opcode::SetBit(_, _, _) => handlers.set_bit(&instruction),
+                    Opcode::Halt(_) => return Err(GgError::CpuHalted),
                     _ => {
                         error!("Hanlder missing for instruction: {}\n{}", instruction.opcode, self);
                         return Err(GgError::OpcodeNotImplemented {

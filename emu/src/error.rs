@@ -23,4 +23,6 @@ pub enum GgError {
     IoControllerInvalidPort,
     #[snafu(display("Invalid VDP I/O mode set"))]
     VdpInvalidIoMode,
+    #[snafu(display("CPU halted"))]
+    CpuHalted,
 }

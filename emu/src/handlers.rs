@@ -134,8 +134,8 @@ impl<'a> Handlers<'a> {
         Ok(())
     }
 
-    pub(crate) fn disable_interrupts(&mut self, instruction: &Instruction) -> Result<(), GgError> {
-        self.cpu.interrupts_enabled = false;
+    pub(crate) fn set_interrupt_state(&mut self, enabled: bool, instruction: &Instruction) -> Result<(), GgError> {
+        self.cpu.interrupts_enabled = enabled;
         Ok(())
     }
 
