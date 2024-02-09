@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use eframe::egui::{
-    self, ComboBox, scroll_area::ScrollBarVisibility, vec2, CentralPanel, Color32, ColorImage, Context, Image, Key, ScrollArea, SidePanel,
+    self, scroll_area::ScrollBarVisibility, vec2, CentralPanel, Color32, ColorImage, ComboBox, Context, Image, Key, ScrollArea, SidePanel,
     TextureHandle, TextureOptions, Window,
 };
 use eframe::CreationContext;
@@ -18,8 +18,13 @@ use z80::{
 
 pub(crate) const SCALE: usize = 4;
 
-#[derive(PartialEq)]
-enum MemoryView { Rom, Ram, Vram, Cram }
+#[derive(PartialEq, Debug)]
+enum MemoryView {
+    Rom,
+    Ram,
+    Vram,
+    Cram,
+}
 
 pub(crate) struct Emulator {
     system: System,
@@ -32,7 +37,7 @@ pub(crate) struct Emulator {
     break_condition_active: bool,
     break_condition: String,
     texture: TextureHandle,
-    memory_view: MemoryView
+    memory_view: MemoryView,
 }
 
 impl eframe::App for Emulator {
@@ -98,7 +103,7 @@ impl Emulator {
             trace: VecDeque::with_capacity(1024),
             stepping: false,
             texture,
-            memory_view: MemoryView::Rom
+            memory_view: MemoryView::Rom,
         }
     }
 
@@ -231,12 +236,14 @@ impl Emulator {
         });
 
         Window::new("Memory").resizable(false).min_width(500.0).show(ctx, |ui| {
-            ComboBox::from_label("Source").selected_text("ROM").show_ui(ui, |ui| {
-                ui.selectable_value(&mut self.memory_view, MemoryView::Rom, "ROM");
-                ui.selectable_value(&mut self.memory_view, MemoryView::Ram, "RAM");
-                ui.selectable_value(&mut self.memory_view, MemoryView::Vram, "VRAM");
-                ui.selectable_value(&mut self.memory_view, MemoryView::Cram, "CRAM");
-            });
+            ComboBox::from_label("Source")
+                .selected_text(format!("{:?}", self.memory_view))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.memory_view, MemoryView::Rom, "ROM");
+                    ui.selectable_value(&mut self.memory_view, MemoryView::Ram, "RAM");
+                    ui.selectable_value(&mut self.memory_view, MemoryView::Vram, "VRAM");
+                    ui.selectable_value(&mut self.memory_view, MemoryView::Cram, "CRAM");
+                });
 
             ui.add_space(3.0);
 
@@ -258,7 +265,7 @@ impl Emulator {
                             let value = match self.memory_view {
                                 MemoryView::Rom | MemoryView::Ram => self.system.bus.read(addr as u16).unwrap_or(0x69),
                                 MemoryView::Vram => self.system.vdp.vram.read(addr as u16),
-                                MemoryView::Cram => self.system.vdp.cram.read(addr as u16)
+                                MemoryView::Cram => self.system.vdp.cram.read(addr as u16),
                             };
 
                             line += &format!(" {:02x}", value);

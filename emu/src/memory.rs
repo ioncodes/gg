@@ -26,6 +26,10 @@ where T: Add<Output = T> + Sub<Output = T> + Into<usize> + From<u16> + Copy
     }
 
     pub fn write(&mut self, address: T, value: u8) {
+        if address.into() == 0x136a {
+            println!("writing to 136a: {:x}", value);
+        }
+
         self.buffer[(address - self.base_address).into()] = value;
     }
 

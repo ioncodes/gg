@@ -49,8 +49,7 @@ impl<'a> Handlers<'a> {
                 _,
             ) => {
                 if dst_deref {
-                    let reg = self.cpu.get_register_u16(dst_register);
-                    let dst = self.bus.read_word(reg)?;
+                    let dst = self.cpu.get_register_u16(dst_register);
                     self.bus.write(dst, src_imm)?;
                 } else {
                     // is this even possibel?

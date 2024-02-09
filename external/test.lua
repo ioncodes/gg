@@ -66,6 +66,10 @@ function post_mapper_setup_hook()
     log("Bank Slot 2: " .. string.format("%02x", memory["ram"][0xffff + 1]))
 end
 
+function dump_ix()
+    log("ix: " .. string.format("%04x", cpu["ix"]))
+end
+
 -- install_hook(0x9f, PRE_TICK, "post_sega_license_hook")
 -- install_hook(0x135, PRE_TICK, "vdp_set_address_hook")
 -- install_hook(0x139, PRE_TICK, "out_hook")
@@ -73,3 +77,4 @@ end
 -- install_hook(0xbc, PRE_TICK, "post_unknown_function_hook")
 -- install_hook(0xd4, PRE_TICK, "post_vram_copy_hook")
 install_hook(0x0a, POST_TICK, "post_mapper_setup_hook")
+-- install_hook(0x1b94, PRE_TICK, "dump_ix")

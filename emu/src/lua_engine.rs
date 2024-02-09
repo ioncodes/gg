@@ -125,6 +125,8 @@ impl LuaEngine {
             cpu_table.set("hl", cpu.get_register_u16(Reg16::HL)).unwrap();
             cpu_table.set("sp", cpu.get_register_u16(Reg16::SP)).unwrap();
             cpu_table.set("pc", cpu.get_register_u16(Reg16::PC)).unwrap();
+            cpu_table.set("ix", cpu.get_register_u16(Reg16::IX(None))).unwrap();
+            cpu_table.set("iy", cpu.get_register_u16(Reg16::IY(None))).unwrap();
             cpu_table.set("a", cpu.get_register_u8(Reg8::A)).unwrap();
             cpu_table.set("b", cpu.get_register_u8(Reg8::B)).unwrap();
             cpu_table.set("c", cpu.get_register_u8(Reg8::C)).unwrap();
