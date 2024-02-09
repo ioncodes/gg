@@ -15,7 +15,7 @@ pub struct Bus {
     pub ram: Memory<u16>,      // 0xc000 - 0xffff
     pub bios_rom: Memory<u16>, // Only for BIOS. Enabled on startup, disabled by end of BIOS
     pub bios_enabled: bool,    // BIOS is enabled by default
-    gear_to_gear_cache: Option<u8> // Cache for Gear to Gear communication (ports 0..6)
+    gear_to_gear_cache: Option<u8>    // cache for Gear to Gear communication (ports 0..6)
 }
 
 impl Bus {
