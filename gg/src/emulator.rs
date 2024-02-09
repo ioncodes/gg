@@ -135,7 +135,11 @@ impl Emulator {
                 if ui.button("Resume").clicked() {
                     self.paused = false;
                 }
+                if ui.button("Break").clicked() {
+                    self.paused = true;
+                }
                 self.stepping = ui.button("Step").clicked();
+
                 ui.label(format!("State: {}", if self.paused { "Paused" } else { "Running" }));
             });
 
@@ -354,6 +358,7 @@ impl Emulator {
                 }
                 Err(e) => {
                     error!("{}", e);
+                    self.paused = true;
                     break;
                 }
             }

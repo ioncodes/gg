@@ -93,8 +93,12 @@ pub enum Opcode {
     SubtractWithCarry(Register, Register, usize),
     RotateRightCarry(usize),
     RotateRightCarrySwap(usize),
+    RotateLeftCarry(usize),
+    RotateLeftCarrySwap(usize),
     RotateRightCarrySideeffect(Operand, usize),
     RotateRightCarrySwapSideeffect(Operand, usize),
+    Complement(usize),
+    Halt(usize),
     Unknown(usize),
 }
 
@@ -178,8 +182,12 @@ impl fmt::Display for Opcode {
             Opcode::And(op, _) => write!(f, "and {}", op),
             Opcode::RotateRightCarry(_) => write!(f, "rrca"),
             Opcode::RotateRightCarrySwap(_) => write!(f, "rra"),
+            Opcode::RotateLeftCarry(_) => write!(f, "rlca"),
+            Opcode::RotateLeftCarrySwap(_) => write!(f, "rla"),
             Opcode::RotateRightCarrySideeffect(op, _) => write!(f, "rrc {}", op),
             Opcode::RotateRightCarrySwapSideeffect(op, _) => write!(f, "rr {}", op),
+            Opcode::Complement(_) => write!(f, "cpl"),
+            Opcode::Halt(_) => write!(f, "halt"),
             Opcode::Unknown(_) => unreachable!("Unknown opcode"),
         }
     }

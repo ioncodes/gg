@@ -160,8 +160,12 @@ impl Cpu {
                     Opcode::SubtractWithCarry(_, _, _) => handlers.subtract_with_carry(&instruction),
                     Opcode::RotateRightCarry(_) => handlers.rotate_right_carry(&instruction),
                     Opcode::RotateRightCarrySwap(_) => handlers.rotate_right_carry_swap(&instruction),
+                    Opcode::RotateLeftCarry(_) => handlers.rotate_left_carry(&instruction),
+                    Opcode::RotateLeftCarrySwap(_) => handlers.rotate_left_carry_swap(&instruction),
                     Opcode::RotateRightCarrySideeffect(_, _) => handlers.rotate_right_carry_sideeffect(&instruction),
                     Opcode::RotateRightCarrySwapSideeffect(_, _) => handlers.rotate_right_carry_swap_sideeffect(&instruction),
+                    Opcode::Complement(_) => handlers.complement(&instruction),
+                    Opcode::SetBit(_, _, _) => handlers.set_bit(&instruction),
                     _ => {
                         error!("Hanlder missing for instruction: {}\n{}", instruction.opcode, self);
                         return Err(GgError::OpcodeNotImplemented {

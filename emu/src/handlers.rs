@@ -633,8 +633,47 @@ impl<'a> Handlers<'a> {
                 self.cpu.set_register_u8(Reg8::A, result);
 
                 self.cpu.flags.set(Flags::CARRY, carry);
-                self.cpu.flags.set(Flags::ZERO, result == 0);
-                self.cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.flags.set(Flags::SUBTRACT, false);
+                self.cpu.flags.set(Flags::HALF_CARRY, false);
+
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
+    }
+
+    pub(crate) fn rotate_left_carry(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::RotateLeftCarry(_) => {
+                let value = self.cpu.get_register_u8(Reg8::A);
+                let carry = value & 0b1000_0000 != 0;
+                let result = (value << 1) | carry as u8;
+                self.cpu.set_register_u8(Reg8::A, result);
+
+                self.cpu.flags.set(Flags::CARRY, carry);
+                self.cpu.flags.set(Flags::SUBTRACT, false);
+                self.cpu.flags.set(Flags::HALF_CARRY, false);
+
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
+    }
+
+    pub(crate) fn rotate_left_carry_swap(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::RotateLeftCarrySwap(_) => {
+                let previous_carry = self.cpu.flags.contains(Flags::CARRY);
+                let value = self.cpu.get_register_u8(Reg8::A);
+                let carry = value & 0b1000_0000 != 0;
+                let result = (value << 1) | previous_carry as u8;
+                self.cpu.set_register_u8(Reg8::A, result);
+
+                self.cpu.flags.set(Flags::CARRY, carry);
                 self.cpu.flags.set(Flags::SUBTRACT, false);
                 self.cpu.flags.set(Flags::HALF_CARRY, false);
 
@@ -681,6 +720,45 @@ impl<'a> Handlers<'a> {
                 self.cpu.flags.set(Flags::SUBTRACT, false);
                 self.cpu.flags.set(Flags::HALF_CARRY, false);
 
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
+    }
+
+    pub(crate) fn complement(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::Complement(_) => {
+                let a = self.cpu.get_register_u8(Reg8::A);
+                let result = !a;
+                self.cpu.set_register_u8(Reg8::A, result);
+
+                self.cpu.flags.set(Flags::SUBTRACT, true);
+                self.cpu.flags.set(Flags::HALF_CARRY, true);
+
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
+    }
+
+    pub(crate) fn set_bit(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::SetBit(Immediate::U8(bit), Operand::Register(Register::Reg8(dst_reg), false), _) => {
+                let dst = self.cpu.get_register_u8(dst_reg);
+                let result = dst | (1 << bit);
+                self.cpu.set_register_u8(dst_reg, result);
+                Ok(())
+            }
+            Opcode::SetBit(Immediate::U8(bit), Operand::Register(Register::Reg16(dst_reg), true), _) => {
+                let dst = self.cpu.get_register_u16(dst_reg);
+                let value = self.bus.read(dst)?;
+                let result = value | (1 << bit);
+                self.bus.write(dst, result)?;
                 Ok(())
             }
             _ => Err(GgError::InvalidOpcodeImplementation {
