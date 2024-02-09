@@ -1,4 +1,12 @@
-use crate::{bus::{Bus, MEMORY_CONTROL_PORT}, error::GgError, handlers::Handlers, io::Controller, psg::Psg, vdp::{Vdp, CONTROL_PORT, DATA_PORT, V_COUNTER_PORT}};
+use crate::{
+    bus::{Bus, MEMORY_CONTROL_PORT},
+    controller::{Controller, ControllerPort},
+    error::GgError,
+    handlers::Handlers,
+    io::Controller as _,
+    psg::Psg,
+    vdp::{Vdp, CONTROL_PORT, DATA_PORT, V_COUNTER_PORT},
+};
 use bitflags::bitflags;
 use log::{debug, error, trace};
 use std::fmt;
@@ -66,6 +74,7 @@ pub struct Cpu {
     pub flags: Flags,
     pub interrupts_enabled: bool,
     pub interrupt_mode: InterruptMode,
+    pub(crate) controllers: [Controller; 2],
 }
 
 impl Cpu {
@@ -88,6 +97,7 @@ impl Cpu {
             flags: Flags::empty(),
             interrupts_enabled: true,
             interrupt_mode: InterruptMode::IM0,
+            controllers: [Controller::new(ControllerPort::Player1), Controller::new(ControllerPort::Player2)],
         }
     }
 
@@ -112,8 +122,14 @@ impl Cpu {
                     Ok(rom_addr) => rom_addr,
                     Err(_) => self.registers.pc as usize, // This can happen if we execute code in RAM (example: end of BIOS)
                 };
-                trace!("[{}:{:04x}->{:08x}] {}", prefix, self.registers.pc, real_pc_addr, instruction.opcode);
-                
+                trace!(
+                    "[{}:{:04x}->{:08x}] {}",
+                    prefix,
+                    self.registers.pc,
+                    real_pc_addr,
+                    instruction.opcode
+                );
+
                 let mut handlers = Handlers::new(self, bus, vdp, psg);
                 let result = match instruction.opcode {
                     Opcode::Jump(_, _, _) => handlers.jump(&instruction),
@@ -158,8 +174,8 @@ impl Cpu {
                     Err(GgError::BusRequestOutOfBounds { address }) => {
                         error!("Bus request out of bounds: {:04x}\n{}", address, self);
                         return Err(GgError::BusRequestOutOfBounds { address });
-                    },
-                    _ => ()
+                    }
+                    _ => (),
                 }
 
                 let io_skip = match result {
@@ -212,6 +228,7 @@ impl Cpu {
         match port {
             0x00..=0x06 => bus.read_io(port),
             DATA_PORT | CONTROL_PORT | V_COUNTER_PORT => vdp.read_io(port),
+            0xdd => self.controllers[1].read_io(port),
             _ => {
                 error!("Unassigned port (read): {:02x}", port);
                 Err(GgError::IoControllerInvalidPort)
@@ -232,7 +249,7 @@ impl Cpu {
             Some(offset) => offset as i16,
             None => 0,
         };
-        
+
         match register {
             Reg16::AF => ((self.registers.a as u16) << 8) | (self.registers.f as u16),
             Reg16::BC => ((self.registers.b as u16) << 8) | (self.registers.c as u16),
@@ -241,7 +258,7 @@ impl Cpu {
             Reg16::SP => self.registers.sp,
             Reg16::PC => self.registers.pc,
             Reg16::IX(offset) => self.registers.ix.wrapping_add_signed(get_offset(offset)),
-            Reg16::IY(offset) =>self.registers.iy.wrapping_add_signed(get_offset(offset)),
+            Reg16::IY(offset) => self.registers.iy.wrapping_add_signed(get_offset(offset)),
         }
     }
 

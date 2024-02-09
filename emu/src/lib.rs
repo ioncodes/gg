@@ -12,3 +12,4 @@ pub mod vdp;
 pub mod system;
 pub mod psg;
 pub mod bus;
+pub mod controller;
