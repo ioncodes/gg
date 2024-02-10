@@ -10,23 +10,17 @@ impl<'a> Disassembler<'a> {
     }
 
     pub fn decode(&self, offset: usize) -> Result<Instruction, String> {
-        let opcode = self.data[offset];
-        let (prefix, opcode) = if opcode == 0xdd || opcode == 0xed || opcode == 0xfd || opcode == 0xcb {
-            (Some(opcode), self.data[offset + 1])
-        } else {
-            (None, opcode)
-        };
-
-        let opcode = self.decode_opcode(offset, prefix, opcode);
+        let sequence = (
+            Some(self.data[offset]),
+            Some(self.data[offset + 1]),
+            Some(self.data[offset + 2]),
+            Some(self.data[offset + 3]),
+        );
+        let opcode = self.decode_opcode(offset, sequence);
 
         if opcode != Opcode::Unknown(0) {
             let length = self.calc_length(opcode);
-            Ok(Instruction {
-                opcode,
-                length,
-                _prefix: prefix,
-                offset,
-            })
+            Ok(Instruction { opcode, length, offset })
         } else {
             Err(format!("Unknown instruction {:x}", self.data[offset]))
         }
@@ -49,749 +43,862 @@ impl<'a> Disassembler<'a> {
         instructions
     }
 
-    fn decode_opcode(&self, offset: usize, prefix: Option<u8>, opcode: u8) -> Opcode {
-        match (prefix, opcode) {
+    fn decode_opcode(&self, offset: usize, sequence: (Option<u8>, Option<u8>, Option<u8>, Option<u8>)) -> Opcode {
+        match sequence {
             // NO PREFIX
-            (None, 0x00) => Opcode::NoOperation(1),
-            (None, 0x01) => Opcode::Load(
+            (Some(0x00), _, _, _) => Opcode::NoOperation(1),
+            (Some(0x01), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::BC), false),
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
                 3,
             ),
-            (None, 0x02) => Opcode::Load(
+            (Some(0x02), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::BC), true),
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 1,
             ),
-            (None, 0x03) => Opcode::Increment(Operand::Register(Register::Reg16(Reg16::BC), false), 1),
-            (None, 0x04) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::B), false), 1),
-            (None, 0x05) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::B), false), 1),
-            (None, 0x06) => Opcode::Load(
+            (Some(0x03), _, _, _) => Opcode::Increment(Operand::Register(Register::Reg16(Reg16::BC), false), 1),
+            (Some(0x04), _, _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::B), false), 1),
+            (Some(0x05), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::B), false), 1),
+            (Some(0x06), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
                 2,
             ),
-            (None, 0x07) => Opcode::RotateLeftCarry(1),
-            (None, 0x09) => Opcode::Add(
+            (Some(0x07), _, _, _) => Opcode::RotateLeftCarry(1),
+            (Some(0x08), _, _, _) => Opcode::Exchange(Register::Reg16(Reg16::AF), Register::Reg16(Reg16::AFShadow), 1),
+            (Some(0x09), _, _, _) => Opcode::Add(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 Operand::Register(Register::Reg16(Reg16::BC), false),
                 1,
             ),
-            (None, 0x0b) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::BC), false), 1),
-            (None, 0x0c) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::C), false), 1),
-            (None, 0x0d) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::C), false), 1),
-            (None, 0x0e) => Opcode::Load(
+            (Some(0x0b), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::BC), false), 1),
+            (Some(0x0c), _, _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::C), false), 1),
+            (Some(0x0d), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::C), false), 1),
+            (Some(0x0e), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
                 2,
             ),
-            (None, 0x0f) => Opcode::RotateRightCarry(1),
-            (None, 0x10) => Opcode::DecrementAndJumpRelative(Immediate::S8(self.data[offset + 1] as i8), 2),
-            (None, 0x11) => Opcode::Load(
+            (Some(0x0f), _, _, _) => Opcode::RotateRightCarry(1),
+            (Some(0x10), _, _, _) => Opcode::DecrementAndJumpRelative(Immediate::S8(self.data[offset + 1] as i8), 2),
+            (Some(0x11), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::DE), false),
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
                 3,
             ),
-            (None, 0x12) => Opcode::Load(
+            (Some(0x12), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::DE), true),
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 1,
             ),
-            (None, 0x13) => Opcode::Increment(Operand::Register(Register::Reg16(Reg16::DE), false), 1),
-            (None, 0x14) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::D), false), 1),
-            (None, 0x15) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::D), false), 1),
-            (None, 0x16) => Opcode::Load(
+            (Some(0x13), _, _, _) => Opcode::Increment(Operand::Register(Register::Reg16(Reg16::DE), false), 1),
+            (Some(0x14), _, _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::D), false), 1),
+            (Some(0x15), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::D), false), 1),
+            (Some(0x16), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
                 2,
             ),
-            (None, 0x17) => Opcode::RotateLeftCarrySwap(1),
-            (None, 0x18) => Opcode::JumpRelative(Condition::None, Immediate::S8(self.data[offset + 1] as i8), 2),
-            (None, 0x19) => Opcode::Add(
+            (Some(0x17), _, _, _) => Opcode::RotateLeftCarrySwap(1),
+            (Some(0x18), _, _, _) => Opcode::JumpRelative(Condition::None, Immediate::S8(self.data[offset + 1] as i8), 2),
+            (Some(0x19), _, _, _) => Opcode::Add(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 Operand::Register(Register::Reg16(Reg16::DE), false),
                 1,
             ),
-            (None, 0x1a) => Opcode::Load(
+            (Some(0x1a), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg16(Reg16::DE), true),
                 1,
             ),
-            (None, 0x1b) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::DE), false), 1),
-            (None, 0x1c) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::E), false), 1),
-            (None, 0x1d) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::E), false), 1),
-            (None, 0x1f) => Opcode::RotateRightCarrySwap(1),
-            (None, 0x20) => Opcode::JumpRelative(Condition::NotZero, Immediate::S8(self.data[offset + 1] as i8), 2),
-            (None, 0x21) => Opcode::Load(
+            (Some(0x1b), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::DE), false), 1),
+            (Some(0x1c), _, _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::E), false), 1),
+            (Some(0x1d), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::E), false), 1),
+            (Some(0x1f), _, _, _) => Opcode::RotateRightCarrySwap(1),
+            (Some(0x20), _, _, _) => Opcode::JumpRelative(Condition::NotZero, Immediate::S8(self.data[offset + 1] as i8), 2),
+            (Some(0x21), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
                 3,
             ),
-            (None, 0x22) => Opcode::Load(
+            (Some(0x22), _, _, _) => Opcode::Load(
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), true),
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 3,
             ),
-            (None, 0x23) => Opcode::Increment(Operand::Register(Register::Reg16(Reg16::HL), false), 1),
-            (None, 0x24) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::H), false), 1),
-            (None, 0x25) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::H), false), 1),
-            (None, 0x26) => Opcode::Load(
+            (Some(0x23), _, _, _) => Opcode::Increment(Operand::Register(Register::Reg16(Reg16::HL), false), 1),
+            (Some(0x24), _, _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::H), false), 1),
+            (Some(0x25), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::H), false), 1),
+            (Some(0x26), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
                 2,
             ),
-            (None, 0x28) => Opcode::JumpRelative(Condition::Zero, Immediate::S8(self.data[offset + 1] as i8), 2),
-            (None, 0x29) => Opcode::Add(
+            (Some(0x28), _, _, _) => Opcode::JumpRelative(Condition::Zero, Immediate::S8(self.data[offset + 1] as i8), 2),
+            (Some(0x29), _, _, _) => Opcode::Add(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 1,
             ),
-            (None, 0x2a) => Opcode::Load(
+            (Some(0x2a), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), true),
                 3,
             ),
-            (None, 0x2b) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::HL), false), 1),
-            (None, 0x2c) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::L), false), 1),
-            (None, 0x2d) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::L), false), 1),
-            (None, 0x2f) => Opcode::Complement(1),
-            (None, 0x30) => Opcode::JumpRelative(Condition::NotCarry, Immediate::S8(self.data[offset + 1] as i8), 2),
-            (None, 0x31) => Opcode::Load(
+            (Some(0x2b), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::HL), false), 1),
+            (Some(0x2c), _, _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::L), false), 1),
+            (Some(0x2d), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::L), false), 1),
+            (Some(0x2f), _, _, _) => Opcode::Complement(1),
+            (Some(0x30), _, _, _) => Opcode::JumpRelative(Condition::NotCarry, Immediate::S8(self.data[offset + 1] as i8), 2),
+            (Some(0x31), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::SP), false),
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
                 3,
             ),
-            (None, 0x32) => Opcode::Load(
+            (Some(0x32), _, _, _) => Opcode::Load(
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), true),
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 3,
             ),
-            (None, 0x33) => Opcode::Increment(Operand::Register(Register::Reg16(Reg16::SP), false), 1),
-            (None, 0x34) => Opcode::Increment(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
-            (None, 0x35) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
-            (None, 0x36) => Opcode::Load(
+            (Some(0x33), _, _, _) => Opcode::Increment(Operand::Register(Register::Reg16(Reg16::SP), false), 1),
+            (Some(0x34), _, _, _) => Opcode::Increment(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
+            (Some(0x35), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
+            (Some(0x36), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
                 2,
             ),
-            (None, 0x38) => Opcode::JumpRelative(Condition::Carry, Immediate::S8(self.data[offset + 1] as i8), 2),
-            (None, 0x39) => Opcode::Add(
+            (Some(0x38), _, _, _) => Opcode::JumpRelative(Condition::Carry, Immediate::S8(self.data[offset + 1] as i8), 2),
+            (Some(0x39), _, _, _) => Opcode::Add(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 Operand::Register(Register::Reg16(Reg16::SP), false),
                 1,
             ),
-            (None, 0x3a) => Opcode::Load(
+            (Some(0x3a), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), true),
                 3,
             ),
-            (None, 0x3b) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::SP), false), 1),
-            (None, 0x3c) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::A), false), 1),
-            (None, 0x3d) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::A), false), 1),
-            (None, 0x3e) => Opcode::Load(
+            (Some(0x3b), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::SP), false), 1),
+            (Some(0x3c), _, _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::A), false), 1),
+            (Some(0x3d), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::A), false), 1),
+            (Some(0x3e), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
                 2,
             ),
-            (None, 0x40) => Opcode::Load(
+            (Some(0x40), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 1,
             ),
-            (None, 0x41) => Opcode::Load(
+            (Some(0x41), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 1,
             ),
-            (None, 0x42) => Opcode::Load(
+            (Some(0x42), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 1,
             ),
-            (None, 0x43) => Opcode::Load(
+            (Some(0x43), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 Operand::Register(Register::Reg8(Reg8::E), false),
                 1,
             ),
-            (None, 0x44) => Opcode::Load(
+            (Some(0x44), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 1,
             ),
-            (None, 0x45) => Opcode::Load(
+            (Some(0x45), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 Operand::Register(Register::Reg8(Reg8::L), false),
                 1,
             ),
-            (None, 0x46) => Opcode::Load(
+            (Some(0x46), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 1,
             ),
-            (None, 0x47) => Opcode::Load(
+            (Some(0x47), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 1,
             ),
-            (None, 0x48) => Opcode::Load(
+            (Some(0x48), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 1,
             ),
-            (None, 0x49) => Opcode::Load(
+            (Some(0x49), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 1,
             ),
-            (None, 0x4a) => Opcode::Load(
+            (Some(0x4a), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 1,
             ),
-            (None, 0x4b) => Opcode::Load(
+            (Some(0x4b), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 Operand::Register(Register::Reg8(Reg8::E), false),
                 1,
             ),
-            (None, 0x4c) => Opcode::Load(
+            (Some(0x4c), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 1,
             ),
-            (None, 0x4d) => Opcode::Load(
+            (Some(0x4d), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 Operand::Register(Register::Reg8(Reg8::L), false),
                 1,
             ),
-            (None, 0x4e) => Opcode::Load(
+            (Some(0x4e), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 1,
             ),
-            (None, 0x4f) => Opcode::Load(
+            (Some(0x4f), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 1,
             ),
-            (None, 0x50) => Opcode::Load(
+            (Some(0x50), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 1,
             ),
-            (None, 0x51) => Opcode::Load(
+            (Some(0x51), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 1,
             ),
-            (None, 0x52) => Opcode::Load(
+            (Some(0x52), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 1,
             ),
-            (None, 0x53) => Opcode::Load(
+            (Some(0x53), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 Operand::Register(Register::Reg8(Reg8::E), false),
                 1,
             ),
-            (None, 0x54) => Opcode::Load(
+            (Some(0x54), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 1,
             ),
-            (None, 0x55) => Opcode::Load(
+            (Some(0x55), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 Operand::Register(Register::Reg8(Reg8::L), false),
                 1,
             ),
-            (None, 0x56) => Opcode::Load(
+            (Some(0x56), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 1,
             ),
-            (None, 0x58) => Opcode::Load(
+            (Some(0x58), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::E), false),
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 1,
             ),
-            (None, 0x5e) => Opcode::Load(
+            (Some(0x5e), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::E), false),
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 1,
             ),
-            (None, 0x5f) => Opcode::Load(
+            (Some(0x5f), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::E), false),
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 1,
             ),
-            (None, 0x60) => Opcode::Load(
+            (Some(0x60), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 1,
             ),
-            (None, 0x61) => Opcode::Load(
+            (Some(0x61), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 1,
             ),
-            (None, 0x62) => Opcode::Load(
+            (Some(0x62), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 1,
             ),
-            (None, 0x63) => Opcode::Load(
+            (Some(0x63), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 Operand::Register(Register::Reg8(Reg8::E), false),
                 1,
             ),
-            (None, 0x64) => Opcode::Load(
+            (Some(0x64), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 1,
             ),
-            (None, 0x65) => Opcode::Load(
+            (Some(0x65), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 Operand::Register(Register::Reg8(Reg8::L), false),
                 1,
             ),
-            (None, 0x66) => Opcode::Load(
+            (Some(0x66), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 1,
             ),
-            (None, 0x68) => Opcode::Load(
+            (Some(0x68), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::L), false),
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 1,
             ),
-            (None, 0x6f) => Opcode::Load(
+            (Some(0x6f), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::L), false),
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 1,
             ),
-            (None, 0x70) => Opcode::Load(
+            (Some(0x70), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 1,
             ),
-            (None, 0x71) => Opcode::Load(
+            (Some(0x71), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 1,
             ),
-            (None, 0x72) => Opcode::Load(
+            (Some(0x72), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 1,
             ),
-            (None, 0x73) => Opcode::Load(
+            (Some(0x73), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 Operand::Register(Register::Reg8(Reg8::E), false),
                 1,
             ),
-            (None, 0x74) => Opcode::Load(
+            (Some(0x74), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 1,
             ),
-            (None, 0x75) => Opcode::Load(
+            (Some(0x75), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 Operand::Register(Register::Reg8(Reg8::L), false),
                 1,
             ),
-            (None, 0x76) => Opcode::Halt(1),
-            (None, 0x77) => Opcode::Load(
+            (Some(0x76), _, _, _) => Opcode::Halt(1),
+            (Some(0x77), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 1,
             ),
-            (None, 0x78) => Opcode::Load(
+            (Some(0x78), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 1,
             ),
-            (None, 0x79) => Opcode::Load(
+            (Some(0x79), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 1,
             ),
-            (None, 0x7a) => Opcode::Load(
+            (Some(0x7a), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 1,
             ),
-            (None, 0x7b) => Opcode::Load(
+            (Some(0x7b), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg8(Reg8::E), false),
                 1,
             ),
-            (None, 0x7c) => Opcode::Load(
+            (Some(0x7c), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 1,
             ),
-            (None, 0x7d) => Opcode::Load(
+            (Some(0x7d), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg8(Reg8::L), false),
                 1,
             ),
-            (None, 0x7e) => Opcode::Load(
+            (Some(0x7e), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 1,
             ),
-            (None, 0x7f) => Opcode::Load(
+            (Some(0x7f), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 1,
             ),
-            (None, 0x80) => Opcode::Add(
+            (Some(0x80), _, _, _) => Opcode::Add(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 1,
             ),
-            (None, 0x81) => Opcode::Add(
+            (Some(0x81), _, _, _) => Opcode::Add(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 1,
             ),
-            (None, 0x82) => Opcode::Add(
+            (Some(0x82), _, _, _) => Opcode::Add(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 1,
             ),
-            (None, 0x83) => Opcode::Add(
+            (Some(0x83), _, _, _) => Opcode::Add(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg8(Reg8::E), false),
                 1,
             ),
-            (None, 0x84) => Opcode::Add(
+            (Some(0x84), _, _, _) => Opcode::Add(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 1,
             ),
-            (None, 0x85) => Opcode::Add(
+            (Some(0x85), _, _, _) => Opcode::Add(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg8(Reg8::L), false),
                 1,
             ),
-            (None, 0x86) => Opcode::Add(
+            (Some(0x86), _, _, _) => Opcode::Add(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg16(Reg16::HL), true),
                 1,
             ),
-            (None, 0x87) => Opcode::Add(
+            (Some(0x87), _, _, _) => Opcode::Add(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 1,
             ),
-            (None, 0x90) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::B), false), 1),
-            (None, 0x91) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::C), false), 1),
-            (None, 0x92) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::D), false), 1),
-            (None, 0x93) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::E), false), 1),
-            (None, 0x94) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::H), false), 1),
-            (None, 0x95) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::L), false), 1),
-            (None, 0x96) => Opcode::Subtract(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
-            (None, 0x97) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::A), false), 1),
-            (None, 0xa0) => Opcode::And(Operand::Register(Register::Reg8(Reg8::B), false), 1),
-            (None, 0xa1) => Opcode::And(Operand::Register(Register::Reg8(Reg8::C), false), 1),
-            (None, 0xa2) => Opcode::And(Operand::Register(Register::Reg8(Reg8::D), false), 1),
-            (None, 0xa3) => Opcode::And(Operand::Register(Register::Reg8(Reg8::E), false), 1),
-            (None, 0xa4) => Opcode::And(Operand::Register(Register::Reg8(Reg8::H), false), 1),
-            (None, 0xa5) => Opcode::And(Operand::Register(Register::Reg8(Reg8::L), false), 1),
-            (None, 0xa6) => Opcode::And(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
-            (None, 0xa7) => Opcode::And(Operand::Register(Register::Reg8(Reg8::A), false), 1),
-            (None, 0xaf) => Opcode::Xor(Operand::Register(Register::Reg8(Reg8::A), false), 1),
-            (None, 0xb0) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::B), false), 1),
-            (None, 0xb1) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::C), false), 1),
-            (None, 0xb2) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::D), false), 1),
-            (None, 0xb3) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::E), false), 1),
-            (None, 0xb4) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::H), false), 1),
-            (None, 0xb5) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::L), false), 1),
-            (None, 0xb6) => Opcode::Or(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
-            (None, 0xb7) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::A), false), 1),
-            (None, 0xbe) => Opcode::Compare(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
-            (None, 0xc0) => Opcode::Return(Condition::NotZero, 1),
-            (None, 0xc1) => Opcode::Pop(Register::Reg16(Reg16::BC), 1),
-            (None, 0xc2) => Opcode::Jump(
+            (Some(0x90), _, _, _) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::B), false), 1),
+            (Some(0x91), _, _, _) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::C), false), 1),
+            (Some(0x92), _, _, _) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::D), false), 1),
+            (Some(0x93), _, _, _) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::E), false), 1),
+            (Some(0x94), _, _, _) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::H), false), 1),
+            (Some(0x95), _, _, _) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::L), false), 1),
+            (Some(0x96), _, _, _) => Opcode::Subtract(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
+            (Some(0x97), _, _, _) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::A), false), 1),
+            (Some(0xa0), _, _, _) => Opcode::And(Operand::Register(Register::Reg8(Reg8::B), false), 1),
+            (Some(0xa1), _, _, _) => Opcode::And(Operand::Register(Register::Reg8(Reg8::C), false), 1),
+            (Some(0xa2), _, _, _) => Opcode::And(Operand::Register(Register::Reg8(Reg8::D), false), 1),
+            (Some(0xa3), _, _, _) => Opcode::And(Operand::Register(Register::Reg8(Reg8::E), false), 1),
+            (Some(0xa4), _, _, _) => Opcode::And(Operand::Register(Register::Reg8(Reg8::H), false), 1),
+            (Some(0xa5), _, _, _) => Opcode::And(Operand::Register(Register::Reg8(Reg8::L), false), 1),
+            (Some(0xa6), _, _, _) => Opcode::And(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
+            (Some(0xa7), _, _, _) => Opcode::And(Operand::Register(Register::Reg8(Reg8::A), false), 1),
+            (Some(0xa8), _, _, _) => Opcode::Xor(Operand::Register(Register::Reg8(Reg8::B), false), 1),
+            (Some(0xa9), _, _, _) => Opcode::Xor(Operand::Register(Register::Reg8(Reg8::C), false), 1),
+            (Some(0xaa), _, _, _) => Opcode::Xor(Operand::Register(Register::Reg8(Reg8::D), false), 1),
+            (Some(0xab), _, _, _) => Opcode::Xor(Operand::Register(Register::Reg8(Reg8::E), false), 1),
+            (Some(0xac), _, _, _) => Opcode::Xor(Operand::Register(Register::Reg8(Reg8::H), false), 1),
+            (Some(0xad), _, _, _) => Opcode::Xor(Operand::Register(Register::Reg8(Reg8::L), false), 1),
+            (Some(0xaf), _, _, _) => Opcode::Xor(Operand::Register(Register::Reg8(Reg8::A), false), 1),
+            (Some(0xb0), _, _, _) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::B), false), 1),
+            (Some(0xb1), _, _, _) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::C), false), 1),
+            (Some(0xb2), _, _, _) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::D), false), 1),
+            (Some(0xb3), _, _, _) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::E), false), 1),
+            (Some(0xb4), _, _, _) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::H), false), 1),
+            (Some(0xb5), _, _, _) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::L), false), 1),
+            (Some(0xb6), _, _, _) => Opcode::Or(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
+            (Some(0xb7), _, _, _) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::A), false), 1),
+            (Some(0xbe), _, _, _) => Opcode::Compare(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
+            (Some(0xc0), _, _, _) => Opcode::Return(Condition::NotZero, 1),
+            (Some(0xc1), _, _, _) => Opcode::Pop(Register::Reg16(Reg16::BC), 1),
+            (Some(0xc2), _, _, _) => Opcode::Jump(
                 Condition::NotZero,
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
                 3,
             ),
-            (None, 0xc3) => Opcode::Jump(
+            (Some(0xc3), _, _, _) => Opcode::Jump(
                 Condition::None,
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
                 3,
             ),
-            (None, 0xc5) => Opcode::Push(Register::Reg16(Reg16::BC), 1),
-            (None, 0xc6) => Opcode::Add(
+            (Some(0xc4), _, _, _) => Opcode::Call(Condition::NotZero, Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false), 3),
+            (Some(0xc5), _, _, _) => Opcode::Push(Register::Reg16(Reg16::BC), 1),
+            (Some(0xc6), _, _, _) => Opcode::Add(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
                 2,
             ),
-            (None, 0xc7) => Opcode::Restart(Immediate::U8(0x00), 1),
-            (None, 0xc8) => Opcode::Return(Condition::Zero, 1),
-            (None, 0xc9) => Opcode::Return(Condition::None, 1),
-            (None, 0xca) => Opcode::Jump(
+            (Some(0xc7), _, _, _) => Opcode::Restart(Immediate::U8(0x00), 1),
+            (Some(0xc8), _, _, _) => Opcode::Return(Condition::Zero, 1),
+            (Some(0xc9), _, _, _) => Opcode::Return(Condition::None, 1),
+            (Some(0xca), _, _, _) => Opcode::Jump(
                 Condition::Zero,
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
                 3,
             ),
-            (None, 0xcd) => Opcode::CallUnconditional(Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false), 3),
-            (None, 0xd1) => Opcode::Pop(Register::Reg16(Reg16::DE), 1),
-            (None, 0xd2) => Opcode::Jump(
+            (Some(0xcd), _, _, _) => Opcode::Call(Condition::None, Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false), 3),
+            (Some(0xd1), _, _, _) => Opcode::Pop(Register::Reg16(Reg16::DE), 1),
+            (Some(0xd2), _, _, _) => Opcode::Jump(
                 Condition::NotCarry,
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
                 3,
             ),
-            (None, 0xd3) => Opcode::Out(
+            (Some(0xd3), _, _, _) => Opcode::Out(
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), true), // todo: is true correct?
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 2,
             ),
-            (None, 0xd5) => Opcode::Push(Register::Reg16(Reg16::DE), 1),
-            (None, 0xd6) => Opcode::Subtract(Operand::Immediate(Immediate::U8(self.data[offset + 1]), false), 2),
-            (None, 0xd7) => Opcode::Restart(Immediate::U8(0x10), 1),
-            (None, 0xda) => Opcode::Jump(
+            (Some(0xd5), _, _, _) => Opcode::Push(Register::Reg16(Reg16::DE), 1),
+            (Some(0xd6), _, _, _) => Opcode::Subtract(Operand::Immediate(Immediate::U8(self.data[offset + 1]), false), 2),
+            (Some(0xd7), _, _, _) => Opcode::Restart(Immediate::U8(0x10), 1),
+            (Some(0xd8), _, _, _) => Opcode::Return(Condition::Carry, 1),
+            (Some(0xd9), _, _, _) => Opcode::ExchangeAll(1),
+            (Some(0xda), _, _, _) => Opcode::Jump(
                 Condition::Carry,
-                Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)),
-                false),
+                Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
                 3,
             ),
-            (None, 0xdb) => Opcode::In(
+            (Some(0xdb), _, _, _) => Opcode::In(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), true), // todo: is true correct?
                 2,
             ),
-            (None, 0xe1) => Opcode::Pop(Register::Reg16(Reg16::HL), 1),
-            (None, 0xe5) => Opcode::Push(Register::Reg16(Reg16::HL), 1),
-            (None, 0xe6) => Opcode::And(Operand::Immediate(Immediate::U8(self.data[offset + 1]), false), 2),
-            (None, 0xe7) => Opcode::Restart(Immediate::U8(0x20), 1),
-            (None, 0xe9) => Opcode::Jump(Condition::None, Operand::Register(Register::Reg16(Reg16::HL), true), 1),
-            (None, 0xf0) => Opcode::Return(Condition::NotSign, 1),
-            (None, 0xf1) => Opcode::Pop(Register::Reg16(Reg16::AF), 1),
-            (None, 0xf2) => Opcode::Jump(
+            (Some(0xe1), _, _, _) => Opcode::Pop(Register::Reg16(Reg16::HL), 1),
+            (Some(0xe5), _, _, _) => Opcode::Push(Register::Reg16(Reg16::HL), 1),
+            (Some(0xe6), _, _, _) => Opcode::And(Operand::Immediate(Immediate::U8(self.data[offset + 1]), false), 2),
+            (Some(0xe7), _, _, _) => Opcode::Restart(Immediate::U8(0x20), 1),
+            (Some(0xe9), _, _, _) => Opcode::Jump(Condition::None, Operand::Register(Register::Reg16(Reg16::HL), true), 1),
+            (Some(0xee), _, _, _) => Opcode::Xor(Operand::Immediate(Immediate::U8(self.data[offset + 1]), false), 2),
+            (Some(0xf0), _, _, _) => Opcode::Return(Condition::NotSign, 1),
+            (Some(0xf1), _, _, _) => Opcode::Pop(Register::Reg16(Reg16::AF), 1),
+            (Some(0xf2), _, _, _) => Opcode::Jump(
                 Condition::NotSign,
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
                 3,
             ),
-            (None, 0xf3) => Opcode::DisableInterrupts(1),
-            (None, 0xf5) => Opcode::Push(Register::Reg16(Reg16::AF), 1),
-            (None, 0xf6) => Opcode::Or(Operand::Immediate(Immediate::U8(self.data[offset + 1]), false), 2),
-            (None, 0xf7) => Opcode::Restart(Immediate::U8(0x30), 1),
-            (None, 0xf8) => Opcode::Return(Condition::Sign, 1),
-            (None, 0xf9) => Opcode::Load(
+            (Some(0xf3), _, _, _) => Opcode::DisableInterrupts(1),
+            (Some(0xf5), _, _, _) => Opcode::Push(Register::Reg16(Reg16::AF), 1),
+            (Some(0xf6), _, _, _) => Opcode::Or(Operand::Immediate(Immediate::U8(self.data[offset + 1]), false), 2),
+            (Some(0xf7), _, _, _) => Opcode::Restart(Immediate::U8(0x30), 1),
+            (Some(0xf8), _, _, _) => Opcode::Return(Condition::Sign, 1),
+            (Some(0xf9), _, _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::SP), false),
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 1,
             ),
-            (None, 0xfa) => Opcode::Jump(
+            (Some(0xfa), _, _, _) => Opcode::Jump(
                 Condition::Sign,
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
                 3,
             ),
-            (None, 0xfb) => Opcode::EnableInterrupts(1),
-            (None, 0xfe) => Opcode::Compare(Operand::Immediate(Immediate::U8(self.data[offset + 1]), false), 2),
+            (Some(0xfb), _, _, _) => Opcode::EnableInterrupts(1),
+            (Some(0xfe), _, _, _) => Opcode::Compare(Operand::Immediate(Immediate::U8(self.data[offset + 1]), false), 2),
 
             // 0xCB PREFIX
-            (Some(0xcb), 0x08) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::B), false), 2),
-            (Some(0xcb), 0x09) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::C), false), 2),
-            (Some(0xcb), 0x0a) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::D), false), 2),
-            (Some(0xcb), 0x0b) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::E), false), 2),
-            (Some(0xcb), 0x0c) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::H), false), 2),
-            (Some(0xcb), 0x0d) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::L), false), 2),
-            (Some(0xcb), 0x0e) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg16(Reg16::HL), true), 2),
-            (Some(0xcb), 0x0f) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::A), false), 2),
-            (Some(0xcb), 0x18) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::B), false), 2),
-            (Some(0xcb), 0x19) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::C), false), 2),
-            (Some(0xcb), 0x1a) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::D), false), 2),
-            (Some(0xcb), 0x1b) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::E), false), 2),
-            (Some(0xcb), 0x1c) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::H), false), 2),
-            (Some(0xcb), 0x1d) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::L), false), 2),
-            (Some(0xcb), 0x1e) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg16(Reg16::HL), true), 2),
-            (Some(0xcb), 0x1f) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::A), false), 2),
-            (Some(0xcb), 0x90) => Opcode::ResetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::B), false), 2),
-            (Some(0xcb), 0x91) => Opcode::ResetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::C), false), 2),
-            (Some(0xcb), 0x92) => Opcode::ResetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::D), false), 2),
-            (Some(0xcb), 0x93) => Opcode::ResetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::E), false), 2),
-            (Some(0xcb), 0x94) => Opcode::ResetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::H), false), 2),
-            (Some(0xcb), 0x95) => Opcode::ResetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::L), false), 2),
-            (Some(0xcb), 0x96) => Opcode::ResetBit(Immediate::U8(2), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
-            (Some(0xcb), 0x97) => Opcode::ResetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::A), false), 2),
-            (Some(0xcb), 0x98) => Opcode::ResetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::B), false), 2),
-            (Some(0xcb), 0x99) => Opcode::ResetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::C), false), 2),
-            (Some(0xcb), 0x9a) => Opcode::ResetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::D), false), 2),
-            (Some(0xcb), 0x9b) => Opcode::ResetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::E), false), 2),
-            (Some(0xcb), 0x9c) => Opcode::ResetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::H), false), 2),
-            (Some(0xcb), 0x9d) => Opcode::ResetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::L), false), 2),
-            (Some(0xcb), 0x9e) => Opcode::ResetBit(Immediate::U8(3), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
-            (Some(0xcb), 0x9f) => Opcode::ResetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::A), false), 2),
-            (Some(0xcb), 0xa0) => Opcode::ResetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::B), false), 2),
-            (Some(0xcb), 0xa1) => Opcode::ResetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::C), false), 2),
-            (Some(0xcb), 0xa2) => Opcode::ResetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::D), false), 2),
-            (Some(0xcb), 0xa3) => Opcode::ResetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::E), false), 2),
-            (Some(0xcb), 0xa4) => Opcode::ResetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::H), false), 2),
-            (Some(0xcb), 0xa5) => Opcode::ResetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::L), false), 2),
-            (Some(0xcb), 0xa6) => Opcode::ResetBit(Immediate::U8(4), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
-            (Some(0xcb), 0xa7) => Opcode::ResetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::A), false), 2),
-            (Some(0xcb), 0xa8) => Opcode::ResetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::B), false), 2),
-            (Some(0xcb), 0xa9) => Opcode::ResetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::C), false), 2),
-            (Some(0xcb), 0xaa) => Opcode::ResetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::D), false), 2),
-            (Some(0xcb), 0xab) => Opcode::ResetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::E), false), 2),
-            (Some(0xcb), 0xac) => Opcode::ResetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::H), false), 2),
-            (Some(0xcb), 0xad) => Opcode::ResetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::L), false), 2),
-            (Some(0xcb), 0xae) => Opcode::ResetBit(Immediate::U8(5), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
-            (Some(0xcb), 0xaf) => Opcode::ResetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::A), false), 2),
-            (Some(0xcb), 0xb0) => Opcode::ResetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::B), false), 2),
-            (Some(0xcb), 0xb1) => Opcode::ResetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::C), false), 2),
-            (Some(0xcb), 0xb2) => Opcode::ResetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::D), false), 2),
-            (Some(0xcb), 0xb3) => Opcode::ResetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::E), false), 2),
-            (Some(0xcb), 0xb4) => Opcode::ResetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::H), false), 2),
-            (Some(0xcb), 0xb5) => Opcode::ResetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::L), false), 2),
-            (Some(0xcb), 0xb6) => Opcode::ResetBit(Immediate::U8(6), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
-            (Some(0xcb), 0xb7) => Opcode::ResetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::A), false), 2),
-            (Some(0xcb), 0xb8) => Opcode::ResetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::B), false), 2),
-            (Some(0xcb), 0xb9) => Opcode::ResetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::C), false), 2),
-            (Some(0xcb), 0xba) => Opcode::ResetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::D), false), 2),
-            (Some(0xcb), 0xbb) => Opcode::ResetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::E), false), 2),
-            (Some(0xcb), 0xbc) => Opcode::ResetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::H), false), 2),
-            (Some(0xcb), 0xbd) => Opcode::ResetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::L), false), 2),
-            (Some(0xcb), 0xbe) => Opcode::ResetBit(Immediate::U8(7), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
-            (Some(0xcb), 0xbf) => Opcode::ResetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::A), false), 2),
-            (Some(0xcb), 0xc0) => Opcode::SetBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::B), false), 2),
-            (Some(0xcb), 0xc1) => Opcode::SetBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::C), false), 2),
-            (Some(0xcb), 0xc2) => Opcode::SetBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::D), false), 2),
-            (Some(0xcb), 0xc3) => Opcode::SetBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::E), false), 2),
-            (Some(0xcb), 0xc4) => Opcode::SetBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::H), false), 2),
-            (Some(0xcb), 0xc5) => Opcode::SetBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::L), false), 2),
-            (Some(0xcb), 0xc6) => Opcode::SetBit(Immediate::U8(0), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
-            (Some(0xcb), 0xc7) => Opcode::SetBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::A), false), 2),
-            (Some(0xcb), 0xc8) => Opcode::SetBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::B), false), 2),
-            (Some(0xcb), 0xc9) => Opcode::SetBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::C), false), 2),
-            (Some(0xcb), 0xca) => Opcode::SetBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::D), false), 2),
-            (Some(0xcb), 0xcb) => Opcode::SetBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::E), false), 2),
-            (Some(0xcb), 0xcc) => Opcode::SetBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::H), false), 2),
-            (Some(0xcb), 0xcd) => Opcode::SetBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::L), false), 2),
-            (Some(0xcb), 0xce) => Opcode::SetBit(Immediate::U8(1), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
-            (Some(0xcb), 0xcf) => Opcode::SetBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::A), false), 2),
-            (Some(0xcb), 0xd0) => Opcode::SetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::B), false), 2),
-            (Some(0xcb), 0xd1) => Opcode::SetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::C), false), 2),
-            (Some(0xcb), 0xd2) => Opcode::SetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::D), false), 2),
-            (Some(0xcb), 0xd3) => Opcode::SetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::E), false), 2),
-            (Some(0xcb), 0xd4) => Opcode::SetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::H), false), 2),
-            (Some(0xcb), 0xd5) => Opcode::SetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::L), false), 2),
-            (Some(0xcb), 0xd6) => Opcode::SetBit(Immediate::U8(2), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
-            (Some(0xcb), 0xd7) => Opcode::SetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::A), false), 2),
-            (Some(0xcb), 0xd8) => Opcode::SetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::B), false), 2),
-            (Some(0xcb), 0xd9) => Opcode::SetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::C), false), 2),
-            (Some(0xcb), 0xda) => Opcode::SetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::D), false), 2),
-            (Some(0xcb), 0xdb) => Opcode::SetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::E), false), 2),
-            (Some(0xcb), 0xdc) => Opcode::SetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::H), false), 2),
-            (Some(0xcb), 0xdd) => Opcode::SetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::L), false), 2),
-            (Some(0xcb), 0xde) => Opcode::SetBit(Immediate::U8(3), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
-            (Some(0xcb), 0xdf) => Opcode::SetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::A), false), 2),
-            (Some(0xcb), 0xe0) => Opcode::SetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::B), false), 2),
-            (Some(0xcb), 0xe1) => Opcode::SetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::C), false), 2),
-            (Some(0xcb), 0xe2) => Opcode::SetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::D), false), 2),
-            (Some(0xcb), 0xe3) => Opcode::SetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::E), false), 2),
-            (Some(0xcb), 0xe4) => Opcode::SetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::H), false), 2),
-            (Some(0xcb), 0xe5) => Opcode::SetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::L), false), 2),
-            (Some(0xcb), 0xe6) => Opcode::SetBit(Immediate::U8(4), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
-            (Some(0xcb), 0xe7) => Opcode::SetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::A), false), 2),
-            (Some(0xcb), 0xe8) => Opcode::SetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::B), false), 2),
-            (Some(0xcb), 0xe9) => Opcode::SetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::C), false), 2),
-            (Some(0xcb), 0xea) => Opcode::SetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::D), false), 2),
-            (Some(0xcb), 0xeb) => Opcode::SetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::E), false), 2),
-            (Some(0xcb), 0xec) => Opcode::SetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::H), false), 2),
-            (Some(0xcb), 0xed) => Opcode::SetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::L), false), 2),
-            (Some(0xcb), 0xee) => Opcode::SetBit(Immediate::U8(5), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
-            (Some(0xcb), 0xef) => Opcode::SetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::A), false), 2),
-            (Some(0xcb), 0xf0) => Opcode::SetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::B), false), 2),
-            (Some(0xcb), 0xf1) => Opcode::SetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::C), false), 2),
-            (Some(0xcb), 0xf2) => Opcode::SetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::D), false), 2),
-            (Some(0xcb), 0xf3) => Opcode::SetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::E), false), 2),
-            (Some(0xcb), 0xf4) => Opcode::SetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::H), false), 2),
-            (Some(0xcb), 0xf5) => Opcode::SetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::L), false), 2),
-            (Some(0xcb), 0xf6) => Opcode::SetBit(Immediate::U8(6), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
-            (Some(0xcb), 0xf7) => Opcode::SetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::A), false), 2),
-            (Some(0xcb), 0xf8) => Opcode::SetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::B), false), 2),
-            (Some(0xcb), 0xf9) => Opcode::SetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::C), false), 2),
-            (Some(0xcb), 0xfa) => Opcode::SetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::D), false), 2),
-            (Some(0xcb), 0xfb) => Opcode::SetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::E), false), 2),
-            (Some(0xcb), 0xfc) => Opcode::SetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::H), false), 2),
-            (Some(0xcb), 0xfd) => Opcode::SetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::L), false), 2),
-            (Some(0xcb), 0xfe) => Opcode::SetBit(Immediate::U8(7), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
-            (Some(0xcb), 0xff) => Opcode::SetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0x08), _, _) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0x09), _, _) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0x0a), _, _) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0x0b), _, _) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0x0c), _, _) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0x0d), _, _) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0x0e), _, _) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0x0f), _, _) => Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0x18), _, _) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0x19), _, _) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0x1a), _, _) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0x1b), _, _) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0x1c), _, _) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0x1d), _, _) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0x1e), _, _) => {
+                Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg16(Reg16::HL), true), 2)
+            }
+            (Some(0xcb), Some(0x1f), _, _) => Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0x40), _, _) => Opcode::TestBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0x41), _, _) => Opcode::TestBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0x42), _, _) => Opcode::TestBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0x43), _, _) => Opcode::TestBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0x44), _, _) => Opcode::TestBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0x45), _, _) => Opcode::TestBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0x46), _, _) => Opcode::TestBit(Immediate::U8(0), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0x47), _, _) => Opcode::TestBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0x48), _, _) => Opcode::TestBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0x49), _, _) => Opcode::TestBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0x4a), _, _) => Opcode::TestBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0x4b), _, _) => Opcode::TestBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0x4c), _, _) => Opcode::TestBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0x4d), _, _) => Opcode::TestBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0x4e), _, _) => Opcode::TestBit(Immediate::U8(1), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0x4f), _, _) => Opcode::TestBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0x50), _, _) => Opcode::TestBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0x51), _, _) => Opcode::TestBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0x52), _, _) => Opcode::TestBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0x53), _, _) => Opcode::TestBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0x54), _, _) => Opcode::TestBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0x55), _, _) => Opcode::TestBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0x56), _, _) => Opcode::TestBit(Immediate::U8(2), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0x57), _, _) => Opcode::TestBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0x58), _, _) => Opcode::TestBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0x59), _, _) => Opcode::TestBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0x5a), _, _) => Opcode::TestBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0x5b), _, _) => Opcode::TestBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0x5c), _, _) => Opcode::TestBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0x5d), _, _) => Opcode::TestBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0x5e), _, _) => Opcode::TestBit(Immediate::U8(3), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0x5f), _, _) => Opcode::TestBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0x60), _, _) => Opcode::TestBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0x61), _, _) => Opcode::TestBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0x62), _, _) => Opcode::TestBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0x63), _, _) => Opcode::TestBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0x64), _, _) => Opcode::TestBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0x65), _, _) => Opcode::TestBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0x66), _, _) => Opcode::TestBit(Immediate::U8(4), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0x67), _, _) => Opcode::TestBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0x68), _, _) => Opcode::TestBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0x69), _, _) => Opcode::TestBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0x6a), _, _) => Opcode::TestBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0x6b), _, _) => Opcode::TestBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0x6c), _, _) => Opcode::TestBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0x6d), _, _) => Opcode::TestBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0x6e), _, _) => Opcode::TestBit(Immediate::U8(5), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0x6f), _, _) => Opcode::TestBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0x70), _, _) => Opcode::TestBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0x71), _, _) => Opcode::TestBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0x72), _, _) => Opcode::TestBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0x73), _, _) => Opcode::TestBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0x74), _, _) => Opcode::TestBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0x75), _, _) => Opcode::TestBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0x76), _, _) => Opcode::TestBit(Immediate::U8(6), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0x77), _, _) => Opcode::TestBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0x78), _, _) => Opcode::TestBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0x79), _, _) => Opcode::TestBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0x7a), _, _) => Opcode::TestBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0x7b), _, _) => Opcode::TestBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0x7c), _, _) => Opcode::TestBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0x7d), _, _) => Opcode::TestBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0x7e), _, _) => Opcode::TestBit(Immediate::U8(7), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0x7f), _, _) => Opcode::TestBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0x90), _, _) => Opcode::ResetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0x91), _, _) => Opcode::ResetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0x92), _, _) => Opcode::ResetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0x93), _, _) => Opcode::ResetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0x94), _, _) => Opcode::ResetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0x95), _, _) => Opcode::ResetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0x96), _, _) => Opcode::ResetBit(Immediate::U8(2), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0x97), _, _) => Opcode::ResetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0x98), _, _) => Opcode::ResetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0x99), _, _) => Opcode::ResetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0x9a), _, _) => Opcode::ResetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0x9b), _, _) => Opcode::ResetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0x9c), _, _) => Opcode::ResetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0x9d), _, _) => Opcode::ResetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0x9e), _, _) => Opcode::ResetBit(Immediate::U8(3), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0x9f), _, _) => Opcode::ResetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0xa0), _, _) => Opcode::ResetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0xa1), _, _) => Opcode::ResetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0xa2), _, _) => Opcode::ResetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0xa3), _, _) => Opcode::ResetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0xa4), _, _) => Opcode::ResetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0xa5), _, _) => Opcode::ResetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0xa6), _, _) => Opcode::ResetBit(Immediate::U8(4), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0xa7), _, _) => Opcode::ResetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0xa8), _, _) => Opcode::ResetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0xa9), _, _) => Opcode::ResetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0xaa), _, _) => Opcode::ResetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0xab), _, _) => Opcode::ResetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0xac), _, _) => Opcode::ResetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0xad), _, _) => Opcode::ResetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0xae), _, _) => Opcode::ResetBit(Immediate::U8(5), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0xaf), _, _) => Opcode::ResetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0xb0), _, _) => Opcode::ResetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0xb1), _, _) => Opcode::ResetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0xb2), _, _) => Opcode::ResetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0xb3), _, _) => Opcode::ResetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0xb4), _, _) => Opcode::ResetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0xb5), _, _) => Opcode::ResetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0xb6), _, _) => Opcode::ResetBit(Immediate::U8(6), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0xb7), _, _) => Opcode::ResetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0xb8), _, _) => Opcode::ResetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0xb9), _, _) => Opcode::ResetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0xba), _, _) => Opcode::ResetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0xbb), _, _) => Opcode::ResetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0xbc), _, _) => Opcode::ResetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0xbd), _, _) => Opcode::ResetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0xbe), _, _) => Opcode::ResetBit(Immediate::U8(7), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0xbf), _, _) => Opcode::ResetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0xc0), _, _) => Opcode::SetBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0xc1), _, _) => Opcode::SetBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0xc2), _, _) => Opcode::SetBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0xc3), _, _) => Opcode::SetBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0xc4), _, _) => Opcode::SetBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0xc5), _, _) => Opcode::SetBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0xc6), _, _) => Opcode::SetBit(Immediate::U8(0), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0xc7), _, _) => Opcode::SetBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0xc8), _, _) => Opcode::SetBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0xc9), _, _) => Opcode::SetBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0xca), _, _) => Opcode::SetBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0xcb), _, _) => Opcode::SetBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0xcc), _, _) => Opcode::SetBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0xcd), _, _) => Opcode::SetBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0xce), _, _) => Opcode::SetBit(Immediate::U8(1), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0xcf), _, _) => Opcode::SetBit(Immediate::U8(1), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0xd0), _, _) => Opcode::SetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0xd1), _, _) => Opcode::SetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0xd2), _, _) => Opcode::SetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0xd3), _, _) => Opcode::SetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0xd4), _, _) => Opcode::SetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0xd5), _, _) => Opcode::SetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0xd6), _, _) => Opcode::SetBit(Immediate::U8(2), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0xd7), _, _) => Opcode::SetBit(Immediate::U8(2), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0xd8), _, _) => Opcode::SetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0xd9), _, _) => Opcode::SetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0xda), _, _) => Opcode::SetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0xdb), _, _) => Opcode::SetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0xdc), _, _) => Opcode::SetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0xdd), _, _) => Opcode::SetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0xde), _, _) => Opcode::SetBit(Immediate::U8(3), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0xdf), _, _) => Opcode::SetBit(Immediate::U8(3), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0xe0), _, _) => Opcode::SetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0xe1), _, _) => Opcode::SetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0xe2), _, _) => Opcode::SetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0xe3), _, _) => Opcode::SetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0xe4), _, _) => Opcode::SetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0xe5), _, _) => Opcode::SetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0xe6), _, _) => Opcode::SetBit(Immediate::U8(4), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0xe7), _, _) => Opcode::SetBit(Immediate::U8(4), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0xe8), _, _) => Opcode::SetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0xe9), _, _) => Opcode::SetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0xea), _, _) => Opcode::SetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0xeb), _, _) => Opcode::SetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0xec), _, _) => Opcode::SetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0xed), _, _) => Opcode::SetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0xee), _, _) => Opcode::SetBit(Immediate::U8(5), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0xef), _, _) => Opcode::SetBit(Immediate::U8(5), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0xf0), _, _) => Opcode::SetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0xf1), _, _) => Opcode::SetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0xf2), _, _) => Opcode::SetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0xf3), _, _) => Opcode::SetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0xf4), _, _) => Opcode::SetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0xf5), _, _) => Opcode::SetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0xf6), _, _) => Opcode::SetBit(Immediate::U8(6), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0xf7), _, _) => Opcode::SetBit(Immediate::U8(6), Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xcb), Some(0xf8), _, _) => Opcode::SetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xcb), Some(0xf9), _, _) => Opcode::SetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xcb), Some(0xfa), _, _) => Opcode::SetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xcb), Some(0xfb), _, _) => Opcode::SetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xcb), Some(0xfc), _, _) => Opcode::SetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::H), false), 2),
+            (Some(0xcb), Some(0xfd), _, _) => Opcode::SetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::L), false), 2),
+            (Some(0xcb), Some(0xfe), _, _) => Opcode::SetBit(Immediate::U8(7), Operand::Register(Register::Reg16(Reg16::HL), true), 2),
+            (Some(0xcb), Some(0xff), _, _) => Opcode::SetBit(Immediate::U8(7), Operand::Register(Register::Reg8(Reg8::A), false), 2),
 
             // 0xED PREFIX
-            (Some(0xed), 0x42) => Opcode::SubtractWithCarry(Register::Reg16(Reg16::HL), Register::Reg16(Reg16::BC), 2),
-            (Some(0xed), 0x52) => Opcode::SubtractWithCarry(Register::Reg16(Reg16::HL), Register::Reg16(Reg16::DE), 2),
-            (Some(0xed), 0x62) => Opcode::SubtractWithCarry(Register::Reg16(Reg16::HL), Register::Reg16(Reg16::HL), 2),
-            (Some(0xed), 0x72) => Opcode::SubtractWithCarry(Register::Reg16(Reg16::HL), Register::Reg16(Reg16::SP), 2),
-            (Some(0xed), 0x79) => Opcode::Out(
+            (Some(0xed), Some(0x42), _, _) => Opcode::SubtractWithCarry(Register::Reg16(Reg16::HL), Register::Reg16(Reg16::BC), 2),
+            (Some(0xed), Some(0x45), _, _) => Opcode::ReturnFromNmi(2),
+            (Some(0xed), Some(0x46), _, _) => Opcode::SetInterruptMode(Immediate::U8(0), 2),
+            (Some(0xed), Some(0x4b), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::BC), false),
+                Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
+                4,
+            ),
+            (Some(0xed), Some(0x52), _, _) => Opcode::SubtractWithCarry(Register::Reg16(Reg16::HL), Register::Reg16(Reg16::DE), 2),
+            (Some(0xed), Some(0x56), _, _) => Opcode::SetInterruptMode(Immediate::U8(1), 2),
+            (Some(0xed), Some(0x5b), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::DE), false),
+                Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
+                4,
+            ),
+            (Some(0xed), Some(0x5e), _, _) => Opcode::SetInterruptMode(Immediate::U8(2), 2),
+            (Some(0xed), Some(0x62), _, _) => Opcode::SubtractWithCarry(Register::Reg16(Reg16::HL), Register::Reg16(Reg16::HL), 2),
+            (Some(0xed), Some(0x6b), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::HL), false),
+                Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
+                4,
+            ),
+            (Some(0xed), Some(0x72), _, _) => Opcode::SubtractWithCarry(Register::Reg16(Reg16::HL), Register::Reg16(Reg16::SP), 2),
+            (Some(0xed), Some(0x79), _, _) => Opcode::Out(
                 Operand::Register(Register::Reg8(Reg8::C), true),
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 2,
             ),
-            (Some(0xed), 0xa3) => Opcode::Outi(2),
-            (Some(0xed), 0xb0) => Opcode::LoadIndirectRepeat(2),
-            (Some(0xed), 0xb3) => Opcode::OutIndirectRepeat(2),
-            (Some(0xed), 0x45) => Opcode::ReturnFromNmi(2),
-            (Some(0xed), 0x46) => Opcode::SetInterruptMode(Immediate::U8(0), 2),
-            (Some(0xed), 0x56) => Opcode::SetInterruptMode(Immediate::U8(1), 2),
-            (Some(0xed), 0x5e) => Opcode::SetInterruptMode(Immediate::U8(2), 2),
+            (Some(0xed), Some(0x7b), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::SP), false),
+                Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
+                4,
+            ),
+            (Some(0xed), Some(0xa3), _, _) => Opcode::Outi(2),
+            (Some(0xed), Some(0xb0), _, _) => Opcode::LoadIndirectRepeat(2),
+            (Some(0xed), Some(0xb3), _, _) => Opcode::OutIndirectRepeat(2),
+            (Some(0xed), Some(0xb8), _, _) => Opcode::LoadRepeat(2),
 
             // 0xDD PREFIX
-            (Some(0xdd), 0x21) => Opcode::Load(
+            (Some(0xdd), Some(0x21), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::IX(None)), false),
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), false),
                 4,
             ),
-            (Some(0xdd), 0x22) => Opcode::Load(
+            (Some(0xdd), Some(0x22), _, _) => Opcode::Load(
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
                 Operand::Register(Register::Reg16(Reg16::IX(None)), false),
                 4,
             ),
-            (Some(0xdd), 0x23) => Opcode::Increment(Operand::Register(Register::Reg16(Reg16::IX(None)), false), 2),
-            (Some(0xdd), 0x36) => Opcode::Load(
+            (Some(0xdd), Some(0x23), _, _) => Opcode::Increment(Operand::Register(Register::Reg16(Reg16::IX(None)), false), 2),
+            (Some(0xdd), Some(0x36), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
                 Operand::Immediate(Immediate::U8(self.data[offset + 3]), false),
                 4,
             ),
-            (Some(0xdd), 0x77) => Opcode::Load(
+            (Some(0xdd), Some(0x77), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 3,
             ),
-            (Some(0xdd), 0x7e) => Opcode::Load(
+            (Some(0xdd), Some(0x7e), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
                 3,
             ),
-            (Some(0xdd), 0xae) => Opcode::Xor(Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true), 3),
+            (Some(0xdd), Some(0xae), _, _) => Opcode::Xor(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
+                3,
+            ),
+            (Some(0xdd), Some(0xe5), _, _) => Opcode::Push(Register::Reg16(Reg16::IX(None)), 2),
+
+            // 0xDDCB PREFIX
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x66)) => Opcode::TestBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x6e)) => Opcode::TestBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
 
             // 0xFD PREFIX
-            (Some(0xfd), 0x09) => Opcode::Add(
+            (Some(0xfd), Some(0x09), _, _) => Opcode::Add(
                 Operand::Register(Register::Reg16(Reg16::IY(None)), false),
                 Operand::Register(Register::Reg16(Reg16::BC), false),
                 2,
             ),
-            (Some(0xfd), 0xe1) => Opcode::Pop(Register::Reg16(Reg16::IY(None)), 2),
-            (Some(0xfd), 0x66) => Opcode::Load(
+            (Some(0xfd), Some(0xe1), _, _) => Opcode::Pop(Register::Reg16(Reg16::IY(None)), 2),
+            (Some(0xfd), Some(0x66), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 Operand::Register(Register::Reg16(Reg16::IY(Some(self.data[offset + 2] as i8))), true),
                 3,
             ),
-            (Some(0xfd), 0x6e) => Opcode::Load(
+            (Some(0xfd), Some(0x6e), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::L), false),
                 Operand::Register(Register::Reg16(Reg16::IY(Some(self.data[offset + 2] as i8))), true),
                 3,
             ),
-            (Some(0xfd), 0x7e) => Opcode::Load(
+            (Some(0xfd), Some(0x7e), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg16(Reg16::IY(Some(self.data[offset + 2] as i8))), true),
                 3,
             ),
-
+            (Some(0xfd), Some(0xe5), _, _) => Opcode::Push(Register::Reg16(Reg16::IY(None)), 2),
             // Default decode error case
             _ => Opcode::Unknown(0),
         }
@@ -816,7 +923,7 @@ impl<'a> Disassembler<'a> {
             Opcode::Compare(_, length) => length,
             Opcode::JumpRelative(_, _, length) => length,
             Opcode::Jump(_, _, length) => length,
-            Opcode::CallUnconditional(_, length) => length,
+            Opcode::Call(_, _, length) => length,
             Opcode::Xor(_, length) => length,
             Opcode::OutIndirectRepeat(length) => length,
             Opcode::NoOperation(length) => length,
@@ -844,6 +951,10 @@ impl<'a> Disassembler<'a> {
             Opcode::RotateRightCarrySwapSideeffect(_, length) => length,
             Opcode::Complement(length) => length,
             Opcode::Halt(length) => length,
+            Opcode::Exchange(_, _, length) => length,
+            Opcode::ExchangeAll(length) => length,
+            Opcode::TestBit(_, _, length) => length,
+            Opcode::LoadRepeat(length) => length,
             Opcode::Unknown(length) => length,
         }
     }

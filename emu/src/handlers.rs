@@ -8,7 +8,7 @@ use crate::vdp::Vdp;
 use core::panic;
 use z80::instruction::{Condition, Immediate, Instruction, Opcode, Operand, Reg16, Reg8, Register};
 
-pub(crate) struct Handlers<'a> { 
+pub(crate) struct Handlers<'a> {
     cpu: &'a mut Cpu,
     bus: &'a mut Bus,
     vdp: &'a mut Vdp,
@@ -165,6 +165,34 @@ impl<'a> Handlers<'a> {
         Ok(())
     }
 
+    pub(crate) fn load_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        loop {
+            let src = {
+                let hl = self.cpu.get_register_u16(Reg16::HL);
+                self.bus.read(hl)?
+            };
+            let dst = self.cpu.get_register_u16(Reg16::DE);
+            self.bus.write(dst, src)?;
+
+            let hl = self.cpu.get_register_u16(Reg16::HL);
+            let de = self.cpu.get_register_u16(Reg16::DE);
+            let bc = self.cpu.get_register_u16(Reg16::BC);
+            self.cpu.set_register_u16(Reg16::HL, hl - 1);
+            self.cpu.set_register_u16(Reg16::DE, de - 1);
+            self.cpu.set_register_u16(Reg16::BC, bc - 1);
+
+            if self.cpu.get_register_u16(Reg16::BC) == 0 {
+                break;
+            }
+        }
+
+        self.cpu.flags.set(Flags::HALF_CARRY, false);
+        self.cpu.flags.set(Flags::SUBTRACT, false);
+        self.cpu.flags.set(Flags::PARITY_OR_OVERFLOW, false);
+
+        Ok(())
+    }
+
     pub(crate) fn out(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         let (port, value) = match instruction.opcode {
             Opcode::Out(Operand::Immediate(Immediate::U8(dst_port), true), Operand::Register(Register::Reg8(src_reg), false), _) => {
@@ -243,13 +271,17 @@ impl<'a> Handlers<'a> {
         }
     }
 
-    pub(crate) fn call_unconditional(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+    pub(crate) fn call(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
-            Opcode::CallUnconditional(Operand::Immediate(Immediate::U16(imm), false), instruction_length) => {
-                let next_instruction_addr = self.cpu.get_register_u16(Reg16::PC) + instruction_length as u16;
-                self.cpu.push_stack(self.bus, next_instruction_addr)?;
-                self.cpu.set_register_u16(Reg16::PC, imm);
-                Ok(())
+            Opcode::Call(condition, Operand::Immediate(Immediate::U16(imm), false), instruction_length) => {
+                if self.check_cpu_flag(condition) {
+                    let next_instruction_addr = self.cpu.get_register_u16(Reg16::PC) + instruction_length as u16;
+                    self.cpu.push_stack(self.bus, next_instruction_addr)?;
+                    self.cpu.set_register_u16(Reg16::PC, imm);
+                    Ok(())
+                } else {
+                    Err(GgError::JumpNotTaken)
+                }
             }
             _ => Err(GgError::InvalidOpcodeImplementation {
                 instruction: instruction.opcode,
@@ -295,11 +327,14 @@ impl<'a> Handlers<'a> {
 
     pub(crate) fn or(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         let src = match instruction.opcode {
+            Opcode::Or(Operand::Register(Register::Reg16(src_reg), true), _) => self.bus.read(self.cpu.get_register_u16(src_reg))?,
             Opcode::Or(Operand::Register(Register::Reg8(src_reg), false), _) => self.cpu.get_register_u8(src_reg),
             Opcode::Or(Operand::Immediate(Immediate::U8(imm), false), _) => imm,
-            _ => return Err(GgError::InvalidOpcodeImplementation {
-                instruction: instruction.opcode,
-            }),
+            _ => {
+                return Err(GgError::InvalidOpcodeImplementation {
+                    instruction: instruction.opcode,
+                })
+            }
         };
 
         let a = self.cpu.get_register_u8(Reg8::A);
@@ -413,9 +448,7 @@ impl<'a> Handlers<'a> {
         }
     }
 
-    pub(crate) fn decrement_and_jump_relative(
-        &mut self, instruction: &Instruction,
-    ) -> Result<(), GgError> {
+    pub(crate) fn decrement_and_jump_relative(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
             Opcode::DecrementAndJumpRelative(Immediate::S8(imm), _) => {
                 let condition = self.cpu.get_register_u8(Reg8::B);
@@ -437,23 +470,23 @@ impl<'a> Handlers<'a> {
     }
 
     pub(crate) fn xor(&mut self, instruction: &Instruction) -> Result<(), GgError> {
-        let result = match instruction.opcode {
-            Opcode::Xor(Operand::Register(Register::Reg8(src_reg), deref), _) => {
-                let a = self.cpu.get_register_u8(Reg8::A);
-                let src = self.cpu.get_register_u8(src_reg);
-                a ^ src
-            }
+        let value = match instruction.opcode {
+            Opcode::Xor(Operand::Register(Register::Reg8(src_reg), deref), _) => self.cpu.get_register_u8(src_reg),
             Opcode::Xor(Operand::Register(Register::Reg16(src_reg), true), _) => {
                 let a = self.cpu.get_register_u8(Reg8::A);
                 let src = self.cpu.get_register_u16(src_reg);
-                let src = self.bus.read(src)?;
-                a ^ src
+                self.bus.read(src)?
             }
-            _ => return Err(GgError::InvalidOpcodeImplementation {
-                instruction: instruction.opcode,
-            }),
+            Opcode::Xor(Operand::Immediate(Immediate::U8(imm), false), _) => imm,
+            _ => {
+                return Err(GgError::InvalidOpcodeImplementation {
+                    instruction: instruction.opcode,
+                })
+            }
         };
 
+        let a = self.cpu.get_register_u8(Reg8::A);
+        let result = a ^ value;
         self.cpu.set_register_u8(Reg8::A, result);
 
         self.cpu.flags.set(Flags::ZERO, result == 0);
@@ -515,9 +548,11 @@ impl<'a> Handlers<'a> {
         let src = match instruction.opcode {
             Opcode::And(Operand::Register(Register::Reg8(src_reg), false), _) => self.cpu.get_register_u8(src_reg),
             Opcode::And(Operand::Immediate(Immediate::U8(imm), false), _) => imm,
-            _ => return Err(GgError::InvalidOpcodeImplementation {
-                instruction: instruction.opcode,
-            }),
+            _ => {
+                return Err(GgError::InvalidOpcodeImplementation {
+                    instruction: instruction.opcode,
+                })
+            }
         };
 
         let a = self.cpu.get_register_u8(Reg8::A);
@@ -765,6 +800,69 @@ impl<'a> Handlers<'a> {
                 instruction: instruction.opcode,
             }),
         }
+    }
+
+    pub(crate) fn exchange(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::Exchange(Register::Reg16(lhs_reg), Register::Reg16(rhs_reg), _) => {
+                let rhs = self.cpu.get_register_u16(rhs_reg);
+                let lhs = self.cpu.get_register_u16(lhs_reg);
+                self.cpu.set_register_u16(rhs_reg, lhs);
+                self.cpu.set_register_u16(lhs_reg, rhs);
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
+    }
+
+    pub(crate) fn exchange_all(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let de = self.cpu.get_register_u16(Reg16::DE);
+        let hl = self.cpu.get_register_u16(Reg16::HL);
+        let bc = self.cpu.get_register_u16(Reg16::BC);
+        let af = self.cpu.get_register_u16(Reg16::AF);
+
+        let de_ = self.cpu.get_register_u16(Reg16::DEShadow);
+        let hl_ = self.cpu.get_register_u16(Reg16::HLShadow);
+        let bc_ = self.cpu.get_register_u16(Reg16::BCShadow);
+        let af_ = self.cpu.get_register_u16(Reg16::AFShadow);
+
+        self.cpu.set_register_u16(Reg16::DE, de_);
+        self.cpu.set_register_u16(Reg16::HL, hl_);
+        self.cpu.set_register_u16(Reg16::BC, bc_);
+        self.cpu.set_register_u16(Reg16::AF, af_);
+
+        self.cpu.set_register_u16(Reg16::DEShadow, de);
+        self.cpu.set_register_u16(Reg16::HLShadow, hl);
+        self.cpu.set_register_u16(Reg16::BCShadow, bc);
+        self.cpu.set_register_u16(Reg16::AFShadow, af);
+
+        Ok(())
+    }
+
+    pub(crate) fn test_bit(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let (src, bit) = match instruction.opcode {
+            Opcode::TestBit(Immediate::U8(bit), Operand::Register(Register::Reg8(src_reg), false), _) => {
+                (self.cpu.get_register_u8(src_reg), bit)
+            }
+            Opcode::TestBit(Immediate::U8(bit), Operand::Register(Register::Reg16(src_reg), true), _) => {
+                let src = self.cpu.get_register_u16(src_reg);
+                (self.bus.read(src)?, bit)
+            }
+            _ => {
+                return Err(GgError::InvalidOpcodeImplementation {
+                    instruction: instruction.opcode,
+                })
+            }
+        };
+
+        let result = src & (1 << bit);
+        self.cpu.flags.set(Flags::ZERO, result == 0);
+        self.cpu.flags.set(Flags::HALF_CARRY, true);
+        self.cpu.flags.set(Flags::SUBTRACT, false);
+
+        Ok(())
     }
 
     // Helpers

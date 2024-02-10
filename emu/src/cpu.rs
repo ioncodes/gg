@@ -25,6 +25,14 @@ pub struct Registers {
     pub h: u8,
     pub l: u8,
     pub f: u8,
+    pub a_shadow: u8,
+    pub b_shadow: u8,
+    pub c_shadow: u8,
+    pub d_shadow: u8,
+    pub e_shadow: u8,
+    pub h_shadow: u8,
+    pub l_shadow: u8,
+    pub f_shadow: u8,
     pub ix: u16,
     pub iy: u16,
     pub pc: u16,
@@ -90,6 +98,14 @@ impl Cpu {
                 h: 0,
                 l: 0,
                 f: 0,
+                a_shadow: 0,
+                b_shadow: 0,
+                c_shadow: 0,
+                d_shadow: 0,
+                e_shadow: 0,
+                h_shadow: 0,
+                l_shadow: 0,
+                f_shadow: 0,
                 ix: 0,
                 iy: 0,
                 pc: 0,
@@ -148,7 +164,7 @@ impl Cpu {
                     Opcode::In(_, _, _) => handlers.in_(&instruction),
                     Opcode::Compare(_, _) => handlers.compare(&instruction),
                     Opcode::JumpRelative(_, _, _) => handlers.jump_relative(&instruction),
-                    Opcode::CallUnconditional(_, _) => handlers.call_unconditional(&instruction),
+                    Opcode::Call(_, _, _) => handlers.call(&instruction),
                     Opcode::Return(_, _) => handlers.return_(&instruction),
                     Opcode::OutIndirectRepeat(_) => handlers.out_indirect_repeat(&instruction),
                     Opcode::Or(_, _) => handlers.or(&instruction),
@@ -175,8 +191,12 @@ impl Cpu {
                     Opcode::Complement(_) => handlers.complement(&instruction),
                     Opcode::SetBit(_, _, _) => handlers.set_bit(&instruction),
                     Opcode::Halt(_) => return Err(GgError::CpuHalted),
+                    Opcode::Exchange(_, _, _) => handlers.exchange(&instruction),
+                    Opcode::ExchangeAll(_) => handlers.exchange_all(&instruction),
+                    Opcode::TestBit(_, _, _) => handlers.test_bit(&instruction),
+                    Opcode::LoadRepeat(_) => handlers.load_repeat(&instruction),
                     _ => {
-                        error!("Hanlder missing for instruction: {}\n{}", instruction.opcode, self);
+                        error!("Handler missing for instruction: {}\n{}", instruction.opcode, self);
                         return Err(GgError::OpcodeNotImplemented {
                             opcode: instruction.opcode,
                         });
@@ -191,24 +211,15 @@ impl Cpu {
                     _ => (),
                 }
 
-                let io_skip = match result {
-                    Err(GgError::IoRequestNotFulfilled) => {
-                        debug!("I/O request not fulfilled, waiting for next tick");
-                        true
-                    }
-                    _ => false,
-                };
-
                 let call_skip = match instruction.opcode {
-                    Opcode::CallUnconditional(_, _) => true,
-                    // only skip the PC increment if we actually returned somewhere
+                    Opcode::Call(_, _, _) => result.is_ok(),
                     Opcode::Jump(_, _, _) => result.is_ok(),
                     Opcode::Return(_, _) => result.is_ok(),
                     Opcode::Restart(_, _) => result.is_ok(),
                     _ => false,
                 };
 
-                if !call_skip && !io_skip {
+                if !call_skip {
                     self.registers.pc += instruction.length as u16;
                 }
 
@@ -262,6 +273,7 @@ impl Cpu {
         match port {
             0x00..=0x06 => bus.read_io(port),
             DATA_PORT | CONTROL_PORT | V_COUNTER_PORT => vdp.read_io(port),
+            0xdc => self.controllers[0].read_io(port),
             0xdd => self.controllers[1].read_io(port),
             _ => {
                 error!("Unassigned port (read): {:02x}", port);
@@ -289,6 +301,10 @@ impl Cpu {
             Reg16::BC => ((self.registers.b as u16) << 8) | (self.registers.c as u16),
             Reg16::DE => ((self.registers.d as u16) << 8) | (self.registers.e as u16),
             Reg16::HL => ((self.registers.h as u16) << 8) | (self.registers.l as u16),
+            Reg16::AFShadow => ((self.registers.a_shadow as u16) << 8) | (self.registers.f_shadow as u16),
+            Reg16::BCShadow => ((self.registers.b_shadow as u16) << 8) | (self.registers.c_shadow as u16),
+            Reg16::DEShadow => ((self.registers.d_shadow as u16) << 8) | (self.registers.e_shadow as u16),
+            Reg16::HLShadow => ((self.registers.h_shadow as u16) << 8) | (self.registers.l_shadow as u16),
             Reg16::SP => self.registers.sp,
             Reg16::PC => self.registers.pc,
             Reg16::IX(offset) => self.registers.ix.wrapping_add_signed(get_offset(offset)),
@@ -309,6 +325,14 @@ impl Cpu {
             Reg8::H => self.registers.h,
             Reg8::L => self.registers.l,
             Reg8::F => self.registers.f,
+            Reg8::AShadow => self.registers.a_shadow,
+            Reg8::BShadow => self.registers.b_shadow,
+            Reg8::CShadow => self.registers.c_shadow,
+            Reg8::DShadow => self.registers.d_shadow,
+            Reg8::EShadow => self.registers.e_shadow,
+            Reg8::HShadow => self.registers.h_shadow,
+            Reg8::LShadow => self.registers.l_shadow,
+            Reg8::FShadow => self.registers.f_shadow,
             Reg8::IYH => high(self.registers.iy),
             Reg8::IYL => low(self.registers.iy),
             Reg8::IXH => high(self.registers.ix),
@@ -334,6 +358,22 @@ impl Cpu {
                 self.registers.h = (value >> 8) as u8;
                 self.registers.l = value as u8;
             }
+            Reg16::AFShadow => {
+                self.registers.a_shadow = (value >> 8) as u8;
+                self.registers.f_shadow = value as u8;
+            }
+            Reg16::BCShadow => {
+                self.registers.b_shadow = (value >> 8) as u8;
+                self.registers.c_shadow = value as u8;
+            }
+            Reg16::DEShadow => {
+                self.registers.d_shadow = (value >> 8) as u8;
+                self.registers.e_shadow = value as u8;
+            }
+            Reg16::HLShadow => {
+                self.registers.h_shadow = (value >> 8) as u8;
+                self.registers.l_shadow = value as u8;
+            }
             Reg16::SP => self.registers.sp = value,
             Reg16::PC => self.registers.pc = value,
             Reg16::IX(_) => self.registers.ix = value,
@@ -351,6 +391,14 @@ impl Cpu {
             Reg8::H => self.registers.h = value,
             Reg8::L => self.registers.l = value,
             Reg8::F => self.registers.f = value,
+            Reg8::AShadow => self.registers.a_shadow = value,
+            Reg8::BShadow => self.registers.b_shadow = value,
+            Reg8::CShadow => self.registers.c_shadow = value,
+            Reg8::DShadow => self.registers.d_shadow = value,
+            Reg8::EShadow => self.registers.e_shadow = value,
+            Reg8::HShadow => self.registers.h_shadow = value,
+            Reg8::LShadow => self.registers.l_shadow = value,
+            Reg8::FShadow => self.registers.f_shadow = value,
             Reg8::IYH => self.registers.iy = (self.registers.iy & 0x00ff) | ((value as u16) << 8),
             Reg8::IYL => self.registers.iy = (self.registers.iy & 0xff00) | (value as u16),
             Reg8::IXH => self.registers.ix = (self.registers.ix & 0x00ff) | ((value as u16) << 8),

@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::{bus::Bus, cpu::Cpu, error::GgError, io::Controller, memory::Memory};
+use crate::{cpu::Cpu, error::GgError, io::Controller, memory::Memory};
 use log::{debug, error, trace};
 
 // todo: ????

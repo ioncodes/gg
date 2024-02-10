@@ -1,7 +1,7 @@
 use snafu::prelude::*;
 use z80::instruction::Opcode;
 
-#[derive(Debug, Snafu)]
+#[derive(Debug, Snafu, PartialEq, Clone)]
 pub enum GgError {
     #[snafu(display("I/O request not fulfilled"))]
     IoRequestNotFulfilled,

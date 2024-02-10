@@ -17,6 +17,14 @@ pub enum Reg8 {
     H,
     L,
     F,
+    AShadow,
+    BShadow,
+    CShadow,
+    DShadow,
+    EShadow,
+    HShadow,
+    LShadow,
+    FShadow,
     IYH,
     IYL,
     IXH,
@@ -29,6 +37,10 @@ pub enum Reg16 {
     BC,
     DE,
     HL,
+    AFShadow,
+    BCShadow,
+    DEShadow,
+    HLShadow,
     SP,
     PC,
     IX(Option<i8>),
@@ -74,7 +86,7 @@ pub enum Opcode {
     DecrementAndJumpRelative(Immediate, usize),
     Xor(Operand, usize),
     Or(Operand, usize),
-    CallUnconditional(Operand, usize),
+    Call(Condition, Operand, usize),
     OutIndirectRepeat(usize),
     NoOperation(usize),
     ReturnFromNmi(usize),
@@ -99,6 +111,10 @@ pub enum Opcode {
     RotateRightCarrySwapSideeffect(Operand, usize),
     Complement(usize),
     Halt(usize),
+    Exchange(Register, Register, usize),
+    ExchangeAll(usize),
+    TestBit(Immediate, Operand, usize),
+    LoadRepeat(usize),
     Unknown(usize),
 }
 
@@ -106,7 +122,6 @@ pub struct Instruction {
     pub opcode: Opcode,
     pub length: usize,
     pub offset: usize,
-    pub _prefix: Option<u8>,
 }
 
 impl fmt::Display for Instruction {
@@ -140,6 +155,7 @@ impl fmt::Display for Opcode {
             Opcode::In(op1, op2, _) => write!(f, "in {}, {}", op1, op2),
             Opcode::Compare(op1, _) => write!(f, "cp {}", op1),
             Opcode::SubtractWithCarry(op1, op2, _) => write!(f, "sbc {}, {}", op1, op2),
+            Opcode::LoadRepeat(_) => write!(f, "lddr"),
             Opcode::JumpRelative(op1, op2, _) => {
                 write!(f, "jr")?;
                 if *op1 != Condition::None {
@@ -156,7 +172,13 @@ impl fmt::Display for Opcode {
             }
             Opcode::Xor(op, _) => write!(f, "xor {}", op),
             Opcode::Or(op, _) => write!(f, "or {}", op),
-            Opcode::CallUnconditional(op, _) => write!(f, "call {}", op),
+            Opcode::Call(cond, op, _) => {
+                write!(f, "call")?;
+                if *cond != Condition::None {
+                    write!(f, " {},", cond)?;
+                }
+                write!(f, " {}", op)
+            },
             Opcode::OutIndirectRepeat(_) => write!(f, "otir"),
             Opcode::NoOperation(_) => write!(f, "nop"),
             Opcode::ReturnFromNmi(_) => write!(f, "retn"),
@@ -188,6 +210,9 @@ impl fmt::Display for Opcode {
             Opcode::RotateRightCarrySwapSideeffect(op, _) => write!(f, "rr {}", op),
             Opcode::Complement(_) => write!(f, "cpl"),
             Opcode::Halt(_) => write!(f, "halt"),
+            Opcode::Exchange(op1, op2, _) => write!(f, "ex {}, {}", op1, op2),
+            Opcode::ExchangeAll(_) => write!(f, "exx"),
+            Opcode::TestBit(op1, op2, _) => write!(f, "bit {}, {}", op1, op2),
             Opcode::Unknown(_) => unreachable!("Unknown opcode"),
         }
     }
@@ -241,6 +266,14 @@ impl fmt::Display for Reg8 {
             Reg8::H => write!(f, "h"),
             Reg8::L => write!(f, "l"),
             Reg8::F => write!(f, "f"),
+            Reg8::AShadow => write!(f, "a'"),
+            Reg8::BShadow => write!(f, "b'"),
+            Reg8::CShadow => write!(f, "c'"),
+            Reg8::DShadow => write!(f, "d'"),
+            Reg8::EShadow => write!(f, "e'"),
+            Reg8::HShadow => write!(f, "h'"),
+            Reg8::LShadow => write!(f, "l'"),
+            Reg8::FShadow => write!(f, "f'"),
             Reg8::IYH => write!(f, "iyh"),
             Reg8::IYL => write!(f, "iyl"),
             Reg8::IXH => write!(f, "ixh"),
@@ -256,6 +289,10 @@ impl fmt::Display for Reg16 {
             Reg16::BC => write!(f, "bc"),
             Reg16::DE => write!(f, "de"),
             Reg16::HL => write!(f, "hl"),
+            Reg16::AFShadow => write!(f, "af'"),
+            Reg16::BCShadow => write!(f, "bc'"),
+            Reg16::DEShadow => write!(f, "de'"),
+            Reg16::HLShadow => write!(f, "hl'"),
             Reg16::SP => write!(f, "sp"),
             Reg16::PC => write!(f, "pc"),
             Reg16::IX(offset) => {

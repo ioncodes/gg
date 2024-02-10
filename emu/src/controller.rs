@@ -18,8 +18,10 @@ impl Controller {
 
 impl io::Controller for Controller {
     fn read_io(&self, port: u8) -> Result<u8, GgError> {
-        if self.port == ControllerPort::Player2 && port == 0xdd {
-            return Ok(0x00);
+        match (port, &self.port) {
+            (0xdd, ControllerPort::Player2) => return Ok(0x00),
+            (0xdc, ControllerPort::Player1) => return Ok(0x00),
+            _ => {}
         }
 
         Err(GgError::IoControllerInvalidPort)
