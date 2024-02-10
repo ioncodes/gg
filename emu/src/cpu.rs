@@ -8,7 +8,7 @@ use crate::{
     vdp::{Vdp, CONTROL_PORT, DATA_PORT, V_COUNTER_PORT},
 };
 use bitflags::bitflags;
-use log::{debug, error, trace};
+use log::{error, trace};
 use std::fmt;
 use z80::{
     disassembler::Disassembler,

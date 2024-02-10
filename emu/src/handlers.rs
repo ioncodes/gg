@@ -262,8 +262,10 @@ impl<'a> Handlers<'a> {
                     let pc = self.cpu.get_register_u16(Reg16::PC);
                     let dst = pc.wrapping_add_signed(imm.into());
                     self.cpu.set_register_u16(Reg16::PC, dst);
+                    Ok(())
+                } else {
+                    Err(GgError::JumpNotTaken)
                 }
-                Ok(())
             }
             _ => Err(GgError::InvalidOpcodeImplementation {
                 instruction: instruction.opcode,
