@@ -75,6 +75,7 @@ pub struct Cpu {
     pub interrupts_enabled: bool,
     pub interrupt_mode: InterruptMode,
     pub(crate) controllers: [Controller; 2],
+    irq_available: bool,
 }
 
 impl Cpu {
@@ -98,6 +99,7 @@ impl Cpu {
             interrupts_enabled: true,
             interrupt_mode: InterruptMode::IM0,
             controllers: [Controller::new(ControllerPort::Player1), Controller::new(ControllerPort::Player2)],
+            irq_available: false,
         }
     }
 
@@ -113,6 +115,11 @@ impl Cpu {
     }
 
     pub(crate) fn tick(&mut self, bus: &mut Bus, vdp: &mut Vdp, psg: &mut Psg) -> Result<Instruction, GgError> {
+        if self.irq_available {
+            self.trigger_irq(bus)?;
+            self.irq_available = false;
+        }
+        
         let instr = self.decode_at_pc(bus);
 
         match instr {
@@ -213,6 +220,27 @@ impl Cpu {
             }
             Err(msg) => Err(GgError::DecoderError { msg }),
         }
+    }
+
+    pub(crate) fn queue_irq(&mut self) {
+        // todo: i think we might even just execute the handler right away...
+        // perhaps just execute trigger_irq directly instead of waiting for a new tick?
+        self.irq_available = true;
+    }
+
+    pub(crate) fn trigger_irq(&mut self, bus: &mut Bus) -> Result<(), GgError> {
+        if self.interrupts_enabled {
+            let instr_length = self.decode_at_pc(bus).unwrap().length as u16;
+            let vector = match self.interrupt_mode {
+                InterruptMode::IM0 => 0x0038,
+                InterruptMode::IM1 => 0x0038,
+                InterruptMode::IM2 => 0x0038,
+            };
+            self.push_stack(bus, self.registers.pc + instr_length)?;
+            self.registers.pc = vector;
+        }
+        
+        Ok(())
     }
 
     pub(crate) fn write_io(&mut self, port: u8, value: u8, vdp: &mut Vdp, bus: &mut Bus, psg: &mut Psg) -> Result<(), GgError> {

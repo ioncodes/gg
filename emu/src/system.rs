@@ -88,7 +88,7 @@ impl System {
             },
             _ => ()
         };
-        self.vdp.tick(&mut self.bus);
+        self.vdp.tick(&mut self.cpu);
 
         // Execute post-tick Lua script
         if self.lua.hook_exists(current_pc_before_tick, HookType::PostTick) {

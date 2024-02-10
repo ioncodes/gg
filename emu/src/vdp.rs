@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::{bus::Bus, error::GgError, io::Controller, memory::Memory};
+use crate::{bus::Bus, cpu::Cpu, error::GgError, io::Controller, memory::Memory};
 use log::{debug, error, trace};
 
 // todo: ????
@@ -45,19 +45,19 @@ impl Pattern {
 }
 
 #[derive(Default, Debug)]
-pub(crate) struct Registers {
-    pub(crate) r0: u8,
-    pub(crate) r1: u8,
-    pub(crate) r2: u8,
-    pub(crate) r3: u8,
-    pub(crate) r4: u8,
-    pub(crate) r5: u8,
-    pub(crate) r6: u8,
-    pub(crate) r7: u8,
-    pub(crate) r8: u8,
-    pub(crate) r9: u8,
-    pub(crate) r10: u8,
-    pub(crate) address: u16,
+pub struct Registers {
+    pub r0: u8,
+    pub r1: u8,
+    pub r2: u8,
+    pub r3: u8,
+    pub r4: u8,
+    pub r5: u8,
+    pub r6: u8,
+    pub r7: u8,
+    pub r8: u8,
+    pub r9: u8,
+    pub r10: u8,
+    pub address: u16,
 }
 
 pub struct Vdp {
@@ -66,7 +66,7 @@ pub struct Vdp {
     v_2nd_loop: bool,
     h_2nd_loop: bool,
     control_data: VecDeque<u8>,
-    registers: Registers,
+    pub registers: Registers,
     pub vram: Memory<u16>,
     pub cram: Memory<u16>,
     cram_latch: Option<u8>,
@@ -93,8 +93,13 @@ impl Vdp {
         }
     }
 
-    pub(crate) fn tick(&mut self, _bus: &mut Bus) {
+    pub(crate) fn tick(&mut self, cpu: &mut Cpu) {
         self.handle_counters();
+
+        // todo: we should probably handle different types of interrupts here...
+        if self.v == 0 && self.h == 0 {
+            cpu.queue_irq();
+        }
     }
 
     pub(crate) fn is_vblank(&self) -> bool {

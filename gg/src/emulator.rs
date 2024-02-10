@@ -212,8 +212,22 @@ impl Emulator {
             ui.heading("VDP Registers");
 
             ui.vertical(|ui| {
-                ui.label(format!("V: {:02x}", self.system.vdp.v));
-                ui.label(format!("H: {:02x}", self.system.vdp.h));
+                ui.horizontal(|ui| {
+                    ui.label(format!("V: {:02x}", self.system.vdp.v));
+                    ui.label(format!("H: {:02x}", self.system.vdp.h));
+                });
+                ui.label(format!("R00: {:08b}", self.system.vdp.registers.r0));
+                ui.label(format!("R01: {:08b}", self.system.vdp.registers.r1));
+                ui.label(format!("R02: {:08b}", self.system.vdp.registers.r2));
+                ui.label(format!("R03: {:08b}", self.system.vdp.registers.r3));
+                ui.label(format!("R04: {:08b}", self.system.vdp.registers.r4));
+                ui.label(format!("R05: {:08b}", self.system.vdp.registers.r5));
+                ui.label(format!("R06: {:08b}", self.system.vdp.registers.r6));
+                ui.label(format!("R07: {:08b}", self.system.vdp.registers.r7));
+                ui.label(format!("R08: {:08b}", self.system.vdp.registers.r8));
+                ui.label(format!("R09: {:08b}", self.system.vdp.registers.r9));
+                ui.label(format!("R10: {:08b}", self.system.vdp.registers.r10));
+                ui.label(format!("Address: {:04x}", self.system.vdp.registers.address));
             });
         });
 
