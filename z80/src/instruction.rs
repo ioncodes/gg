@@ -55,6 +55,7 @@ pub enum Condition {
     Sign,
     NotCarry,
     Carry,
+    NotParityOrOverflow,
     None,
 }
 
@@ -139,6 +140,7 @@ impl fmt::Display for Condition {
             Condition::Sign => write!(f, "m"),
             Condition::NotCarry => write!(f, "nc"),
             Condition::Carry => write!(f, "c"),
+            Condition::NotParityOrOverflow => write!(f, "po"),
             Condition::None => write!(f, ""),
         }
     }

@@ -539,6 +539,7 @@ impl<'a> Disassembler<'a> {
                 3,
             ),
             (Some(0xcd), _, _, _) => Opcode::Call(Condition::None, Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false), 3),
+            (Some(0xd0), _, _, _) => Opcode::Return(Condition::NotCarry, 1),
             (Some(0xd1), _, _, _) => Opcode::Pop(Register::Reg16(Reg16::DE), 1),
             (Some(0xd2), _, _, _) => Opcode::Jump(
                 Condition::NotCarry,
@@ -565,6 +566,7 @@ impl<'a> Disassembler<'a> {
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), true), // todo: is true correct?
                 2,
             ),
+            (Some(0xe0), _, _, _) => Opcode::Return(Condition::NotParityOrOverflow, 1),
             (Some(0xe1), _, _, _) => Opcode::Pop(Register::Reg16(Reg16::HL), 1),
             (Some(0xe5), _, _, _) => Opcode::Push(Register::Reg16(Reg16::HL), 1),
             (Some(0xe6), _, _, _) => Opcode::And(Operand::Immediate(Immediate::U8(self.data[offset + 1]), false), 2),
@@ -862,6 +864,7 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
                 3,
             ),
+            (Some(0xdd), Some(0xe1), _, _) => Opcode::Pop(Register::Reg16(Reg16::IX(None)), 3),
             (Some(0xdd), Some(0xe5), _, _) => Opcode::Push(Register::Reg16(Reg16::IX(None)), 2),
 
             // 0xDDCB PREFIX
@@ -875,12 +878,102 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
                 4,
             ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x7e)) => Opcode::TestBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x86)) => Opcode::ResetBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x8e)) => Opcode::ResetBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x96)) => Opcode::ResetBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x9e)) => Opcode::ResetBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xa6)) => Opcode::ResetBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xae)) => Opcode::ResetBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xb6)) => Opcode::ResetBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xbe)) => Opcode::ResetBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xc6)) => Opcode::SetBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xce)) => Opcode::SetBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xd6)) => Opcode::SetBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xde)) => Opcode::SetBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xe6)) => Opcode::SetBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xee)) => Opcode::SetBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xf6)) => Opcode::SetBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xfe)) => Opcode::SetBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
 
             // 0xFD PREFIX
             (Some(0xfd), Some(0x09), _, _) => Opcode::Add(
                 Operand::Register(Register::Reg16(Reg16::IY(None)), false),
                 Operand::Register(Register::Reg16(Reg16::BC), false),
                 2,
+            ),
+            (Some(0xfd), Some(0x21), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::IY(None)), false),
+                Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), false),
+                4,
             ),
             (Some(0xfd), Some(0xe1), _, _) => Opcode::Pop(Register::Reg16(Reg16::IY(None)), 2),
             (Some(0xfd), Some(0x66), _, _) => Opcode::Load(
@@ -891,6 +984,11 @@ impl<'a> Disassembler<'a> {
             (Some(0xfd), Some(0x6e), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::L), false),
                 Operand::Register(Register::Reg16(Reg16::IY(Some(self.data[offset + 2] as i8))), true),
+                3,
+            ),
+            (Some(0xfd), Some(0x77), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(self.data[offset + 2] as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
                 3,
             ),
             (Some(0xfd), Some(0x7e), _, _) => Opcode::Load(
