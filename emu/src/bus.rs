@@ -53,7 +53,8 @@ impl Bus {
 
         if address >= 0x8000 && address < 0xc000 {
             let ram_mapping = self.read(MEMORY_REGISTER_RAM_MAPPING)?;
-            if ram_mapping & 0b0000_1000 >= 0 {
+            if ram_mapping & 0b0000_1000 > 0 {
+                println!("RAM Mapping: {:08b}", ram_mapping);
                 return Ok(self.sram.read(address - 0x8000));
             } else {
                 let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
@@ -86,7 +87,7 @@ impl Bus {
 
         if address >= 0x8000 && address < 0xc000 {
             let ram_mapping = self.read(MEMORY_REGISTER_RAM_MAPPING)?;
-            if ram_mapping & 0b0000_1000 >= 0 {
+            if ram_mapping & 0b0000_1000 > 0 {
                 return Ok(self.sram.read_word(address - 0x8000));
             } else {
                 let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
@@ -126,7 +127,7 @@ impl Bus {
             // return Ok(self.rom.write_to_bank(bank, address - 0x8000, value));
 
             let ram_mapping = self.read(MEMORY_REGISTER_RAM_MAPPING)?;
-            if ram_mapping & 0b0000_1000 >= 0 {
+            if ram_mapping & 0b0000_1000 > 0 {
                 return Ok(self.sram.write(address - 0x8000, value));
             }
 
@@ -164,7 +165,7 @@ impl Bus {
             // return Ok(self.rom.write_word_to_bank(bank, address - 0x8000, value));
 
             let ram_mapping = self.read(MEMORY_REGISTER_RAM_MAPPING)?;
-            if ram_mapping & 0b0000_1000 >= 0 {
+            if ram_mapping & 0b0000_1000 > 0 {
                 return Ok(self.sram.write_word(address - 0x8000, value));
             }
 

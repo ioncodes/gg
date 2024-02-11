@@ -459,6 +459,7 @@ impl<'a> Handlers<'a> {
     }
 
     pub(crate) fn decrement_and_jump_relative(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        // todo: wtf
         match instruction.opcode {
             Opcode::DecrementAndJumpRelative(Immediate::S8(imm), _) => {
                 let condition = self.cpu.get_register_u8(Reg8::B);
@@ -469,9 +470,11 @@ impl<'a> Handlers<'a> {
                     let pc = self.cpu.get_register_u16(Reg16::PC);
                     let dst = pc.wrapping_add_signed(imm.into());
                     self.cpu.set_register_u16(Reg16::PC, dst);
+                    Ok(())
+                } else {
+                    Err(GgError::JumpNotTaken)
                 }
 
-                Ok(())
             }
             _ => Err(GgError::InvalidOpcodeImplementation {
                 instruction: instruction.opcode,
