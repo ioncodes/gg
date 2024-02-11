@@ -88,7 +88,7 @@ impl Emulator {
         system.load_bios(bios);
 
         if run_cpu_test {
-            let cartridge = include_bytes!("../../external/zexall.sms");
+            let cartridge = include_bytes!("../../external/zexdoc.sms");
             system.load_cartridge(cartridge.as_ref());
             system.disable_bios();
         } else {

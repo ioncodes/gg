@@ -56,6 +56,7 @@ pub enum Condition {
     NotCarry,
     Carry,
     NotParityOrOverflow,
+    ParityOrOverflow,
     None,
 }
 
@@ -118,6 +119,8 @@ pub enum Opcode {
     TestBit(Immediate, Operand, usize),
     LoadRepeat(usize),
     InvertCarry(usize),
+    AddCarry(Operand, Operand, usize),
+    SubtractCarry(Operand, Operand, usize),
     Unknown(usize),
 }
 
@@ -143,6 +146,7 @@ impl fmt::Display for Condition {
             Condition::NotCarry => write!(f, "nc"),
             Condition::Carry => write!(f, "c"),
             Condition::NotParityOrOverflow => write!(f, "po"),
+            Condition::ParityOrOverflow => write!(f, "pe"),
             Condition::None => write!(f, ""),
         }
     }
@@ -160,6 +164,8 @@ impl fmt::Display for Opcode {
             Opcode::Compare(op1, _) => write!(f, "cp {}", op1),
             Opcode::SubtractWithCarry(op1, op2, _) => write!(f, "sbc {}, {}", op1, op2),
             Opcode::LoadRepeat(_) => write!(f, "lddr"),
+            Opcode::AddCarry(op1, op2, _) => write!(f, "adc {}, {}", op1, op2),
+            Opcode::SubtractCarry(op1, op2, _) => write!(f, "sbc {}, {}", op1, op2),
             Opcode::JumpRelative(op1, op2, _) => {
                 write!(f, "jr")?;
                 if *op1 != Condition::None {

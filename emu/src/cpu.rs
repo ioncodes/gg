@@ -194,6 +194,8 @@ impl Cpu {
                     Opcode::TestBit(_, _, _) => handlers.test_bit(&instruction),
                     Opcode::LoadRepeat(_) => handlers.load_repeat(&instruction),
                     Opcode::InvertCarry(_) => handlers.invert_carry(&instruction),
+                    Opcode::AddCarry(_, _, _) => handlers.add_carry(&instruction),
+                    Opcode::SubtractCarry(_, _, _) => handlers.subtract_carry(&instruction),
                     Opcode::NoOperation(_) => Ok(()),
                     _ => {
                         error!("Handler missing for instruction: {}\n{}", instruction.opcode, self);
