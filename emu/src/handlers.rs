@@ -528,6 +528,25 @@ impl<'a> Handlers<'a> {
         Ok(())
     }
 
+    pub(crate) fn outd(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let b = self.cpu.get_register_u8(Reg8::B);
+        let result = b.wrapping_sub(1);
+        self.cpu.set_register_u8(Reg8::B, result);
+
+        let hl = self.cpu.get_register_u16(Reg16::HL);
+        let value = self.bus.read(hl)?;
+
+        let port = self.cpu.get_register_u8(Reg8::C);
+        self.cpu.write_io(port, value, self.vdp, self.bus, self.psg)?;
+
+        self.cpu.set_register_u16(Reg16::HL, hl.wrapping_sub(1));
+
+        self.cpu.flags.set(Flags::ZERO, result == 0);
+        self.cpu.flags.set(Flags::SUBTRACT, true);
+
+        Ok(())
+    }
+
     pub(crate) fn restart(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
             Opcode::Restart(Immediate::U8(imm), _) => {

@@ -79,7 +79,8 @@ pub enum Opcode {
     Load(Operand, Operand, usize),
     LoadIndirectRepeat(usize),
     Out(Operand, Operand, usize),
-    Outi(usize),
+    OutIncrement(usize),
+    OutDecrement(usize),
     In(Operand, Operand, usize),
     Compare(Operand, usize), // todo: ?
     JumpRelative(Condition, Immediate, usize),
@@ -201,7 +202,7 @@ impl fmt::Display for Opcode {
             Opcode::Pop(op, _) => write!(f, "pop {}", op),
             Opcode::ResetBit(op1, op2, _) => write!(f, "res {}, {}", op1, op2),
             Opcode::SetBit(op1, op2, _) => write!(f, "set {}, {}", op1, op2),
-            Opcode::Outi(_) => write!(f, "outi"),
+            Opcode::OutIncrement(_) => write!(f, "outi"),
             Opcode::SetInterruptMode(op, _) => write!(f, "im {}", op),
             Opcode::And(op, _) => write!(f, "and {}", op),
             Opcode::RotateRightCarry(_) => write!(f, "rrca"),
@@ -215,6 +216,7 @@ impl fmt::Display for Opcode {
             Opcode::Exchange(op1, op2, _) => write!(f, "ex {}, {}", op1, op2),
             Opcode::ExchangeAll(_) => write!(f, "exx"),
             Opcode::TestBit(op1, op2, _) => write!(f, "bit {}, {}", op1, op2),
+            Opcode::OutDecrement(_) => write!(f, "outd"),
             Opcode::Unknown(_) => unreachable!("Unknown opcode"),
         }
     }

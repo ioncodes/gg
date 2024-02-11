@@ -175,7 +175,8 @@ impl Cpu {
                     Opcode::ResetBit(_, _, _) => handlers.reset_bit(&instruction),
                     Opcode::DecrementAndJumpRelative(_, _) => handlers.decrement_and_jump_relative(&instruction),
                     Opcode::Xor(_, _) => handlers.xor(&instruction),
-                    Opcode::Outi(_) => handlers.outi(&instruction),
+                    Opcode::OutIncrement(_) => handlers.outi(&instruction),
+                    Opcode::OutDecrement(_) => handlers.outd(&instruction),
                     Opcode::Restart(_, _) => handlers.restart(&instruction),
                     Opcode::SetInterruptMode(_, _) => handlers.set_interrupt_mode(&instruction),
                     Opcode::Subtract(_, _) => handlers.subtract(&instruction),
@@ -195,6 +196,7 @@ impl Cpu {
                     Opcode::ExchangeAll(_) => handlers.exchange_all(&instruction),
                     Opcode::TestBit(_, _, _) => handlers.test_bit(&instruction),
                     Opcode::LoadRepeat(_) => handlers.load_repeat(&instruction),
+                    Opcode::NoOperation(_) => Ok(()),
                     _ => {
                         error!("Handler missing for instruction: {}\n{}", instruction.opcode, self);
                         return Err(GgError::OpcodeNotImplemented {
