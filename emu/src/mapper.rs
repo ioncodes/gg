@@ -5,6 +5,7 @@ pub trait Mapper {
     fn write_to_bank(&mut self, bank: usize, offset: u16, value: u8);
     fn resize(&mut self, new_size: usize);
     fn memory(&self) -> &Memory<usize>;
+    fn memory_mut(&mut self) -> &mut Memory<usize>;
     fn name(&self) -> String;
     
     fn read_word_from_bank(&self, bank: usize, addr: u16) -> u16 {
@@ -75,6 +76,10 @@ impl Mapper for SegaMapper {
 
     fn memory(&self) -> &Memory<usize> {
         &self.rom
+    }
+
+    fn memory_mut(&mut self) -> &mut Memory<usize> {
+        &mut self.rom
     }
 
     fn name(&self) -> String {
