@@ -639,6 +639,15 @@ impl<'a> Handlers<'a> {
                 self.cpu.flags.set(Flags::ZERO, result == 0);
                 self.cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
             }
+            Opcode::Add(Operand::Register(Register::Reg8(dst_reg), false), Operand::Immediate(Immediate::U8(imm), false), _) => {
+                let dst = self.cpu.get_register_u8(dst_reg);
+                let result = dst.wrapping_add(imm);
+
+                self.cpu.set_register_u8(dst_reg, result);
+
+                self.cpu.flags.set(Flags::ZERO, result == 0);
+                self.cpu.flags.set(Flags::SIGN, result & 0b1000_0000 != 0);
+            }
             _ => {
                 return Err(GgError::InvalidOpcodeImplementation {
                     instruction: instruction.opcode,
@@ -894,6 +903,19 @@ impl<'a> Handlers<'a> {
         self.cpu.flags.set(Flags::SUBTRACT, false);
 
         Ok(())
+    }
+
+    pub(crate) fn invert_carry(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::InvertCarry(_) => {
+                let carry = self.cpu.flags.contains(Flags::CARRY);
+                self.cpu.flags.set(Flags::CARRY, !carry);
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
     }
 
     // Helpers

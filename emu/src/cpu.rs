@@ -1,6 +1,5 @@
 use crate::{
     bus::{Bus, MEMORY_CONTROL_PORT},
-    controller::{Controller, ControllerPort},
     error::GgError,
     handlers::Handlers,
     io::Controller as _,
@@ -82,7 +81,6 @@ pub struct Cpu {
     pub flags: Flags,
     pub interrupts_enabled: bool,
     pub interrupt_mode: InterruptMode,
-    pub(crate) controllers: [Controller; 2],
     irq_available: bool,
 }
 
@@ -114,7 +112,6 @@ impl Cpu {
             flags: Flags::empty(),
             interrupts_enabled: true,
             interrupt_mode: InterruptMode::IM0,
-            controllers: [Controller::new(ControllerPort::Player1), Controller::new(ControllerPort::Player2)],
             irq_available: false,
         }
     }
@@ -196,6 +193,7 @@ impl Cpu {
                     Opcode::ExchangeAll(_) => handlers.exchange_all(&instruction),
                     Opcode::TestBit(_, _, _) => handlers.test_bit(&instruction),
                     Opcode::LoadRepeat(_) => handlers.load_repeat(&instruction),
+                    Opcode::InvertCarry(_) => handlers.invert_carry(&instruction),
                     Opcode::NoOperation(_) => Ok(()),
                     _ => {
                         error!("Handler missing for instruction: {}\n{}", instruction.opcode, self);
@@ -262,6 +260,8 @@ impl Cpu {
             DATA_PORT | CONTROL_PORT => vdp.write_io(port, value)?,
             MEMORY_CONTROL_PORT => bus.write_io(port, value)?,
             0x7f => psg.write_io(port, value)?,
+            0xfc => (),
+            0xfd => (),
             _ => {
                 error!("Unassigned port (write): {:02x}", port);
                 return Err(GgError::IoControllerInvalidPort);
@@ -275,8 +275,7 @@ impl Cpu {
         match port {
             0x00..=0x06 => bus.read_io(port),
             DATA_PORT | CONTROL_PORT | V_COUNTER_PORT => vdp.read_io(port),
-            0xdc => self.controllers[0].read_io(port),
-            0xdd => self.controllers[1].read_io(port),
+            0xdc | 0xdd => bus.read_io(port),
             _ => {
                 error!("Unassigned port (read): {:02x}", port);
                 Err(GgError::IoControllerInvalidPort)

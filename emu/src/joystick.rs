@@ -1,26 +1,26 @@
 use crate::{error::GgError, io};
 
 #[derive(PartialEq)]
-pub enum ControllerPort {
+pub enum JoystickPort {
     Player1,
     Player2,
 }
 
-pub struct Controller {
-    pub(crate) port: ControllerPort,
+pub struct Joystick {
+    pub(crate) port: JoystickPort,
 }
 
-impl Controller {
-    pub fn new(port: ControllerPort) -> Controller {
-        Controller { port }
+impl Joystick {
+    pub fn new(port: JoystickPort) -> Joystick {
+        Joystick { port }
     }
 }
 
-impl io::Controller for Controller {
+impl io::Controller for Joystick {
     fn read_io(&self, port: u8) -> Result<u8, GgError> {
         match (port, &self.port) {
-            (0xdd, ControllerPort::Player2) => return Ok(0x00),
-            (0xdc, ControllerPort::Player1) => return Ok(0x00),
+            (0xdd, JoystickPort::Player2) => return Ok(0x00),
+            (0xdc, JoystickPort::Player1) => return Ok(0x00),
             _ => {}
         }
 

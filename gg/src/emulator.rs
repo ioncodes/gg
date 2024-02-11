@@ -22,6 +22,7 @@ pub(crate) const SCALE: usize = 4;
 enum MemoryView {
     Rom,
     Ram,
+    Sram,
     Vram,
     Cram,
 }
@@ -78,14 +79,23 @@ impl eframe::App for Emulator {
 
 impl Emulator {
     pub(crate) fn new(cc: &CreationContext) -> Emulator {
-        let bios = include_bytes!("../../external/majbios.gg");
-        let sonic2 = include_bytes!("../../external/sonic2.gg");
+        let run_cpu_test = std::env::args().any(|arg| arg == "--cpu-test");
+
         let lua_script = String::from(include_str!("../../external/test.lua"));
+        let bios = include_bytes!("../../external/majbios.gg");
 
         let mut system = System::new(Some(lua_script));
         system.load_bios(bios);
-        system.load_cartridge(sonic2.as_ref());
 
+        if run_cpu_test {
+            let cartridge = include_bytes!("../../external/zexall.sms");
+            system.load_cartridge(cartridge.as_ref());
+            system.disable_bios();
+        } else {
+            let cartridge = include_bytes!("../../external/sonic2.gg");
+            system.load_cartridge(cartridge.as_ref());
+        }
+        
         let texture = cc.egui_ctx.load_texture(
             "frame",
             ColorImage::new([INTERNAL_WIDTH, INTERNAL_HEIGHT], Color32::BLACK),
@@ -259,6 +269,7 @@ impl Emulator {
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.memory_view, MemoryView::Rom, "ROM");
                     ui.selectable_value(&mut self.memory_view, MemoryView::Ram, "RAM");
+                    ui.selectable_value(&mut self.memory_view, MemoryView::Sram, "SRAM");
                     ui.selectable_value(&mut self.memory_view, MemoryView::Vram, "VRAM");
                     ui.selectable_value(&mut self.memory_view, MemoryView::Cram, "CRAM");
                 });
@@ -268,6 +279,7 @@ impl Emulator {
             let range = match self.memory_view {
                 MemoryView::Rom => (0x0000..0xc000).into_iter(),
                 MemoryView::Ram => (0xc000..0xffff).into_iter(),
+                MemoryView::Sram => (0x0000..0x4000).into_iter(),
                 MemoryView::Vram => (0x0000..0x4000).into_iter(),
                 MemoryView::Cram => (0x0000..0x40).into_iter(),
             };
@@ -282,6 +294,7 @@ impl Emulator {
 
                             let value = match self.memory_view {
                                 MemoryView::Rom | MemoryView::Ram => self.system.bus.read(addr as u16).unwrap_or(0x69),
+                                MemoryView::Sram => self.system.bus.sram.read(addr as u16),
                                 MemoryView::Vram => self.system.vdp.vram.read(addr as u16),
                                 MemoryView::Cram => self.system.vdp.cram.read(addr as u16),
                             };

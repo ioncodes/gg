@@ -1,10 +1,11 @@
 use crate::error::GgError;
 use crate::io::Controller;
+use crate::joystick::{Joystick, JoystickPort};
 use crate::mapper::Mapper;
 use crate::memory::Memory;
 
 pub(crate) const MEMORY_CONTROL_PORT: u8 = 0x3e;
-//pub(crate) const MEMORY_REGISTER_RAM_MAPPING: u16 = 0xfffc;
+pub(crate) const MEMORY_REGISTER_RAM_MAPPING: u16 = 0xfffc;
 pub const MEMORY_REGISTER_CR_BANK_SELECT_0: u16 = 0xfffd;
 pub const MEMORY_REGISTER_CR_BANK_SELECT_1: u16 = 0xfffe;
 pub const MEMORY_REGISTER_CR_BANK_SELECT_2: u16 = 0xffff;
@@ -12,9 +13,12 @@ pub const MEMORY_REGISTER_CR_BANK_SELECT_2: u16 = 0xffff;
 pub struct Bus {
     pub rom: Box<dyn Mapper>,       // 0x0000 - 0xbfff
     pub ram: Memory<u16>,           // 0xc000 - 0xffff
+    pub sram: Memory<u16>,          // TODO: Depends on cartridge
     pub bios_rom: Memory<u16>,      // Only for BIOS. Enabled on startup, disabled by end of BIOS
     pub bios_enabled: bool,         // BIOS is enabled by default
     gear_to_gear_cache: Option<u8>, // Cache for Gear to Gear communication (ports 0..6)
+    pub(crate) joysticks: [Joystick; 2],
+    joysticks_enabled: bool,
 }
 
 impl Bus {
@@ -22,9 +26,12 @@ impl Bus {
         Bus {
             rom: Box::new(rom),
             ram: Memory::new(0x1024 * 16, 0x0000), /* changed from 0xc000 */
+            sram: Memory::new(0x4000, 0x0000),
             bios_rom: Memory::new(0x400, 0x0000),
             bios_enabled: true,
             gear_to_gear_cache: None,
+            joysticks: [Joystick::new(JoystickPort::Player1), Joystick::new(JoystickPort::Player2)],
+            joysticks_enabled: true,
         }
     }
 
@@ -45,8 +52,13 @@ impl Bus {
         }
 
         if address >= 0x8000 && address < 0xc000 {
-            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
-            return Ok(self.rom.read_from_bank(bank, address - 0x8000));
+            let ram_mapping = self.read(MEMORY_REGISTER_RAM_MAPPING)?;
+            if ram_mapping & 0b0000_1000 >= 0 {
+                return Ok(self.sram.read(address - 0x8000));
+            } else {
+                let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
+                return Ok(self.rom.read_from_bank(bank, address - 0x8000));
+            }
         }
 
         if address >= 0xc000 && address <= 0xffff {
@@ -73,8 +85,13 @@ impl Bus {
         }
 
         if address >= 0x8000 && address < 0xc000 {
-            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
-            return Ok(self.rom.read_word_from_bank(bank, address - 0x8000));
+            let ram_mapping = self.read(MEMORY_REGISTER_RAM_MAPPING)?;
+            if ram_mapping & 0b0000_1000 >= 0 {
+                return Ok(self.sram.read_word(address - 0x8000));
+            } else {
+                let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
+                return Ok(self.rom.read_word_from_bank(bank, address - 0x8000));
+            }
         }
 
         if address >= 0xc000 && address <= 0xffff {
@@ -87,22 +104,33 @@ impl Bus {
     #[allow(unused_comparisons)]
     pub fn write(&mut self, address: u16, value: u8) -> Result<(), GgError> {
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
-            return Ok(self.bios_rom.write(address, value));
+            //return Ok(self.bios_rom.write(address, value));
+            return Err(GgError::BusRequestOutOfBounds { address: address as usize });
         }
 
         if address >= 0x0000 && address < 0x4000 {
-            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_0)? as usize;
-            return Ok(self.rom.write_to_bank(bank, address, value));
+            // let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_0)? as usize;
+            // return Ok(self.rom.write_to_bank(bank, address, value));
+            return Err(GgError::BusRequestOutOfBounds { address: address as usize });
         }
 
         if address >= 0x4000 && address < 0x8000 {
-            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_1)? as usize;
-            return Ok(self.rom.write_to_bank(bank, address - 0x4000, value));
+            // let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_1)? as usize;
+            // return Ok(self.rom.write_to_bank(bank, address - 0x4000, value));
+
+            return Err(GgError::BusRequestOutOfBounds { address: address as usize });
         }
 
         if address >= 0x8000 && address < 0xc000 {
-            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
-            return Ok(self.rom.write_to_bank(bank, address - 0x8000, value));
+            // let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
+            // return Ok(self.rom.write_to_bank(bank, address - 0x8000, value));
+
+            let ram_mapping = self.read(MEMORY_REGISTER_RAM_MAPPING)?;
+            if ram_mapping & 0b0000_1000 >= 0 {
+                return Ok(self.sram.write(address - 0x8000, value));
+            }
+
+            return Err(GgError::BusRequestOutOfBounds { address: address as usize });
         }
 
         if address >= 0xc000 && address <= 0xffff {
@@ -115,22 +143,32 @@ impl Bus {
     #[allow(unused_comparisons)]
     pub fn write_word(&mut self, address: u16, value: u16) -> Result<(), GgError> {
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
-            return Ok(self.bios_rom.write_word(address, value));
+            // return Ok(self.bios_rom.write_word(address, value));
+            return Err(GgError::BusRequestOutOfBounds { address: address as usize });
         }
 
         if address >= 0x0000 && address < 0x4000 {
-            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_0)? as usize;
-            return Ok(self.rom.write_word_to_bank(bank, address, value));
+            // let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_0)? as usize;
+            // return Ok(self.rom.write_word_to_bank(bank, address, value));
+            return Err(GgError::BusRequestOutOfBounds { address: address as usize });
         }
 
         if address >= 0x4000 && address < 0x8000 {
-            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_1)? as usize;
-            return Ok(self.rom.write_word_to_bank(bank, address - 0x4000, value));
+            // let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_1)? as usize;
+            // return Ok(self.rom.write_word_to_bank(bank, address - 0x4000, value));
+            return Err(GgError::BusRequestOutOfBounds { address: address as usize });
         }
 
         if address >= 0x8000 && address < 0xc000 {
-            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
-            return Ok(self.rom.write_word_to_bank(bank, address - 0x8000, value));
+            // let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
+            // return Ok(self.rom.write_word_to_bank(bank, address - 0x8000, value));
+
+            let ram_mapping = self.read(MEMORY_REGISTER_RAM_MAPPING)?;
+            if ram_mapping & 0b0000_1000 >= 0 {
+                return Ok(self.sram.write_word(address - 0x8000, value));
+            }
+
+            return Err(GgError::BusRequestOutOfBounds { address: address as usize });
         }
 
         if address >= 0xc000 && address <= 0xffff {
@@ -170,6 +208,10 @@ impl Bus {
             return Ok(bank * 0x4000 + address - 0x8000);
         }
 
+        if address >= 0xc000 && address <= 0xffff {
+            return Ok(address);
+        }
+
         Err(GgError::BusRequestOutOfBounds { address })
     }
 }
@@ -182,6 +224,20 @@ impl Controller for Bus {
                     return Ok(value);
                 } else {
                     return Err(GgError::IoRequestNotFulfilled);
+                }
+            }
+            0xdc => {
+                if self.joysticks_enabled {
+                    self.joysticks[0].read_io(port)
+                } else {
+                    Err(GgError::JoystickDisabled)
+                }
+            }
+            0xdd => {
+                if self.joysticks_enabled {
+                    self.joysticks[1].read_io(port)
+                } else {
+                    Err(GgError::JoystickDisabled)
                 }
             }
             _ => return Err(GgError::IoControllerInvalidPort),
@@ -203,7 +259,10 @@ impl Controller for Bus {
 
         match port {
             0x00..=0x06 => self.gear_to_gear_cache = Some(value),
-            MEMORY_CONTROL_PORT => self.bios_enabled = value & 0b0000_1000 == 0,
+            MEMORY_CONTROL_PORT => {
+                self.bios_enabled = value & 0b0000_1000 == 0;
+                self.joysticks_enabled = value & 0b0000_0100 == 0;
+            }
             _ => return Err(GgError::IoControllerInvalidPort),
         }
 

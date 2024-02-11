@@ -117,6 +117,7 @@ pub enum Opcode {
     ExchangeAll(usize),
     TestBit(Immediate, Operand, usize),
     LoadRepeat(usize),
+    InvertCarry(usize),
     Unknown(usize),
 }
 
@@ -174,6 +175,7 @@ impl fmt::Display for Opcode {
                 write!(f, " {}", op2)
             }
             Opcode::Xor(op, _) => write!(f, "xor {}", op),
+            Opcode::InvertCarry(_) => write!(f, "ccf"),
             Opcode::Or(op, _) => write!(f, "or {}", op),
             Opcode::Call(cond, op, _) => {
                 write!(f, "call")?;

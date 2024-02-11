@@ -5,7 +5,7 @@ use z80::instruction::Opcode;
 pub enum GgError {
     #[snafu(display("I/O request not fulfilled"))]
     IoRequestNotFulfilled,
-    #[snafu(display("Bus request out of bounds {address}"))]
+    #[snafu(display("Bus request out of bounds: {:08x}", address))]
     BusRequestOutOfBounds { address: usize },
     #[snafu(display("Opcode not implemented {opcode}"))]
     OpcodeNotImplemented { opcode: Opcode },
@@ -25,4 +25,6 @@ pub enum GgError {
     VdpInvalidIoMode,
     #[snafu(display("CPU halted"))]
     CpuHalted,
+    #[snafu(display("Joystick disabled"))]
+    JoystickDisabled,
 }
