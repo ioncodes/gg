@@ -6,6 +6,7 @@ mod io;
 mod memory;
 mod lua_engine;
 mod mapper;
+mod sdsc;
 
 pub mod cpu;
 pub mod vdp;

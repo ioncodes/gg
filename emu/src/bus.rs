@@ -3,6 +3,7 @@ use crate::io::Controller;
 use crate::joystick::{Joystick, JoystickPort};
 use crate::mapper::Mapper;
 use crate::memory::Memory;
+use crate::sdsc::DebugConsole;
 
 pub(crate) const MEMORY_CONTROL_PORT: u8 = 0x3e;
 pub(crate) const MEMORY_REGISTER_RAM_MAPPING: u16 = 0xfffc;
@@ -19,6 +20,7 @@ pub struct Bus {
     gear_to_gear_cache: Option<u8>, // Cache for Gear to Gear communication (ports 0..6)
     pub(crate) joysticks: [Joystick; 2],
     joysticks_enabled: bool,
+    sdsc_console: DebugConsole,
 }
 
 impl Bus {
@@ -32,6 +34,7 @@ impl Bus {
             gear_to_gear_cache: None,
             joysticks: [Joystick::new(JoystickPort::Player1), Joystick::new(JoystickPort::Player2)],
             joysticks_enabled: true,
+            sdsc_console: DebugConsole {},
         }
     }
 
@@ -262,6 +265,16 @@ impl Controller for Bus {
             MEMORY_CONTROL_PORT => {
                 self.bios_enabled = value & 0b0000_1000 == 0;
                 self.joysticks_enabled = value & 0b0000_0100 == 0;
+            }
+            0xfc => {
+                if !self.joysticks_enabled {
+                    self.sdsc_console.write_io(port, value)?;
+                }
+            }
+            0xfd => {
+                if !self.joysticks_enabled {
+                    self.sdsc_console.write_io(port, value)?;
+                }
             }
             _ => return Err(GgError::IoControllerInvalidPort),
         }
