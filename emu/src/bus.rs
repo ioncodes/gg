@@ -85,34 +85,9 @@ impl Bus {
 
     #[allow(unused_comparisons)]
     pub fn read_word(&self, address: u16) -> Result<u16, GgError> {
-        if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
-            return Ok(self.bios_rom.read_word(address));
-        }
-
-        if address >= 0x0000 && address < 0x4000 {
-            let bank = self.fetch_bank(BankSelect::Bank0);
-            return Ok(self.rom.read_word_from_bank(bank, address));
-        }
-
-        if address >= 0x4000 && address < 0x8000 {
-            let bank = self.fetch_bank(BankSelect::Bank1);
-            return Ok(self.rom.read_word_from_bank(bank, address - 0x4000));
-        }
-
-        if address >= 0x8000 && address < 0xc000 {
-            if self.is_sram_bank_active() {
-                return Ok(self.sram.read_word(address - 0x8000));
-            } else {
-                let bank = self.fetch_bank(BankSelect::Bank2);
-                return Ok(self.rom.read_word_from_bank(bank, address - 0x8000));
-            }
-        }
-
-        if address >= 0xc000 && address <= 0xffff {
-            return Ok(self.ram.read_word(address - 0xc000));
-        }
-
-        Err(GgError::BusRequestOutOfBounds { address: address as usize })
+        let low = self.read(address)?;
+        let high = self.read(address + 1)?;
+        Ok((high as u16) << 8 | low as u16)
     }
 
     #[allow(unused_comparisons)]
@@ -155,39 +130,12 @@ impl Bus {
 
     #[allow(unused_comparisons)]
     pub fn write_word(&mut self, address: u16, value: u16) -> Result<(), GgError> {
-        if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
-            // return Ok(self.bios_rom.write_word(address, value));
-            return Err(GgError::BusRequestOutOfBounds { address: address as usize });
-        }
-
-        if address >= 0x0000 && address < 0x4000 {
-            // let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_0)? as usize;
-            // return Ok(self.rom.write_word_to_bank(bank, address, value));
-            return Err(GgError::BusRequestOutOfBounds { address: address as usize });
-        }
-
-        if address >= 0x4000 && address < 0x8000 {
-            // let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_1)? as usize;
-            // return Ok(self.rom.write_word_to_bank(bank, address - 0x4000, value));
-            return Err(GgError::BusRequestOutOfBounds { address: address as usize });
-        }
-
-        if address >= 0x8000 && address < 0xc000 {
-            // let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
-            // return Ok(self.rom.write_word_to_bank(bank, address - 0x8000, value));
-
-            if self.is_sram_bank_active() {
-                return Ok(self.sram.write_word(address - 0x8000, value));
-            }
-
-            return Err(GgError::BusRequestOutOfBounds { address: address as usize });
-        }
-
-        if address >= 0xc000 && address <= 0xffff {
-            return Ok(self.ram.write_word(address - 0xc000, value));
-        }
-
-        Err(GgError::BusRequestOutOfBounds { address: address as usize })
+        let low = (value & 0xff) as u8;
+        let high = ((value >> 8) & 0xff) as u8;
+        self.write(address, low)?;
+        self.write(address + 1, high)?;
+        
+        Ok(())
     }
 
     pub(crate) fn write_passthrough(&mut self, destination: &Passthrough, address: usize, value: u8) {

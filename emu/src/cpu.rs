@@ -422,7 +422,6 @@ impl Cpu {
     pub(crate) fn pop_stack(&mut self, bus: &mut Bus) -> Result<u16, GgError> {
         let value = bus.read_word(self.registers.sp)?;
         trace!("Popped {:04x} from stack at {:04x}", value, self.registers.sp);
-        println!("Popped {:04x} from stack at {:04x}", value, self.registers.sp);
         self.registers.sp += 2;
         Ok(value)
     }
