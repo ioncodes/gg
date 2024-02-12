@@ -57,19 +57,20 @@ mod tests {
                 Err(e) => panic!("{}", e),
             }
 
-            assert_eq!(system.cpu.registers.a, final_.get("a").unwrap().as_u64().unwrap() as u8);
-            assert_eq!(system.cpu.registers.b, final_.get("b").unwrap().as_u64().unwrap() as u8);
-            assert_eq!(system.cpu.registers.c, final_.get("c").unwrap().as_u64().unwrap() as u8);
-            assert_eq!(system.cpu.registers.d, final_.get("d").unwrap().as_u64().unwrap() as u8);
-            assert_eq!(system.cpu.registers.e, final_.get("e").unwrap().as_u64().unwrap() as u8);
-            assert_eq!(system.cpu.registers.h, final_.get("h").unwrap().as_u64().unwrap() as u8);
-            assert_eq!(system.cpu.registers.l, final_.get("l").unwrap().as_u64().unwrap() as u8);
+            assert_eq!(system.cpu.registers.a, final_.get("a").unwrap().as_u64().unwrap() as u8, "Testcase {}", name);
+            assert_eq!(system.cpu.registers.b, final_.get("b").unwrap().as_u64().unwrap() as u8, "Testcase {}", name);
+            assert_eq!(system.cpu.registers.c, final_.get("c").unwrap().as_u64().unwrap() as u8, "Testcase {}", name);
+            assert_eq!(system.cpu.registers.d, final_.get("d").unwrap().as_u64().unwrap() as u8, "Testcase {}", name);
+            assert_eq!(system.cpu.registers.e, final_.get("e").unwrap().as_u64().unwrap() as u8, "Testcase {}", name);
+            assert_eq!(system.cpu.registers.h, final_.get("h").unwrap().as_u64().unwrap() as u8, "Testcase {}", name);
+            assert_eq!(system.cpu.registers.l, final_.get("l").unwrap().as_u64().unwrap() as u8, "Testcase {}", name);
             assert_eq!(
                 system.cpu.registers.f,
-                Flags::from_bits(final_.get("f").unwrap().as_u64().unwrap() as u8).unwrap()
+                Flags::from_bits(final_.get("f").unwrap().as_u64().unwrap() as u8).unwrap(),
+                "Testcase {}", name
             );
-            assert_eq!(system.cpu.registers.pc, final_.get("pc").unwrap().as_u64().unwrap() as u16);
-            assert_eq!(system.cpu.registers.sp, final_.get("sp").unwrap().as_u64().unwrap() as u16);
+            assert_eq!(system.cpu.registers.pc, final_.get("pc").unwrap().as_u64().unwrap() as u16, "Testcase {}", name);
+            assert_eq!(system.cpu.registers.sp, final_.get("sp").unwrap().as_u64().unwrap() as u16, "Testcase {}", name);
         }
     }
 }
