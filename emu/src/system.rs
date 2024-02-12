@@ -8,7 +8,7 @@ use crate::error::GgError;
 use crate::lua_engine::{LuaEngine, HookType};
 use crate::mapper::SegaMapper;
 use crate::psg::Psg;
-use crate::vdp::{Color, Vdp};
+use crate::vdp::{Color, Mode, Vdp};
 
 pub struct System {
     pub cpu: Cpu,
@@ -19,14 +19,15 @@ pub struct System {
 }
 
 impl System {
-    pub fn new(lua_script: Option<String>) -> System {
+    pub fn new(lua_script: Option<String>, emulate_sms: bool) -> System {
         // todo: figure out mapper
         let mapper = SegaMapper::new(0);
-
+        let mode = if emulate_sms { Mode::SegaMasterSystem } else { Mode::GameGear };
+        
         System {
             cpu: Cpu::new(),
             bus: Bus::new(mapper),
-            vdp: Vdp::new(),
+            vdp: Vdp::new(mode),
             psg: Psg::new(),
             lua: LuaEngine::new(lua_script)
         }

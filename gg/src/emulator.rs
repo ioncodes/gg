@@ -80,19 +80,22 @@ impl eframe::App for Emulator {
 impl Emulator {
     pub(crate) fn new(cc: &CreationContext) -> Emulator {
         let run_cpu_test = std::env::args().any(|arg| arg == "--cpu-test");
+        let (is_sms, cartridge) = if run_cpu_test {
+            (true, Vec::from(include_bytes!("../../external/zexdoc.sms")))
+        } else {
+            (false, Vec::from(include_bytes!("../../external/sonic2.gg")))
+        };
 
         let lua_script = String::from(include_str!("../../external/test.lua"));
         let bios = include_bytes!("../../external/majbios.gg");
 
-        let mut system = System::new(Some(lua_script));
+        let mut system = System::new(Some(lua_script), is_sms);
         system.load_bios(bios);
 
         if run_cpu_test {
-            let cartridge = include_bytes!("../../external/zexdoc.sms");
             system.load_cartridge(cartridge.as_ref());
             system.disable_bios();
         } else {
-            let cartridge = include_bytes!("../../external/sonic2.gg");
             system.load_cartridge(cartridge.as_ref());
         }
         

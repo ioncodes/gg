@@ -60,6 +60,12 @@ pub struct Registers {
     pub address: u16,
 }
 
+#[derive(PartialEq)]
+pub enum Mode {
+    SegaMasterSystem,
+    GameGear
+}
+
 pub struct Vdp {
     pub v: u8,
     pub h: u8,
@@ -72,11 +78,12 @@ pub struct Vdp {
     cram_latch: Option<u8>,
     pub(crate) vram_dirty: bool,
     pub(crate) buffer: Vec<u8>,
-    io_mode: IoMode
+    io_mode: IoMode,
+    mode: Mode
 }
 
 impl Vdp {
-    pub(crate) fn new() -> Vdp {
+    pub(crate) fn new(mode: Mode) -> Vdp {
         Vdp {
             v: 0,
             h: 0,
@@ -89,7 +96,8 @@ impl Vdp {
             cram_latch: None,
             vram_dirty: false,
             buffer: Vec::new(),
-            io_mode: IoMode::None
+            io_mode: IoMode::None,
+            mode
         }
     }
 
@@ -223,21 +231,38 @@ impl Vdp {
         address
     }
 
-    fn read_palette_entry(&self, index: u16) -> (u8, u8, u8, u8) {
+    fn read_palette_entry(&self, mut index: u16) -> (u8, u8, u8, u8) {
         trace!("Reading palette entry at {:04x}", index);
 
-        // Convert palette index to absolute address in CRAM
-        // Each palette entry is 2 bytes
-        let address = index * 2;
+        // row 0 is the background color
+        // row 1 is the sprite color?
+        // todo: verify
 
-        let p1 = self.cram.read(address);
-        let p2 = self.cram.read(address + 1);
+        // 64 bytes CRAM if gamegear mode
+        // 32 bytes CRAM if master system mode
+        // SMS:  --BBGGRR
+        // GG:   --------BBBBGGGGRRRR
+        
+        let (r, g, b) = if self.mode == Mode::GameGear {
+            index = index * 2;
 
-        // Shifting these values by 4 bits to the left gives us the actual color value in 8bit color space
-        let palette = ((p1 as u16) << 8) | (p2 as u16);
-        let r = ((palette & 0b0000_0000_0000_1111) << 4) as u8;
-        let g = (((palette & 0b0000_0000_1111_0000) << 4) >> 4) as u8;
-        let b = (((palette & 0b0000_1111_0000_0000) << 4) >> 8) as u8;
+            let high = self.cram.read(index);
+            let low = self.cram.read(index + 1);
+
+            let r = (low & 0b0000_1111) << 4;
+            let g = ((low >> 4) & 0b0000_1111) << 4;
+            let b = (high & 0b0000_1111) << 4;
+
+            (r, g, b)
+        } else {
+            let data = self.cram.read(index);
+            
+            let r = (data & 0b0000_0011) << 6;
+            let g = ((data >> 2) & 0b0000_0011) << 6;
+            let b = (data & 0b0000_0011) << 6;
+
+            (r, g, b)
+        };
 
         (r, g, b, 0xff)
     }
@@ -315,17 +340,22 @@ impl Vdp {
 
     fn cram_write(&mut self, value: u8) {
         let address = self.registers.address & 0b0000_0000_0111_1111;
-        if address % 2 == 0 {
-            self.cram_latch = Some(value);
-        } else {
-            let latched_value = self.cram_latch.unwrap();
-            self.cram.write(self.registers.address, latched_value);
-            self.cram.write(self.registers.address - 1, value);
-            self.cram_latch = None;
 
-            // Force a rerender
-            self.vram_dirty = true; // todo: lol
+        if self.mode == Mode::SegaMasterSystem {
+            self.cram.write(address, value);
+        } else {
+            if address % 2 == 0 {
+                self.cram_latch = Some(value);
+            } else {
+                let latched_value = self.cram_latch.unwrap();
+                self.cram.write(address, latched_value);
+                self.cram.write(address - 1, value);
+                self.cram_latch = None;
+            }
         }
+
+        // Force a rerender
+        self.vram_dirty = true; // todo: lol
 
         self.registers.address += 1;
         self.registers.address %= 0x3f;
