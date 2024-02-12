@@ -241,10 +241,11 @@ impl Emulator {
             });
         });
 
-        Window::new("ROM Mappings").resizable(false).show(ctx, |ui| {
+        Window::new("CPU Mappings").resizable(false).show(ctx, |ui| {
             let rom0_bank = self.system.bus.read(MEMORY_REGISTER_CR_BANK_SELECT_0);
             let rom1_bank = self.system.bus.read(MEMORY_REGISTER_CR_BANK_SELECT_1);
             let rom2_bank = self.system.bus.read(MEMORY_REGISTER_CR_BANK_SELECT_2);
+            let sram_active = self.system.bus.is_sram_bank_active();
 
             ui.label(format!(
                 "ROM Bank #{:02x}: {:08x}",
@@ -260,6 +261,9 @@ impl Emulator {
                 "ROM Bank #{:02x}: {:08x}",
                 rom2_bank.unwrap_or(0),
                 self.system.bus.translate_address_to_real(0x8000).unwrap_or(0)
+            ));
+            ui.label(format!(
+                "SRAM Bank: {}", if sram_active { "Active" } else { "Inactive" }
             ));
         });
 

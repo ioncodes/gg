@@ -19,8 +19,8 @@ impl Joystick {
 impl io::Controller for Joystick {
     fn read_io(&self, port: u8) -> Result<u8, GgError> {
         match (port, &self.port) {
-            (0xdd, JoystickPort::Player2) => return Ok(0xff),
-            (0xdc, JoystickPort::Player1) => return Ok(0xff),
+            (0xdd, JoystickPort::Player2) => return Ok(0b1111_1111),
+            (0xdc, JoystickPort::Player1) => return Ok(0b1111_1111),
             _ => {}
         }
 
