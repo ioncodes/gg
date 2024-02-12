@@ -23,7 +23,7 @@ pub struct Registers {
     pub e: u8,
     pub h: u8,
     pub l: u8,
-    pub f: u8,
+    pub f: Flags,
     pub a_shadow: u8,
     pub b_shadow: u8,
     pub c_shadow: u8,
@@ -31,7 +31,7 @@ pub struct Registers {
     pub e_shadow: u8,
     pub h_shadow: u8,
     pub l_shadow: u8,
-    pub f_shadow: u8,
+    pub f_shadow: Flags,
     pub ix: u16,
     pub iy: u16,
     pub pc: u16,
@@ -39,6 +39,7 @@ pub struct Registers {
 }
 
 bitflags! {
+    #[derive(Debug, Clone, Copy)]
     pub struct Flags: u8 {
         const CARRY = 0b0000_0001;
         const SUBTRACT = 0b0000_0010;
@@ -78,7 +79,6 @@ impl InterruptMode {
 
 pub struct Cpu {
     pub registers: Registers,
-    pub flags: Flags,
     pub interrupts_enabled: bool,
     pub interrupt_mode: InterruptMode,
     irq_available: bool,
@@ -95,7 +95,7 @@ impl Cpu {
                 e: 0,
                 h: 0,
                 l: 0,
-                f: 0,
+                f: Flags::empty(),
                 a_shadow: 0,
                 b_shadow: 0,
                 c_shadow: 0,
@@ -103,13 +103,12 @@ impl Cpu {
                 e_shadow: 0,
                 h_shadow: 0,
                 l_shadow: 0,
-                f_shadow: 0,
+                f_shadow: Flags::empty(),
                 ix: 0,
                 iy: 0,
                 pc: 0,
                 sp: 0,
             },
-            flags: Flags::empty(),
             interrupts_enabled: true,
             interrupt_mode: InterruptMode::IM0,
             irq_available: false,
@@ -301,11 +300,11 @@ impl Cpu {
         };
 
         match register {
-            Reg16::AF => ((self.registers.a as u16) << 8) | (self.registers.f as u16),
+            Reg16::AF => ((self.registers.a as u16) << 8) | (self.registers.f.bits() as u16),
             Reg16::BC => ((self.registers.b as u16) << 8) | (self.registers.c as u16),
             Reg16::DE => ((self.registers.d as u16) << 8) | (self.registers.e as u16),
             Reg16::HL => ((self.registers.h as u16) << 8) | (self.registers.l as u16),
-            Reg16::AFShadow => ((self.registers.a_shadow as u16) << 8) | (self.registers.f_shadow as u16),
+            Reg16::AFShadow => ((self.registers.a_shadow as u16) << 8) | (self.registers.f_shadow.bits() as u16),
             Reg16::BCShadow => ((self.registers.b_shadow as u16) << 8) | (self.registers.c_shadow as u16),
             Reg16::DEShadow => ((self.registers.d_shadow as u16) << 8) | (self.registers.e_shadow as u16),
             Reg16::HLShadow => ((self.registers.h_shadow as u16) << 8) | (self.registers.l_shadow as u16),
@@ -328,7 +327,7 @@ impl Cpu {
             Reg8::E => self.registers.e,
             Reg8::H => self.registers.h,
             Reg8::L => self.registers.l,
-            Reg8::F => self.registers.f,
+            Reg8::F => self.registers.f.bits(),
             Reg8::AShadow => self.registers.a_shadow,
             Reg8::BShadow => self.registers.b_shadow,
             Reg8::CShadow => self.registers.c_shadow,
@@ -336,7 +335,7 @@ impl Cpu {
             Reg8::EShadow => self.registers.e_shadow,
             Reg8::HShadow => self.registers.h_shadow,
             Reg8::LShadow => self.registers.l_shadow,
-            Reg8::FShadow => self.registers.f_shadow,
+            Reg8::FShadow => self.registers.f_shadow.bits(),
             Reg8::IYH => high(self.registers.iy),
             Reg8::IYL => low(self.registers.iy),
             Reg8::IXH => high(self.registers.ix),
@@ -348,7 +347,7 @@ impl Cpu {
         match register {
             Reg16::AF => {
                 self.registers.a = (value >> 8) as u8;
-                self.registers.f = value as u8;
+                self.registers.f = Flags::from_bits(value as u8).unwrap();
             }
             Reg16::BC => {
                 self.registers.b = (value >> 8) as u8;
@@ -364,7 +363,7 @@ impl Cpu {
             }
             Reg16::AFShadow => {
                 self.registers.a_shadow = (value >> 8) as u8;
-                self.registers.f_shadow = value as u8;
+                self.registers.f_shadow = Flags::from_bits(value as u8).unwrap();
             }
             Reg16::BCShadow => {
                 self.registers.b_shadow = (value >> 8) as u8;
@@ -394,7 +393,7 @@ impl Cpu {
             Reg8::E => self.registers.e = value,
             Reg8::H => self.registers.h = value,
             Reg8::L => self.registers.l = value,
-            Reg8::F => self.registers.f = value,
+            Reg8::F => self.registers.f = Flags::from_bits(value).unwrap(),
             Reg8::AShadow => self.registers.a_shadow = value,
             Reg8::BShadow => self.registers.b_shadow = value,
             Reg8::CShadow => self.registers.c_shadow = value,
@@ -402,7 +401,7 @@ impl Cpu {
             Reg8::EShadow => self.registers.e_shadow = value,
             Reg8::HShadow => self.registers.h_shadow = value,
             Reg8::LShadow => self.registers.l_shadow = value,
-            Reg8::FShadow => self.registers.f_shadow = value,
+            Reg8::FShadow => self.registers.f_shadow = Flags::from_bits(value).unwrap(),
             Reg8::IYH => self.registers.iy = (self.registers.iy & 0x00ff) | ((value as u16) << 8),
             Reg8::IYL => self.registers.iy = (self.registers.iy & 0xff00) | (value as u16),
             Reg8::IXH => self.registers.ix = (self.registers.ix & 0x00ff) | ((value as u16) << 8),
@@ -451,7 +450,7 @@ impl fmt::Display for Cpu {
             self.registers.pc,
             self.registers.sp
         )?;
-        write!(f, "{}\n", self.flags)
+        write!(f, "{}\n", self.registers.f)
     }
 }
 
@@ -470,7 +469,7 @@ impl fmt::Debug for Cpu {
             self.get_register_u16(Reg16::HLShadow),
             self.registers.pc,
             self.registers.sp,
-            self.flags.bits()
+            self.registers.f.bits()
         )
     }
 }

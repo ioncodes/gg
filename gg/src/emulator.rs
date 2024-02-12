@@ -205,7 +205,7 @@ impl Emulator {
                 ui.label(format!("IX: {:04x}", self.system.cpu.registers.ix));
                 ui.label(format!("IY: {:04x}", self.system.cpu.registers.iy));
                 ui.label("Flags: SZ-H-PNC");
-                ui.label(format!("       {:08b}", self.system.cpu.flags.bits()));
+                ui.label(format!("       {:08b}", self.system.cpu.registers.f.bits()));
             });
 
             ui.separator();
