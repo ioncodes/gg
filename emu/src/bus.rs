@@ -11,6 +11,12 @@ pub const MEMORY_REGISTER_CR_BANK_SELECT_0: u16 = 0xfffd;
 pub const MEMORY_REGISTER_CR_BANK_SELECT_1: u16 = 0xfffe;
 pub const MEMORY_REGISTER_CR_BANK_SELECT_2: u16 = 0xffff;
 
+enum BankSelect {
+    Bank0,
+    Bank1,
+    Bank2,
+}
+
 pub struct Bus {
     pub rom: Box<dyn Mapper>,       // 0x0000 - 0xbfff
     pub ram: Memory<u16>,           // 0xc000 - 0xffff
@@ -45,12 +51,12 @@ impl Bus {
         }
 
         if address >= 0x0000 && address < 0x4000 {
-            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_0)? as usize;
+            let bank = self.fetch_bank(BankSelect::Bank0);
             return Ok(self.rom.read_from_bank(bank, address));
         }
 
         if address >= 0x4000 && address < 0x8000 {
-            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_1)? as usize;
+            let bank = self.fetch_bank(BankSelect::Bank1);
             return Ok(self.rom.read_from_bank(bank, address - 0x4000));
         }
 
@@ -59,7 +65,7 @@ impl Bus {
             if ram_mapping & 0b0000_1000 > 0 {
                 return Ok(self.sram.read(address - 0x8000));
             } else {
-                let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
+                let bank = self.fetch_bank(BankSelect::Bank2);
                 return Ok(self.rom.read_from_bank(bank, address - 0x8000));
             }
         }
@@ -78,12 +84,12 @@ impl Bus {
         }
 
         if address >= 0x0000 && address < 0x4000 {
-            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_0)? as usize;
+            let bank = self.fetch_bank(BankSelect::Bank0);
             return Ok(self.rom.read_word_from_bank(bank, address));
         }
 
         if address >= 0x4000 && address < 0x8000 {
-            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_1)? as usize;
+            let bank = self.fetch_bank(BankSelect::Bank1);
             return Ok(self.rom.read_word_from_bank(bank, address - 0x4000));
         }
 
@@ -92,7 +98,7 @@ impl Bus {
             if ram_mapping & 0b0000_1000 > 0 {
                 return Ok(self.sram.read_word(address - 0x8000));
             } else {
-                let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
+                let bank = self.fetch_bank(BankSelect::Bank2);
                 return Ok(self.rom.read_word_from_bank(bank, address - 0x8000));
             }
         }
@@ -216,6 +222,28 @@ impl Bus {
         }
 
         Err(GgError::BusRequestOutOfBounds { address })
+    }
+
+    fn fetch_bank(&self, bank: BankSelect) -> usize {
+        (match bank {
+            BankSelect::Bank0 => self.read(MEMORY_REGISTER_CR_BANK_SELECT_0).unwrap(),
+            BankSelect::Bank1 => {
+                let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_1).unwrap();
+                if bank == 0 {
+                    1
+                } else {
+                    bank
+                }
+            }
+            BankSelect::Bank2 => {
+                let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2).unwrap();
+                if bank == 0 {
+                    2
+                } else {
+                    bank
+                }
+            }
+        }) as usize
     }
 }
 

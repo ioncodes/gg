@@ -5,3 +5,4 @@ target/
 *.id1
 *.nam
 *.til
+*_trace.txt
