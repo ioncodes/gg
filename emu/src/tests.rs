@@ -13,7 +13,6 @@ mod tests {
             let test = test.as_object().unwrap();
             let name = test.get("name").unwrap().as_str().unwrap();
             let bytes = name.split(" ").collect::<Vec<&str>>()[0];
-            println!("Running test: {}", name);
             let bytes = u32::from_str_radix(bytes, 16).unwrap();
             let bytes = bytes.to_ne_bytes();
 
@@ -53,7 +52,6 @@ mod tests {
                 }
             }
 
-            println!("bfff: {}, c000: {}", system.bus.read(0xbfff).unwrap(), system.bus.read(0xc000).unwrap());
             match system.tick() {
                 Ok(_) => {}
                 Err(e) => panic!("{}", e),
