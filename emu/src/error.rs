@@ -27,4 +27,6 @@ pub enum GgError {
     CpuHalted,
     #[snafu(display("Joystick disabled"))]
     JoystickDisabled,
+    #[snafu(display("Repeat not fulfilled"))]
+    RepeatNotFulfilled,
 }

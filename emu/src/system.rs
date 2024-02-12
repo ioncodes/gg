@@ -81,6 +81,7 @@ impl System {
             Err(GgError::IoRequestNotFulfilled) => (),
             Err(GgError::JumpNotTaken) => (),
             Err(GgError::CpuHalted) => (),
+            Err(GgError::RepeatNotFulfilled) => (),
             Err(e) => {
                 error!("Identified error at address: {:04x}", self.cpu.registers.pc);
                 if self.cpu.registers.pc < 0xc000 {

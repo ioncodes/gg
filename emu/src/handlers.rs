@@ -140,57 +140,55 @@ impl<'a> Handlers<'a> {
     }
 
     pub(crate) fn load_indirect_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
-        loop {
-            let src = {
-                let hl = self.cpu.get_register_u16(Reg16::HL);
-                self.bus.read(hl)?
-            };
-            let dst = self.cpu.get_register_u16(Reg16::DE);
-
-            self.bus.write(dst, src)?;
-
+        let src = {
             let hl = self.cpu.get_register_u16(Reg16::HL);
-            let de = self.cpu.get_register_u16(Reg16::DE);
-            self.cpu.set_register_u16(Reg16::HL, hl + 1);
-            self.cpu.set_register_u16(Reg16::DE, de + 1);
+            self.bus.read(hl)?
+        };
+        let dst = self.cpu.get_register_u16(Reg16::DE);
 
-            let bc = self.cpu.get_register_u16(Reg16::BC);
-            self.cpu.set_register_u16(Reg16::BC, bc - 1);
+        self.bus.write(dst, src)?;
 
-            if self.cpu.get_register_u16(Reg16::BC) == 0 {
-                break;
-            }
+        let hl = self.cpu.get_register_u16(Reg16::HL);
+        let de = self.cpu.get_register_u16(Reg16::DE);
+        self.cpu.set_register_u16(Reg16::HL, hl + 1);
+        self.cpu.set_register_u16(Reg16::DE, de + 1);
+
+        let bc = self.cpu.get_register_u16(Reg16::BC);
+        self.cpu.set_register_u16(Reg16::BC, bc - 1);
+
+        if self.cpu.get_register_u16(Reg16::BC) == 0 {
+            Ok(())
+        } else {
+            Err(GgError::RepeatNotFulfilled)
         }
-
-        Ok(())
     }
 
     pub(crate) fn load_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
-        loop {
-            let src = {
-                let hl = self.cpu.get_register_u16(Reg16::HL);
-                self.bus.read(hl)?
-            };
-            let dst = self.cpu.get_register_u16(Reg16::DE);
-            self.bus.write(dst, src)?;
-
+        let src = {
             let hl = self.cpu.get_register_u16(Reg16::HL);
-            let de = self.cpu.get_register_u16(Reg16::DE);
-            let bc = self.cpu.get_register_u16(Reg16::BC);
-            self.cpu.set_register_u16(Reg16::HL, hl - 1);
-            self.cpu.set_register_u16(Reg16::DE, de - 1);
-            self.cpu.set_register_u16(Reg16::BC, bc - 1);
+            self.bus.read(hl)?
+        };
+        let dst = self.cpu.get_register_u16(Reg16::DE);
+        self.bus.write(dst, src)?;
 
-            if self.cpu.get_register_u16(Reg16::BC) == 0 {
-                break;
-            }
-        }
+        let hl = self.cpu.get_register_u16(Reg16::HL);
+        let de = self.cpu.get_register_u16(Reg16::DE);
+        let bc = self.cpu.get_register_u16(Reg16::BC);
+        self.cpu.set_register_u16(Reg16::HL, hl - 1);
+        self.cpu.set_register_u16(Reg16::DE, de - 1);
+        self.cpu.set_register_u16(Reg16::BC, bc - 1);
+
+        
 
         self.cpu.registers.f.set(Flags::HALF_CARRY, false);
         self.cpu.registers.f.set(Flags::SUBTRACT, false);
         self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, false);
 
-        Ok(())
+        if self.cpu.get_register_u16(Reg16::BC) == 0 {
+            Ok(())
+        } else {
+            Err(GgError::RepeatNotFulfilled)
+        }
     }
 
     pub(crate) fn out(&mut self, instruction: &Instruction) -> Result<(), GgError> {
@@ -308,23 +306,21 @@ impl<'a> Handlers<'a> {
     }
 
     pub(crate) fn out_indirect_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
-        loop {
-            let b = self.cpu.get_register_u8(Reg8::B);
-            let hl = self.cpu.get_register_u16(Reg16::HL);
+        let b = self.cpu.get_register_u8(Reg8::B);
+        let hl = self.cpu.get_register_u16(Reg16::HL);
 
-            let value = self.bus.read(hl)?;
-            let port = self.cpu.get_register_u8(Reg8::C);
-            self.cpu.write_io(port, value, self.vdp, self.bus, self.psg)?;
+        let value = self.bus.read(hl)?;
+        let port = self.cpu.get_register_u8(Reg8::C);
+        self.cpu.write_io(port, value, self.vdp, self.bus, self.psg)?;
 
-            self.cpu.set_register_u16(Reg16::HL, hl + 1);
-            self.cpu.set_register_u8(Reg8::B, b.wrapping_sub(1));
+        self.cpu.set_register_u16(Reg16::HL, hl + 1);
+        self.cpu.set_register_u8(Reg8::B, b.wrapping_sub(1));
 
-            if self.cpu.get_register_u8(Reg8::B) == 0 {
-                break;
-            }
+        if self.cpu.get_register_u8(Reg8::B) == 0 {
+            Ok(())
+        } else {
+            Err(GgError::RepeatNotFulfilled)
         }
-
-        Ok(())
     }
 
     pub(crate) fn or(&mut self, instruction: &Instruction) -> Result<(), GgError> {

@@ -213,15 +213,19 @@ impl Cpu {
                     _ => (),
                 }
 
-                let call_skip = match instruction.opcode {
+                let skip = match instruction.opcode {
                     Opcode::Call(_, _, _) => result.is_ok(),
                     Opcode::Jump(_, _, _) => result.is_ok(),
                     Opcode::Return(_, _) => result.is_ok(),
                     Opcode::Restart(_, _) => result.is_ok(),
+                    // Do NOT increase PC if the repeat instruction's condition is not met
+                    Opcode::LoadRepeat(_) => result.is_err(),
+                    Opcode::LoadIndirectRepeat(_) => result.is_err(),
+                    Opcode::OutIndirectRepeat(_) => result.is_err(),
                     _ => false,
                 };
 
-                if !call_skip {
+                if !skip {
                     self.registers.pc += instruction.length as u16;
                 }
 
