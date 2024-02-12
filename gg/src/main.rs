@@ -1,10 +1,12 @@
 mod emulator;
 
+use std::fs::File;
+
 use eframe::NativeOptions;
 use eframe::egui::{FontFamily, FontId, Style, TextStyle, ViewportBuilder, Visuals};
 use emu::vdp::{INTERNAL_HEIGHT, INTERNAL_WIDTH};
 use emulator::{Emulator, SCALE};
-use env_logger::Builder;
+use env_logger::{Builder, Target};
 use log::Level;
 
 fn main() {
@@ -41,6 +43,8 @@ fn main() {
 fn initialize_logging() {
     let mut default_log_level = Level::Info.to_level_filter();
 
+    let mut target = Target::Stderr;
+
     let enable_trace = std::env::args().any(|arg| arg == "--trace" || arg == "-t");
     if enable_trace {
         default_log_level = Level::Trace.to_level_filter();
@@ -51,9 +55,14 @@ fn initialize_logging() {
         default_log_level = Level::Debug.to_level_filter();
     }
 
+    if std::env::args().any(|arg| arg == "--log-to-file") {
+        target = Target::Pipe(Box::new(File::create("trace.log").expect("Can't create file")));
+    }
+
     Builder::new()
         .filter(Some("emu"), default_log_level)
         .filter(Some("gg"), default_log_level)
+        .target(target)
         .format_timestamp(None)
         .init();
 }

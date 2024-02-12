@@ -6,3 +6,4 @@ target/
 *.nam
 *.til
 *_trace.txt
+*trace.log

@@ -458,7 +458,7 @@ impl fmt::Debug for Cpu {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "AF: {:04x}  BC: {:04x}  DE: {:04x}  HL: {:04x}  AF': {:04x}  BC': {:04x}  DE': {:04x}  HL': {:04x}  PC: {:04x}  SP: {:04x}  Flags: {:08b}",
+            "AF: {:04x}  BC: {:04x}  DE: {:04x}  HL: {:04x}  AF': {:04x}  BC': {:04x}  DE': {:04x}  HL': {:04x}  PC: {:04x}  SP: {:04x}  Flags: {:08b} ({})",
             self.get_register_u16(Reg16::AF),
             self.get_register_u16(Reg16::BC),
             self.get_register_u16(Reg16::DE),
@@ -469,7 +469,8 @@ impl fmt::Debug for Cpu {
             self.get_register_u16(Reg16::HLShadow),
             self.registers.pc,
             self.registers.sp,
-            self.registers.f.bits()
+            self.registers.f.bits(),
+            self.registers.f
         )
     }
 }
