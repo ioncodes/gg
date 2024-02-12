@@ -39,7 +39,7 @@ pub struct Registers {
 }
 
 bitflags! {
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Clone, Copy, PartialEq)]
     pub struct Flags: u8 {
         const CARRY = 0b0000_0001;
         const SUBTRACT = 0b0000_0010;
@@ -421,7 +421,8 @@ impl Cpu {
 
     pub(crate) fn pop_stack(&mut self, bus: &mut Bus) -> Result<u16, GgError> {
         let value = bus.read_word(self.registers.sp)?;
-        log::trace!("Popped {:04x} from stack at {:04x}", value, self.registers.sp);
+        trace!("Popped {:04x} from stack at {:04x}", value, self.registers.sp);
+        println!("Popped {:04x} from stack at {:04x}", value, self.registers.sp);
         self.registers.sp += 2;
         Ok(value)
     }

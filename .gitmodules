@@ -1,0 +1,3 @@
+[submodule "external/jsmoo"]
+	path = external/jsmoo
+	url = https://github.com/raddad772/jsmoo

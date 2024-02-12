@@ -250,7 +250,7 @@ impl Vdp {
             let low = self.cram.read(index + 1);
 
             let r = (low & 0b0000_1111) << 4;
-            let g = ((low >> 4) & 0b0000_1111) << 4;
+            let g = low & 0b1111_0000;
             let b = (high & 0b0000_1111) << 4;
 
             (r, g, b)

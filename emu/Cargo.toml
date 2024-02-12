@@ -11,3 +11,8 @@ log = "0.4.20"
 env_logger = "0.10.1"
 rlua = "0.19.7"
 lazy_static = "1.4.0"
+
+[dev-dependencies]
+serde = { version = "1.0.196", features = ["derive"] }
+serde_json = "1.0.113"
+datatest = "0.8.0"

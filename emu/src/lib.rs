@@ -1,4 +1,8 @@
 #![feature(let_chains)]
+#![feature(custom_test_frameworks)]
+#![test_runner(datatest::runner)]
+
+mod tests;
 
 mod error;
 mod handlers;

@@ -11,6 +11,13 @@ pub const MEMORY_REGISTER_CR_BANK_SELECT_0: u16 = 0xfffd;
 pub const MEMORY_REGISTER_CR_BANK_SELECT_1: u16 = 0xfffe;
 pub const MEMORY_REGISTER_CR_BANK_SELECT_2: u16 = 0xffff;
 
+#[derive(PartialEq)]
+pub enum Passthrough {
+    Bios,
+    Rom,
+    Ram
+}
+
 enum BankSelect {
     Bank0,
     Bank1,
@@ -70,7 +77,7 @@ impl Bus {
         }
 
         if address >= 0xc000 && address <= 0xffff {
-            return Ok(self.ram.read(address));
+            return Ok(self.ram.read(address - 0xc000));
         }
 
         Err(GgError::BusRequestOutOfBounds { address: address as usize })
@@ -102,7 +109,7 @@ impl Bus {
         }
 
         if address >= 0xc000 && address <= 0xffff {
-            return Ok(self.ram.read_word(address));
+            return Ok(self.ram.read_word(address - 0xc000));
         }
 
         Err(GgError::BusRequestOutOfBounds { address: address as usize })
@@ -140,7 +147,7 @@ impl Bus {
         }
 
         if address >= 0xc000 && address <= 0xffff {
-            return Ok(self.ram.write(address, value));
+            return Ok(self.ram.write(address - 0xc000, value));
         }
 
         Err(GgError::BusRequestOutOfBounds { address: address as usize })
@@ -177,20 +184,18 @@ impl Bus {
         }
 
         if address >= 0xc000 && address <= 0xffff {
-            return Ok(self.ram.write_word(address, value));
+            return Ok(self.ram.write_word(address - 0xc000, value));
         }
 
         Err(GgError::BusRequestOutOfBounds { address: address as usize })
     }
 
-    pub(crate) fn write_passthrough(&mut self, address: usize, value: u8) -> Result<(), GgError> {
-        if self.bios_enabled {
-            self.bios_rom.write(address as u16, value)
-        } else {
-            self.rom.write(address, value)
+    pub(crate) fn write_passthrough(&mut self, destination: &Passthrough, address: usize, value: u8) {
+        match destination {
+            Passthrough::Bios => self.bios_rom.write(address as u16, value),
+            Passthrough::Rom => self.rom.write(address, value),
+            Passthrough::Ram => self.ram.write(address as u16, value)
         }
-
-        Ok(())
     }
 
     /// Translate a 16-bit CPU address to a 32-bit ROM address

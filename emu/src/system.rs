@@ -1,11 +1,11 @@
 use log::error;
 use z80::instruction::Instruction;
 
-use crate::bus::Bus;
+use crate::bus::{Bus, Passthrough};
 use crate::cpu::Cpu;
 use crate::error::GgError;
 
-use crate::lua_engine::{LuaEngine, HookType};
+use crate::lua_engine::{HookType, LuaEngine};
 use crate::mapper::SegaMapper;
 use crate::psg::Psg;
 use crate::vdp::{Color, Mode, Vdp};
@@ -15,7 +15,7 @@ pub struct System {
     pub bus: Bus,
     pub vdp: Vdp,
     pub psg: Psg,
-    lua: LuaEngine
+    lua: LuaEngine,
 }
 
 impl System {
@@ -23,13 +23,13 @@ impl System {
         // todo: figure out mapper
         let mapper = SegaMapper::new(0);
         let mode = if emulate_sms { Mode::SegaMasterSystem } else { Mode::GameGear };
-        
+
         System {
             cpu: Cpu::new(),
             bus: Bus::new(mapper),
             vdp: Vdp::new(mode),
             psg: Psg::new(),
-            lua: LuaEngine::new(lua_script)
+            lua: LuaEngine::new(lua_script),
         }
     }
 
@@ -40,7 +40,7 @@ impl System {
 
     pub fn load_bios(&mut self, data: &[u8]) {
         let previous_value = self.enable_bios();
-        self.load_rom(data);
+        self.load_rom(Passthrough::Bios, data);
         self.bus.bios_enabled = previous_value;
     }
 
@@ -48,9 +48,9 @@ impl System {
         self.bus.rom.resize(data.len());
 
         let previous_value = self.disable_bios();
-        self.load_rom(data);
+        self.load_rom(Passthrough::Rom, data);
         self.bus.bios_enabled = previous_value;
-     }
+    }
 
     pub fn disable_bios(&mut self) -> bool {
         let previous_value = self.bus.bios_enabled;
@@ -86,11 +86,14 @@ impl System {
             Err(e) => {
                 error!("Identified error at address: {:04x}", self.cpu.registers.pc);
                 if self.cpu.registers.pc < 0xc000 {
-                    error!("Real address in ROM: {:08x}", self.bus.translate_address_to_real(self.cpu.registers.pc).unwrap());
+                    error!(
+                        "Real address in ROM: {:08x}",
+                        self.bus.translate_address_to_real(self.cpu.registers.pc).unwrap()
+                    );
                 }
                 return Err(e);
-            },
-            _ => ()
+            }
+            _ => (),
         };
         self.vdp.tick(&mut self.cpu);
 
@@ -108,11 +111,9 @@ impl System {
         self.vdp.render_background()
     }
 
-    pub(crate) fn load_rom(&mut self, data: &[u8]) {
+    pub(crate) fn load_rom(&mut self, rom: Passthrough, data: &[u8]) {
         for i in 0..data.len() {
-            self.bus
-                .write_passthrough(i, data[i])
-                .expect("Failed to write to bus while loading into ROM");
+            self.bus.write_passthrough(&rom, i, data[i]);
         }
     }
 
