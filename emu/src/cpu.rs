@@ -143,11 +143,12 @@ impl Cpu {
                     Err(_) => self.registers.pc as usize, // This can happen if we execute code in RAM (example: end of BIOS)
                 };
                 trace!(
-                    "[{}:{:04x}->{:08x}] {}",
+                    "[{}:{:04x}->{:08x}] {:<20} [{:?}]",
                     prefix,
                     self.registers.pc,
                     real_pc_addr,
-                    instruction.opcode
+                    format!("{}", instruction.opcode),
+                    self
                 );
 
                 let mut handlers = Handlers::new(self, bus, vdp, psg);
@@ -451,5 +452,25 @@ impl fmt::Display for Cpu {
             self.registers.sp
         )?;
         write!(f, "{}\n", self.flags)
+    }
+}
+
+impl fmt::Debug for Cpu {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "AF: {:04x}  BC: {:04x}  DE: {:04x}  HL: {:04x}  AF': {:04x}  BC': {:04x}  DE': {:04x}  HL': {:04x}  PC: {:04x}  SP: {:04x}  Flags: {:08b}",
+            self.get_register_u16(Reg16::AF),
+            self.get_register_u16(Reg16::BC),
+            self.get_register_u16(Reg16::DE),
+            self.get_register_u16(Reg16::HL),
+            self.get_register_u16(Reg16::AFShadow),
+            self.get_register_u16(Reg16::BCShadow),
+            self.get_register_u16(Reg16::DEShadow),
+            self.get_register_u16(Reg16::HLShadow),
+            self.registers.pc,
+            self.registers.sp,
+            self.flags.bits()
+        )
     }
 }
