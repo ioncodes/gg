@@ -35,6 +35,7 @@ pub struct Bus {
     joysticks_enabled: bool,
     sdsc_console: DebugConsole,
     rom_write_protection: bool,     // Useful for unit tests that are not SMS/GG specific
+    disable_bank_behavior: bool,    // Useful for unit tests that are not SMS/GG specific
 }
 
 impl Bus {
@@ -50,6 +51,7 @@ impl Bus {
             joysticks_enabled: true,
             sdsc_console: DebugConsole {},
             rom_write_protection: true,
+            disable_bank_behavior: false,
         }
     }
 
@@ -191,6 +193,14 @@ impl Bus {
     }
 
     fn fetch_bank(&self, bank: BankSelect) -> usize {
+        if self.disable_bank_behavior {
+            return match bank {
+                BankSelect::Bank0 => 0,
+                BankSelect::Bank1 => 1,
+                BankSelect::Bank2 => 2,
+            };
+        }
+
         (match bank {
             BankSelect::Bank0 => self.read(MEMORY_REGISTER_CR_BANK_SELECT_0).unwrap(),
             BankSelect::Bank1 => {
@@ -214,6 +224,10 @@ impl Bus {
 
     pub fn set_rom_write_protection(&mut self, value: bool) {
         self.rom_write_protection = value;
+    }
+
+    pub fn disable_bank_behavior(&mut self, value: bool) {
+        self.disable_bank_behavior = value;
     }
 }
 

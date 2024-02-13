@@ -940,6 +940,8 @@ impl<'a> Handlers<'a> {
             Opcode::InvertCarry(_) => {
                 let carry = self.cpu.registers.f.contains(Flags::CARRY);
                 self.cpu.registers.f.set(Flags::CARRY, !carry);
+                self.cpu.registers.f.set(Flags::SUBTRACT, false);
+                self.cpu.registers.f.set(Flags::HALF_CARRY, carry);
                 Ok(())
             }
             _ => Err(GgError::InvalidOpcodeImplementation {

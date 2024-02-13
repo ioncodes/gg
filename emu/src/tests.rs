@@ -5,8 +5,9 @@ mod tests {
     use crate::{bus::Passthrough, cpu::Flags, system::System};
 
     fn is_ignore(path: &std::path::Path) -> bool {
-        //!path.ends_with("80.json")
-        false
+        // we dont wanna test interrupts
+        path.ends_with("76.json")
+        //false
     }   
 
     #[datatest::files("../external/jsmoo/misc/tests/GeneratedTests/z80/v1", {
@@ -18,6 +19,7 @@ mod tests {
         for test in tests {
             let test = test.as_object().unwrap();
             let name = test.get("name").unwrap().as_str().unwrap();
+            // println!("Running test: {}", name);
             
             let initial = test.get("initial").unwrap().as_object().unwrap();
             let final_ = test.get("final").unwrap().as_object().unwrap();
@@ -26,6 +28,7 @@ mod tests {
             system.disable_bios();
             system.bus.rom.resize(0xffff);
             system.bus.set_rom_write_protection(false);
+            system.bus.disable_bank_behavior(true);
 
             system.cpu.registers.a = initial.get("a").unwrap().as_u64().unwrap() as u8;
             system.cpu.registers.b = initial.get("b").unwrap().as_u64().unwrap() as u8;

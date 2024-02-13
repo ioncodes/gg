@@ -81,7 +81,7 @@ pub struct Cpu {
     pub registers: Registers,
     pub interrupts_enabled: bool,
     pub interrupt_mode: InterruptMode,
-    irq_available: bool,
+    irq_available: bool
 }
 
 impl Cpu {
@@ -111,26 +111,21 @@ impl Cpu {
             },
             interrupts_enabled: true,
             interrupt_mode: InterruptMode::IM0,
-            irq_available: false,
+            irq_available: false
         }
     }
 
     pub(crate) fn decode_at_pc(&self, bus: &mut Bus) -> Result<Instruction, String> {
-        let mut data = vec![
-            bus.read(self.registers.pc).unwrap(),
-        ];
+        let mut data = vec![];
 
-        // The next bytes *should* not be out of bounds, but we'll check just in case
+        // The next bytes *should* not be out of bounds, but we'll wrap around just in case
         // I introduced this for certain cases in JSMoo's z80 unit tests
-        // TODO: Verify whether this is sound if it happens in an actual scenario/game
-        //       If this behavior may happen legitimately we would be forced to wrap back to 0
+        // Important: For the unit tests we must run this with disabled banking behavior as that can trip up
+        // the ROM address calculations
 
-        for idx in 1..4 {
-            if let Some(pc) = self.registers.pc.checked_add(idx) {
-                data.push(bus.read(pc).unwrap());
-            } else {
-                data.push(0x69);
-            }
+        for idx in 0..4 {
+            let pc = self.registers.pc.wrapping_add(idx);
+            data.push(bus.read(pc).unwrap());
         }
 
         let disasm = Disassembler::new(&data);
