@@ -5,9 +5,9 @@ mod tests {
     use crate::{bus::Passthrough, cpu::Flags, system::System};
 
     fn is_ignore(path: &std::path::Path) -> bool {
-        //!path.ends_with("02.json")
+        //!path.ends_with("05.json")
         false
-    }      
+    }   
 
     #[datatest::files("../external/jsmoo/misc/tests/GeneratedTests/z80/v1", {
         input in r"^.*\.json" if !is_ignore
@@ -18,7 +18,7 @@ mod tests {
         for test in tests {
             let test = test.as_object().unwrap();
             let name = test.get("name").unwrap().as_str().unwrap();
-
+            
             let initial = test.get("initial").unwrap().as_object().unwrap();
             let final_ = test.get("final").unwrap().as_object().unwrap();
 

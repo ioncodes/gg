@@ -116,12 +116,23 @@ impl Cpu {
     }
 
     pub(crate) fn decode_at_pc(&self, bus: &mut Bus) -> Result<Instruction, String> {
-        let data = vec![
+        let mut data = vec![
             bus.read(self.registers.pc).unwrap(),
-            bus.read(self.registers.pc + 1).unwrap(),
-            bus.read(self.registers.pc + 2).unwrap(),
-            bus.read(self.registers.pc + 3).unwrap(),
         ];
+
+        // The next bytes *should* not be out of bounds, but we'll check just in case
+        // I introduced this for certain cases in JSMoo's z80 unit tests
+        // TODO: Verify whether this is sound if it happens in an actual scenario/game
+        //       If this behavior may happen legitimately we would be forced to wrap back to 0
+
+        for idx in 1..4 {
+            if let Some(pc) = self.registers.pc.checked_add(idx) {
+                data.push(bus.read(pc).unwrap());
+            } else {
+                data.push(0x69);
+            }
+        }
+
         let disasm = Disassembler::new(&data);
         disasm.decode(0)
     }
@@ -181,9 +192,9 @@ impl Cpu {
                     Opcode::And(_, _) => handlers.and(&instruction),
                     Opcode::SubtractWithCarry(_, _, _) => handlers.subtract_with_carry(&instruction),
                     Opcode::RotateRightCarry(_) => handlers.rotate_right_carry(&instruction),
-                    Opcode::RotateRightCarrySwap(_) => handlers.rotate_right_carry_swap(&instruction),
+                    Opcode::RotateRightAccumulator(_) => handlers.rotate_right_accumulator(&instruction),
                     Opcode::RotateLeftCarry(_) => handlers.rotate_left_carry(&instruction),
-                    Opcode::RotateLeftCarrySwap(_) => handlers.rotate_left_carry_swap(&instruction),
+                    Opcode::RotateLeftAccumulator(_) => handlers.rotate_left_accumulator(&instruction),
                     Opcode::RotateRightCarrySideeffect(_, _) => handlers.rotate_right_carry_sideeffect(&instruction),
                     Opcode::RotateRightCarrySwapSideeffect(_, _) => handlers.rotate_right_carry_swap_sideeffect(&instruction),
                     Opcode::Complement(_) => handlers.complement(&instruction),
@@ -226,7 +237,7 @@ impl Cpu {
                 };
 
                 if !skip {
-                    self.registers.pc += instruction.length as u16;
+                    self.registers.pc = self.registers.pc.wrapping_add(instruction.length as u16);
                 }
 
                 if result.is_ok() {
