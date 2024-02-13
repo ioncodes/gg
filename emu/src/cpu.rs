@@ -81,7 +81,7 @@ pub struct Cpu {
     pub registers: Registers,
     pub interrupts_enabled: bool,
     pub interrupt_mode: InterruptMode,
-    irq_available: bool
+    irq_available: bool,
 }
 
 impl Cpu {
@@ -111,7 +111,7 @@ impl Cpu {
             },
             interrupts_enabled: true,
             interrupt_mode: InterruptMode::IM0,
-            irq_available: false
+            irq_available: false,
         }
     }
 
@@ -137,7 +137,7 @@ impl Cpu {
             self.trigger_irq(bus)?;
             self.irq_available = false;
         }
-        
+
         let instr = self.decode_at_pc(bus);
 
         match instr {
@@ -185,7 +185,7 @@ impl Cpu {
                     Opcode::Subtract(_, _) => handlers.subtract(&instruction),
                     Opcode::Add(_, _, _) => handlers.add(&instruction),
                     Opcode::And(_, _) => handlers.and(&instruction),
-                    Opcode::SubtractWithCarry(_, _, _) => handlers.subtract_with_carry(&instruction),
+                    Opcode::SubtractCarry(_, _, _) => handlers.subtract_carry(&instruction),
                     Opcode::RotateRightCarry(_) => handlers.rotate_right_carry(&instruction),
                     Opcode::RotateRightAccumulator(_) => handlers.rotate_right_accumulator(&instruction),
                     Opcode::RotateLeftCarry(_) => handlers.rotate_left_carry(&instruction),
@@ -201,7 +201,6 @@ impl Cpu {
                     Opcode::LoadRepeat(_) => handlers.load_repeat(&instruction),
                     Opcode::InvertCarry(_) => handlers.invert_carry(&instruction),
                     Opcode::AddCarry(_, _, _) => handlers.add_carry(&instruction),
-                    Opcode::SubtractCarry(_, _, _) => handlers.subtract_carry(&instruction),
                     Opcode::NoOperation(_) => Ok(()),
                     _ => {
                         error!("Handler missing for instruction: {}\n{}", instruction.opcode, self);
@@ -262,7 +261,7 @@ impl Cpu {
             self.push_stack(bus, self.registers.pc + instr_length)?;
             self.registers.pc = vector;
         }
-        
+
         Ok(())
     }
 

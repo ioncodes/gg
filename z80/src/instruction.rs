@@ -44,7 +44,7 @@ pub enum Reg16 {
     SP,
     PC,
     IX(Option<i8>),
-    IY(Option<i8>)
+    IY(Option<i8>),
 }
 
 #[derive(PartialEq, Copy, Clone)]
@@ -105,7 +105,7 @@ pub enum Opcode {
     SetBit(Immediate, Operand, usize),
     SetInterruptMode(Immediate, usize),
     And(Operand, usize),
-    SubtractWithCarry(Register, Register, usize),
+    SubtractCarry(Operand, Operand, usize),
     RotateRightCarry(usize),
     RotateRightAccumulator(usize),
     RotateLeftCarry(usize),
@@ -120,7 +120,6 @@ pub enum Opcode {
     LoadRepeat(usize),
     InvertCarry(usize),
     AddCarry(Operand, Operand, usize),
-    SubtractCarry(Operand, Operand, usize),
     Unknown(usize),
 }
 
@@ -162,10 +161,9 @@ impl fmt::Display for Opcode {
             Opcode::Out(op1, op2, _) => write!(f, "out {}, {}", op1, op2),
             Opcode::In(op1, op2, _) => write!(f, "in {}, {}", op1, op2),
             Opcode::Compare(op1, _) => write!(f, "cp {}", op1),
-            Opcode::SubtractWithCarry(op1, op2, _) => write!(f, "sbc {}, {}", op1, op2),
+            Opcode::SubtractCarry(op1, op2, _) => write!(f, "sbc {}, {}", op1, op2),
             Opcode::LoadRepeat(_) => write!(f, "lddr"),
             Opcode::AddCarry(op1, op2, _) => write!(f, "adc {}, {}", op1, op2),
-            Opcode::SubtractCarry(op1, op2, _) => write!(f, "sbc {}, {}", op1, op2),
             Opcode::JumpRelative(op1, op2, _) => {
                 write!(f, "jr")?;
                 if *op1 != Condition::None {
@@ -189,7 +187,7 @@ impl fmt::Display for Opcode {
                     write!(f, " {},", cond)?;
                 }
                 write!(f, " {}", op)
-            },
+            }
             Opcode::OutIndirectRepeat(_) => write!(f, "otir"),
             Opcode::NoOperation(_) => write!(f, "nop"),
             Opcode::ReturnFromNmi(_) => write!(f, "retn"),
@@ -313,14 +311,14 @@ impl fmt::Display for Reg16 {
                 } else {
                     write!(f, "ix")
                 }
-            },
+            }
             Reg16::IY(offset) => {
                 if let Some(offset) = offset {
                     write!(f, "iy+#{:01x}", offset)
                 } else {
                     write!(f, "iy")
                 }
-            },
+            }
         }
     }
 }

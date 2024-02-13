@@ -982,7 +982,11 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 2,
             ),
-            (Some(0xed), Some(0x42), _, _) => Opcode::SubtractWithCarry(Register::Reg16(Reg16::HL), Register::Reg16(Reg16::BC), 2),
+            (Some(0xed), Some(0x42), _, _) => Opcode::SubtractCarry(
+                Operand::Register(Register::Reg16(Reg16::HL), false),
+                Operand::Register(Register::Reg16(Reg16::BC), false),
+                2,
+            ),
             (Some(0xed), Some(0x45), _, _) => Opcode::ReturnFromNmi(2),
             (Some(0xed), Some(0x46), _, _) => Opcode::SetInterruptMode(Immediate::U8(0), 2),
             (Some(0xed), Some(0x4b), _, _) => Opcode::Load(
@@ -1000,7 +1004,11 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 2,
             ),
-            (Some(0xed), Some(0x52), _, _) => Opcode::SubtractWithCarry(Register::Reg16(Reg16::HL), Register::Reg16(Reg16::DE), 2),
+            (Some(0xed), Some(0x52), _, _) => Opcode::SubtractCarry(
+                Operand::Register(Register::Reg16(Reg16::HL), false),
+                Operand::Register(Register::Reg16(Reg16::DE), false),
+                2,
+            ),
             (Some(0xed), Some(0x56), _, _) => Opcode::SetInterruptMode(Immediate::U8(1), 2),
             (Some(0xed), Some(0x5b), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::DE), false),
@@ -1018,13 +1026,21 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 2,
             ),
-            (Some(0xed), Some(0x62), _, _) => Opcode::SubtractWithCarry(Register::Reg16(Reg16::HL), Register::Reg16(Reg16::HL), 2),
+            (Some(0xed), Some(0x62), _, _) => Opcode::SubtractCarry(
+                Operand::Register(Register::Reg16(Reg16::HL), false),
+                Operand::Register(Register::Reg16(Reg16::HL), false),
+                2,
+            ),
             (Some(0xed), Some(0x6b), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
                 4,
             ),
-            (Some(0xed), Some(0x72), _, _) => Opcode::SubtractWithCarry(Register::Reg16(Reg16::HL), Register::Reg16(Reg16::SP), 2),
+            (Some(0xed), Some(0x72), _, _) => Opcode::SubtractCarry(
+                Operand::Register(Register::Reg16(Reg16::HL), false),
+                Operand::Register(Register::Reg16(Reg16::SP), false),
+                2,
+            ),
             (Some(0xed), Some(0x73), _, _) => Opcode::Load(
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
                 Operand::Register(Register::Reg16(Reg16::SP), false),
@@ -1252,7 +1268,7 @@ impl<'a> Disassembler<'a> {
         match opcode {
             Opcode::DisableInterrupts(length) => length,
             Opcode::EnableInterrupts(length) => length,
-            Opcode::SubtractWithCarry(_, _, length) => length,
+            Opcode::SubtractCarry(_, _, length) => length,
             Opcode::Load(_, _, length) => length,
             Opcode::LoadIndirectRepeat(length) => length,
             Opcode::Out(_, _, length) => length,
@@ -1295,7 +1311,6 @@ impl<'a> Disassembler<'a> {
             Opcode::OutDecrement(length) => length,
             Opcode::InvertCarry(length) => length,
             Opcode::AddCarry(_, _, length) => length,
-            Opcode::SubtractCarry(_, _, length) => length,
             Opcode::Unknown(length) => length,
         }
     }

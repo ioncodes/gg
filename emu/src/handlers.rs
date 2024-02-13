@@ -431,6 +431,20 @@ impl<'a> Handlers<'a> {
 
                 Ok(())
             }
+            Opcode::Decrement(Operand::Register(Register::Reg16(dst_reg), true), _) => {
+                let dst = self.cpu.get_register_u16(dst_reg);
+                let value = self.bus.read(dst)?;
+                let result = value.wrapping_sub(1);
+                self.bus.write(dst, result)?;
+
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, result == 127);
+                self.cpu.registers.f.set(Flags::SUBTRACT, true);
+                self.cpu.registers.f.set(Flags::HALF_CARRY, result & 0b0000_1111 == 0b0000_1111);
+
+                Ok(())
+            }
             Opcode::Decrement(Operand::Register(Register::Reg16(dst_reg), false), _) => {
                 let dst = self.cpu.get_register_u16(dst_reg);
                 let result = dst.wrapping_sub(1);
@@ -686,17 +700,50 @@ impl<'a> Handlers<'a> {
         Ok(())
     }
 
-    pub(crate) fn subtract_with_carry(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+    pub(crate) fn subtract_carry(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
-            Opcode::SubtractWithCarry(Register::Reg16(dst_reg), Register::Reg16(src_reg), _) => {
+            Opcode::SubtractCarry(
+                Operand::Register(Register::Reg16(dst_reg), false),
+                Operand::Register(Register::Reg16(src_reg), false),
+                _,
+            ) => {
                 let src = self.cpu.get_register_u16(src_reg);
                 let dst = self.cpu.get_register_u16(dst_reg);
                 let carry = if self.cpu.registers.f.contains(Flags::CARRY) { 1 } else { 0 };
                 let result = dst.wrapping_sub(src).wrapping_sub(carry);
                 self.cpu.set_register_u16(dst_reg, result);
 
+                let hc = self.detect_half_carry_u16_subtraction(result, dst);
+                self.cpu.registers.f.set(Flags::CARRY, result > dst);
+                self.cpu.registers.f.set(Flags::HALF_CARRY, (src ^ dst ^ result) & 0x1000 != 0);
+                self.cpu.registers.f.set(Flags::SUBTRACT, true);
                 self.cpu.registers.f.set(Flags::ZERO, result == 0);
                 self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, result > dst);
+
+                Ok(())
+            }
+            Opcode::SubtractCarry(
+                Operand::Register(Register::Reg8(dst_reg), false),
+                Operand::Register(Register::Reg8(src_reg), false),
+                _,
+            ) => {
+                let src = self.cpu.get_register_u8(src_reg);
+                let dst = self.cpu.get_register_u8(dst_reg);
+                let carry = if self.cpu.registers.f.contains(Flags::CARRY) { 1 } else { 0 };
+                let result = dst.wrapping_sub(src).wrapping_sub(carry);
+                self.cpu.set_register_u8(dst_reg, result);
+
+                let hc = self.detect_half_carry_u8_subtraction(result, dst);
+                self.cpu.registers.f.set(Flags::CARRY, result > dst);
+                self.cpu.registers.f.set(Flags::HALF_CARRY, (src ^ dst ^ result) & 0x10 != 0);
+                self.cpu.registers.f.set(Flags::SUBTRACT, true);
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu
+                    .registers
+                    .f
+                    .set(Flags::PARITY_OR_OVERFLOW, self.is_underflow(dst, src, result));
 
                 Ok(())
             }
@@ -987,37 +1034,6 @@ impl<'a> Handlers<'a> {
         }
     }
 
-    pub(crate) fn subtract_carry(&mut self, instruction: &Instruction) -> Result<(), GgError> {
-        match instruction.opcode {
-            Opcode::SubtractCarry(
-                Operand::Register(Register::Reg8(dst_reg), false),
-                Operand::Register(Register::Reg8(src_reg), false),
-                _,
-            ) => {
-                let src = self.cpu.get_register_u8(src_reg);
-                let dst = self.cpu.get_register_u8(dst_reg);
-                let carry = if self.cpu.registers.f.contains(Flags::CARRY) { 1 } else { 0 };
-                let result = dst.wrapping_sub(src).wrapping_sub(carry);
-                self.cpu.set_register_u8(dst_reg, result);
-
-                self.cpu.registers.f.set(Flags::ZERO, result == 0);
-                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
-                self.cpu
-                    .registers
-                    .f
-                    .set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(dst, src, result));
-                self.cpu.registers.f.set(Flags::SUBTRACT, true);
-                self.cpu.registers.f.set(Flags::HALF_CARRY, (dst & 0x0F) < (src & 0x0F) + carry);
-                self.cpu.registers.f.set(Flags::CARRY, (dst as u16) < (src as u16) + (carry as u16));
-
-                Ok(())
-            }
-            _ => Err(GgError::InvalidOpcodeImplementation {
-                instruction: instruction.opcode,
-            }),
-        }
-    }
-
     // Helpers
 
     fn check_cpu_flag(&self, condition: Condition) -> bool {
@@ -1053,12 +1069,16 @@ impl<'a> Handlers<'a> {
     }
 
     fn detect_half_carry_u16_subtraction(&self, lhs: u16, rhs: u16) -> bool {
-        let rhs = rhs & 0xffff;
-        let lhs = lhs & 0xffff;
+        let rhs = rhs & 0x0fff;
+        let lhs = lhs & 0x0fff;
         lhs.wrapping_sub(rhs) & 0x1000 > 0
     }
 
     fn is_overflow(&self, lhs: u8, rhs: u8, result: u8) -> bool {
         ((lhs < 128 && rhs < 128) && result >= 128) || ((lhs > 127 && rhs > 127) && result <= 127)
+    }
+
+    fn is_underflow(&self, lhs: u8, rhs: u8, result: u8) -> bool {
+        ((lhs < 128 && rhs > 127) && result >= 128) || ((lhs > 127 && rhs < 128) && result <= 127)
     }
 }
