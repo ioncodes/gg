@@ -29,4 +29,6 @@ pub enum GgError {
     JoystickDisabled,
     #[snafu(display("Repeat not fulfilled"))]
     RepeatNotFulfilled,
+    #[snafu(display("Write to ROM at address: {:08x}", address))]
+    WriteToReadOnlyMemory { address: usize },
 }

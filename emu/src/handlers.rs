@@ -383,6 +383,12 @@ impl<'a> Handlers<'a> {
                 let result = dst.wrapping_add(1);
                 self.cpu.set_register_u8(dst_reg, result);
 
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, result == 128);
+                self.cpu.registers.f.set(Flags::SUBTRACT, false);
+                self.cpu.registers.f.set(Flags::HALF_CARRY, result & 0b0000_1111 == 0);
+
                 Ok(())
             }
             Opcode::Increment(Operand::Register(Register::Reg16(dst_reg), false), _) => {
@@ -397,6 +403,12 @@ impl<'a> Handlers<'a> {
                 let value = self.bus.read(dst)?;
                 let result = value.wrapping_add(1);
                 self.bus.write(dst, result)?;
+
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, result == 128); // result overflowed from 127 to -128
+                self.cpu.registers.f.set(Flags::SUBTRACT, false);
+                self.cpu.registers.f.set(Flags::HALF_CARRY, result & 0b0000_1111 == 0);
 
                 Ok(())
             }
@@ -415,7 +427,7 @@ impl<'a> Handlers<'a> {
 
                 self.cpu.registers.f.set(Flags::ZERO, result == 0);
                 self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
-                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, result.count_ones() % 2 == 0);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, result == 127);
                 self.cpu.registers.f.set(Flags::SUBTRACT, true);
                 self.cpu.registers.f.set(Flags::HALF_CARRY, result & 0b0000_1111 == 0b0000_1111);
 
@@ -425,12 +437,6 @@ impl<'a> Handlers<'a> {
                 let dst = self.cpu.get_register_u16(dst_reg);
                 let result = dst.wrapping_sub(1);
                 self.cpu.set_register_u16(dst_reg, result);
-
-                self.cpu.registers.f.set(Flags::ZERO, result == 0);
-                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
-                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, result.count_ones() % 2 == 0);
-                self.cpu.registers.f.set(Flags::SUBTRACT, true);
-                self.cpu.registers.f.set(Flags::HALF_CARRY, result & 0b0000_1111 == 0b0000_1111);
 
                 Ok(())
             }

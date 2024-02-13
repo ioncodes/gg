@@ -34,6 +34,7 @@ pub struct Bus {
     pub(crate) joysticks: [Joystick; 2],
     joysticks_enabled: bool,
     sdsc_console: DebugConsole,
+    rom_write_protection: bool,     // Useful for unit tests that are not SMS/GG specific
 }
 
 impl Bus {
@@ -48,6 +49,7 @@ impl Bus {
             joysticks: [Joystick::new(JoystickPort::Player1), Joystick::new(JoystickPort::Player2)],
             joysticks_enabled: true,
             sdsc_console: DebugConsole {},
+            rom_write_protection: true,
         }
     }
 
@@ -70,10 +72,10 @@ impl Bus {
         if address >= 0x8000 && address < 0xc000 {
             if self.is_sram_bank_active() {
                 return Ok(self.sram.read(address - 0x8000));
-            } else {
-                let bank = self.fetch_bank(BankSelect::Bank2);
-                return Ok(self.rom.read_from_bank(bank, address - 0x8000));
             }
+
+            let bank = self.fetch_bank(BankSelect::Bank2);
+            return Ok(self.rom.read_from_bank(bank, address - 0x8000));
         }
 
         if address >= 0xc000 && address <= 0xffff {
@@ -93,32 +95,42 @@ impl Bus {
     #[allow(unused_comparisons)]
     pub fn write(&mut self, address: u16, value: u8) -> Result<(), GgError> {
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
-            //return Ok(self.bios_rom.write(address, value));
-            return Err(GgError::BusRequestOutOfBounds { address: address as usize });
+            if self.rom_write_protection {
+                return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
+            }
+
+            return Ok(self.bios_rom.write(address, value));
         }
 
         if address >= 0x0000 && address < 0x4000 {
-            // let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_0)? as usize;
-            // return Ok(self.rom.write_to_bank(bank, address, value));
-            return Err(GgError::BusRequestOutOfBounds { address: address as usize });
+            if self.rom_write_protection {
+                return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
+            }
+
+            let bank = self.fetch_bank(BankSelect::Bank0);
+            return Ok(self.rom.write_to_bank(bank, address, value));
         }
 
         if address >= 0x4000 && address < 0x8000 {
-            // let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_1)? as usize;
-            // return Ok(self.rom.write_to_bank(bank, address - 0x4000, value));
+            if self.rom_write_protection {
+                return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
+            }
 
-            return Err(GgError::BusRequestOutOfBounds { address: address as usize });
+            let bank = self.fetch_bank(BankSelect::Bank1);
+            return Ok(self.rom.write_to_bank(bank, address - 0x4000, value));
         }
 
         if address >= 0x8000 && address < 0xc000 {
-            // let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
-            // return Ok(self.rom.write_to_bank(bank, address - 0x8000, value));
-
             if self.is_sram_bank_active() {
                 return Ok(self.sram.write(address - 0x8000, value));
             }
+            
+            if self.rom_write_protection {
+                return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
+            }
 
-            return Err(GgError::BusRequestOutOfBounds { address: address as usize });
+            let bank = self.fetch_bank(BankSelect::Bank2);
+            return Ok(self.rom.write_to_bank(bank, address - 0x8000, value));
         }
 
         if address >= 0xc000 && address <= 0xffff {
@@ -152,17 +164,17 @@ impl Bus {
         let address = address as usize;
 
         if address >= 0x0000 && address < 0x4000 {
-            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_0)? as usize;
+            let bank = self.fetch_bank(BankSelect::Bank0);
             return Ok(bank * 0x4000 + address);
         }
 
         if address >= 0x4000 && address < 0x8000 {
-            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_1)? as usize;
+            let bank = self.fetch_bank(BankSelect::Bank1);
             return Ok(bank * 0x4000 + address - 0x4000);
         }
 
         if address >= 0x8000 && address < 0xc000 {
-            let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2)? as usize;
+            let bank = self.fetch_bank(BankSelect::Bank2);
             return Ok(bank * 0x4000 + address - 0x8000);
         }
 
@@ -198,6 +210,10 @@ impl Bus {
                 }
             }
         }) as usize
+    }
+
+    pub fn set_rom_write_protection(&mut self, value: bool) {
+        self.rom_write_protection = value;
     }
 }
 
