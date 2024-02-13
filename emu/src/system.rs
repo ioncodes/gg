@@ -118,7 +118,7 @@ impl System {
     }
 
     fn ready_to_redraw(&self) -> bool {
-        self.vdp.vram_dirty && self.vdp.is_vblank()
+        self.vdp.vram_dirty && self.vdp.is_hblank()
     }
 }
 

@@ -126,7 +126,7 @@ impl<'a> Handlers<'a> {
             _ => {
                 return Err(GgError::InvalidOpcodeImplementation {
                     instruction: instruction.opcode,
-                })
+                });
             }
         }?;
 
@@ -202,7 +202,7 @@ impl<'a> Handlers<'a> {
             _ => {
                 return Err(GgError::InvalidOpcodeImplementation {
                     instruction: instruction.opcode,
-                })
+                });
             }
         };
 
@@ -329,7 +329,7 @@ impl<'a> Handlers<'a> {
             _ => {
                 return Err(GgError::InvalidOpcodeImplementation {
                     instruction: instruction.opcode,
-                })
+                });
             }
         };
 
@@ -493,7 +493,7 @@ impl<'a> Handlers<'a> {
             _ => {
                 return Err(GgError::InvalidOpcodeImplementation {
                     instruction: instruction.opcode,
-                })
+                });
             }
         };
 
@@ -582,7 +582,7 @@ impl<'a> Handlers<'a> {
             _ => {
                 return Err(GgError::InvalidOpcodeImplementation {
                     instruction: instruction.opcode,
-                })
+                });
             }
         };
 
@@ -604,7 +604,7 @@ impl<'a> Handlers<'a> {
             _ => {
                 return Err(GgError::InvalidOpcodeImplementation {
                     instruction: instruction.opcode,
-                })
+                });
             }
         };
 
@@ -616,7 +616,10 @@ impl<'a> Handlers<'a> {
         let hc = self.detect_half_carry_u8_subtraction(a, result);
         self.cpu.registers.f.set(Flags::ZERO, result == 0);
         self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
-        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(a, value, result));
+        self.cpu
+            .registers
+            .f
+            .set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(a, value, result));
         self.cpu.registers.f.set(Flags::SUBTRACT, true);
         self.cpu.registers.f.set(Flags::HALF_CARRY, hc);
         self.cpu.registers.f.set(Flags::CARRY, result > a);
@@ -639,7 +642,10 @@ impl<'a> Handlers<'a> {
                 self.cpu.registers.f.set(Flags::SUBTRACT, false);
                 self.cpu.registers.f.set(Flags::ZERO, result == 0);
                 self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
-                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(dst, src, result));
+                self.cpu
+                    .registers
+                    .f
+                    .set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(dst, src, result));
             }
             Opcode::Add(Operand::Register(Register::Reg16(dst_reg), false), Operand::Register(Register::Reg16(src_reg), false), _) => {
                 let src = self.cpu.get_register_u16(src_reg);
@@ -665,12 +671,15 @@ impl<'a> Handlers<'a> {
                 self.cpu.registers.f.set(Flags::HALF_CARRY, hc);
                 self.cpu.registers.f.set(Flags::ZERO, result == 0);
                 self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
-                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(dst, imm, result));
+                self.cpu
+                    .registers
+                    .f
+                    .set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(dst, imm, result));
             }
             _ => {
                 return Err(GgError::InvalidOpcodeImplementation {
                     instruction: instruction.opcode,
-                })
+                });
             }
         }
 
@@ -923,7 +932,7 @@ impl<'a> Handlers<'a> {
             _ => {
                 return Err(GgError::InvalidOpcodeImplementation {
                     instruction: instruction.opcode,
-                })
+                });
             }
         };
 
@@ -962,7 +971,10 @@ impl<'a> Handlers<'a> {
                 let hc = self.detect_half_carry_u8_addition(dst, src);
                 self.cpu.registers.f.set(Flags::ZERO, result == 0);
                 self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
-                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(dst, src, result));
+                self.cpu
+                    .registers
+                    .f
+                    .set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(dst, src, result));
                 self.cpu.registers.f.set(Flags::SUBTRACT, false);
                 self.cpu.registers.f.set(Flags::HALF_CARRY, hc);
                 self.cpu.registers.f.set(Flags::CARRY, carry > 0);
@@ -990,7 +1002,10 @@ impl<'a> Handlers<'a> {
 
                 self.cpu.registers.f.set(Flags::ZERO, result == 0);
                 self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
-                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(dst, src, result));
+                self.cpu
+                    .registers
+                    .f
+                    .set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(dst, src, result));
                 self.cpu.registers.f.set(Flags::SUBTRACT, true);
                 self.cpu.registers.f.set(Flags::HALF_CARRY, (dst & 0x0F) < (src & 0x0F) + carry);
                 self.cpu.registers.f.set(Flags::CARRY, (dst as u16) < (src as u16) + (carry as u16));

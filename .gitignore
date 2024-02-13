@@ -1,4 +1,5 @@
 .vscode/
+.idea/
 Cargo.lock
 target/
 *.id0

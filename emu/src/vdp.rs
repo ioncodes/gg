@@ -113,6 +113,10 @@ impl Vdp {
     pub(crate) fn is_vblank(&self) -> bool {
         self.v == 0
     }
+    
+    pub(crate) fn is_hblank(&self) -> bool {
+        self.h == 0
+    }
 
     pub fn render_background(&mut self) -> (Color, Vec<Color>) {
         let background_color = self.read_palette_entry(0);
