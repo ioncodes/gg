@@ -616,7 +616,7 @@ impl<'a> Handlers<'a> {
         let hc = self.detect_half_carry_u8_subtraction(a, result);
         self.cpu.registers.f.set(Flags::ZERO, result == 0);
         self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
-        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, result == 128);
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(a, value, result));
         self.cpu.registers.f.set(Flags::SUBTRACT, true);
         self.cpu.registers.f.set(Flags::HALF_CARRY, hc);
         self.cpu.registers.f.set(Flags::CARRY, result > a);
@@ -637,6 +637,9 @@ impl<'a> Handlers<'a> {
                 self.cpu.registers.f.set(Flags::CARRY, result < dst);
                 self.cpu.registers.f.set(Flags::HALF_CARRY, hc);
                 self.cpu.registers.f.set(Flags::SUBTRACT, false);
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(dst, src, result));
             }
             Opcode::Add(Operand::Register(Register::Reg16(dst_reg), false), Operand::Register(Register::Reg16(src_reg), false), _) => {
                 let src = self.cpu.get_register_u16(src_reg);
@@ -660,6 +663,9 @@ impl<'a> Handlers<'a> {
                 self.cpu.registers.f.set(Flags::CARRY, result < dst);
                 self.cpu.registers.f.set(Flags::SUBTRACT, false);
                 self.cpu.registers.f.set(Flags::HALF_CARRY, hc);
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(dst, imm, result));
             }
             _ => {
                 return Err(GgError::InvalidOpcodeImplementation {
@@ -954,7 +960,7 @@ impl<'a> Handlers<'a> {
                 let hc = self.detect_half_carry_u8_addition(dst, src);
                 self.cpu.registers.f.set(Flags::ZERO, result == 0);
                 self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
-                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, result.count_ones() % 2 == 0);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(dst, src, result));
                 self.cpu.registers.f.set(Flags::SUBTRACT, false);
                 self.cpu.registers.f.set(Flags::HALF_CARRY, hc);
                 self.cpu.registers.f.set(Flags::CARRY, carry > 0);
@@ -982,7 +988,7 @@ impl<'a> Handlers<'a> {
 
                 self.cpu.registers.f.set(Flags::ZERO, result == 0);
                 self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
-                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, result.count_ones() % 2 == 0);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(dst, src, result));
                 self.cpu.registers.f.set(Flags::SUBTRACT, true);
                 self.cpu.registers.f.set(Flags::HALF_CARRY, (dst & 0x0F) < (src & 0x0F) + carry);
                 self.cpu.registers.f.set(Flags::CARRY, (dst as u16) < (src as u16) + (carry as u16));
@@ -1012,8 +1018,8 @@ impl<'a> Handlers<'a> {
     }
 
     fn detect_half_carry_u8_addition(&self, lhs: u8, rhs: u8) -> bool {
-        let rhs = rhs & 0xff;
-        let lhs = lhs & 0xff;
+        let rhs = rhs & 0x0f;
+        let lhs = lhs & 0x0f;
         lhs.wrapping_add(rhs) & 0x10 > 0
     }
 
@@ -1024,8 +1030,8 @@ impl<'a> Handlers<'a> {
     }
 
     fn detect_half_carry_u8_subtraction(&self, lhs: u8, rhs: u8) -> bool {
-        let rhs = rhs & 0xff;
-        let lhs = lhs & 0xff;
+        let rhs = rhs & 0x0f;
+        let lhs = lhs & 0x0f;
         lhs.wrapping_sub(rhs) & 0x10 > 0
     }
 
@@ -1033,5 +1039,9 @@ impl<'a> Handlers<'a> {
         let rhs = rhs & 0xffff;
         let lhs = lhs & 0xffff;
         lhs.wrapping_sub(rhs) & 0x1000 > 0
+    }
+
+    fn is_overflow(&self, lhs: u8, rhs: u8, result: u8) -> bool {
+        ((lhs < 128 && rhs < 128) && result >= 128) || ((lhs > 127 && rhs > 127) && result <= 127)
     }
 }

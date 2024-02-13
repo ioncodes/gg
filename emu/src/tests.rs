@@ -5,7 +5,7 @@ mod tests {
     use crate::{bus::Passthrough, cpu::Flags, system::System};
 
     fn is_ignore(path: &std::path::Path) -> bool {
-        //!path.ends_with("05.json")
+        //!path.ends_with("80.json")
         false
     }   
 
