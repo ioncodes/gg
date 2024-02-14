@@ -120,6 +120,7 @@ pub enum Opcode {
     LoadRepeat(usize),
     InvertCarry(usize),
     AddCarry(Operand, Operand, usize),
+    SetCarryFlag(usize),
     Unknown(usize),
 }
 
@@ -164,6 +165,7 @@ impl fmt::Display for Opcode {
             Opcode::SubtractCarry(op1, op2, _) => write!(f, "sbc {}, {}", op1, op2),
             Opcode::LoadRepeat(_) => write!(f, "lddr"),
             Opcode::AddCarry(op1, op2, _) => write!(f, "adc {}, {}", op1, op2),
+            Opcode::SetCarryFlag(_) => write!(f, "scf"),
             Opcode::JumpRelative(op1, op2, _) => {
                 write!(f, "jr")?;
                 if *op1 != Condition::None {

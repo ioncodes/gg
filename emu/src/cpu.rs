@@ -201,6 +201,7 @@ impl Cpu {
                     Opcode::LoadRepeat(_) => handlers.load_repeat(&instruction),
                     Opcode::InvertCarry(_) => handlers.invert_carry(&instruction),
                     Opcode::AddCarry(_, _, _) => handlers.add_carry(&instruction),
+                    Opcode::SetCarryFlag(_) => handlers.set_carry_flag(&instruction),
                     Opcode::NoOperation(_) => Ok(()),
                     _ => {
                         error!("Handler missing for instruction: {}\n{}", instruction.opcode, self);

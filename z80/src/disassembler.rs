@@ -72,6 +72,11 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::BC), false),
                 1,
             ),
+            (Some(0x0a), _, _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg16(Reg16::BC), true),
+                1,
+            ),
             (Some(0x0b), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::BC), false), 1),
             (Some(0x0c), _, _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::C), false), 1),
             (Some(0x0d), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::C), false), 1),
@@ -115,6 +120,11 @@ impl<'a> Disassembler<'a> {
             (Some(0x1b), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::DE), false), 1),
             (Some(0x1c), _, _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::E), false), 1),
             (Some(0x1d), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::E), false), 1),
+            (Some(0x1e), _, _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
+                2,
+            ),
             (Some(0x1f), _, _, _) => Opcode::RotateRightAccumulator(1),
             (Some(0x20), _, _, _) => Opcode::JumpRelative(Condition::NotZero, Immediate::S8(self.data[offset + 1] as i8), 2),
             (Some(0x21), _, _, _) => Opcode::Load(
@@ -149,6 +159,11 @@ impl<'a> Disassembler<'a> {
             (Some(0x2b), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::HL), false), 1),
             (Some(0x2c), _, _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::L), false), 1),
             (Some(0x2d), _, _, _) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::L), false), 1),
+            (Some(0x2e), _, _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
+                2,
+            ),
             (Some(0x2f), _, _, _) => Opcode::Complement(1),
             (Some(0x30), _, _, _) => Opcode::JumpRelative(Condition::NotCarry, Immediate::S8(self.data[offset + 1] as i8), 2),
             (Some(0x31), _, _, _) => Opcode::Load(
@@ -169,6 +184,7 @@ impl<'a> Disassembler<'a> {
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
                 2,
             ),
+            (Some(0x37), _, _, _) => Opcode::SetCarryFlag(1),
             (Some(0x38), _, _, _) => Opcode::JumpRelative(Condition::Carry, Immediate::S8(self.data[offset + 1] as i8), 2),
             (Some(0x39), _, _, _) => Opcode::Add(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
@@ -657,7 +673,14 @@ impl<'a> Disassembler<'a> {
             (Some(0xb5), _, _, _) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::L), false), 1),
             (Some(0xb6), _, _, _) => Opcode::Or(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
             (Some(0xb7), _, _, _) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::A), false), 1),
+            (Some(0xb8), _, _, _) => Opcode::Compare(Operand::Register(Register::Reg8(Reg8::B), false), 1),
+            (Some(0xb9), _, _, _) => Opcode::Compare(Operand::Register(Register::Reg8(Reg8::C), false), 1),
+            (Some(0xba), _, _, _) => Opcode::Compare(Operand::Register(Register::Reg8(Reg8::D), false), 1),
+            (Some(0xbb), _, _, _) => Opcode::Compare(Operand::Register(Register::Reg8(Reg8::E), false), 1),
+            (Some(0xbc), _, _, _) => Opcode::Compare(Operand::Register(Register::Reg8(Reg8::H), false), 1),
+            (Some(0xbd), _, _, _) => Opcode::Compare(Operand::Register(Register::Reg8(Reg8::L), false), 1),
             (Some(0xbe), _, _, _) => Opcode::Compare(Operand::Register(Register::Reg16(Reg16::HL), true), 1),
+            (Some(0xbf), _, _, _) => Opcode::Compare(Operand::Register(Register::Reg8(Reg8::A), false), 1),
             (Some(0xc0), _, _, _) => Opcode::Return(Condition::NotZero, 1),
             (Some(0xc1), _, _, _) => Opcode::Pop(Register::Reg16(Reg16::BC), 1),
             (Some(0xc2), _, _, _) => Opcode::Jump(
@@ -1311,6 +1334,7 @@ impl<'a> Disassembler<'a> {
             Opcode::OutDecrement(length) => length,
             Opcode::InvertCarry(length) => length,
             Opcode::AddCarry(_, _, length) => length,
+            Opcode::SetCarryFlag(length) => length,
             Opcode::Unknown(length) => length,
         }
     }
