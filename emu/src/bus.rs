@@ -15,7 +15,7 @@ pub const MEMORY_REGISTER_CR_BANK_SELECT_2: u16 = 0xffff;
 pub enum Passthrough {
     Bios,
     Rom,
-    Ram
+    Ram,
 }
 
 enum BankSelect {
@@ -34,8 +34,8 @@ pub struct Bus {
     pub(crate) joysticks: [Joystick; 2],
     joysticks_enabled: bool,
     sdsc_console: DebugConsole,
-    rom_write_protection: bool,     // Useful for unit tests that are not SMS/GG specific
-    disable_bank_behavior: bool,    // Useful for unit tests that are not SMS/GG specific
+    rom_write_protection: bool,  // Useful for unit tests that are not SMS/GG specific
+    disable_bank_behavior: bool, // Useful for unit tests that are not SMS/GG specific
 }
 
 impl Bus {
@@ -126,7 +126,7 @@ impl Bus {
             if self.is_sram_bank_active() {
                 return Ok(self.sram.write(address - 0x8000, value));
             }
-            
+
             if self.rom_write_protection {
                 return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
             }
@@ -148,7 +148,7 @@ impl Bus {
         let high = ((value >> 8) & 0xff) as u8;
         self.write(address, low)?;
         self.write(address + 1, high)?;
-        
+
         Ok(())
     }
 
@@ -156,7 +156,7 @@ impl Bus {
         match destination {
             Passthrough::Bios => self.bios_rom.write(address as u16, value),
             Passthrough::Rom => self.rom.write(address, value),
-            Passthrough::Ram => self.ram.write(address as u16, value)
+            Passthrough::Ram => self.ram.write(address as u16, value),
         }
     }
 
@@ -188,6 +188,10 @@ impl Bus {
     }
 
     pub fn is_sram_bank_active(&self) -> bool {
+        if self.disable_bank_behavior {
+            return false;
+        }
+
         let ram_mapping = self.read(MEMORY_REGISTER_RAM_MAPPING).unwrap();
         ram_mapping & 0b0000_1000 > 0
     }

@@ -145,6 +145,7 @@ impl<'a> Disassembler<'a> {
                 Operand::Immediate(Immediate::U8(self.data[offset + 1]), false),
                 2,
             ),
+            (Some(0x27), _, _, _) => Opcode::DecimalAdjustAccumulator(1),
             (Some(0x28), _, _, _) => Opcode::JumpRelative(Condition::Zero, Immediate::S8(self.data[offset + 1] as i8), 2),
             (Some(0x29), _, _, _) => Opcode::Add(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
@@ -1335,6 +1336,7 @@ impl<'a> Disassembler<'a> {
             Opcode::InvertCarry(length) => length,
             Opcode::AddCarry(_, _, length) => length,
             Opcode::SetCarryFlag(length) => length,
+            Opcode::DecimalAdjustAccumulator(length) => length,
             Opcode::Unknown(length) => length,
         }
     }

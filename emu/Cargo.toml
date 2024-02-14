@@ -11,6 +11,7 @@ log = "0.4.20"
 env_logger = "0.10.1"
 rlua = "0.19.7"
 lazy_static = "1.4.0"
+num-traits = "0.2.18"
 
 [dev-dependencies]
 serde = { version = "1.0.196", features = ["derive"] }

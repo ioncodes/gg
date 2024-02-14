@@ -121,6 +121,7 @@ pub enum Opcode {
     InvertCarry(usize),
     AddCarry(Operand, Operand, usize),
     SetCarryFlag(usize),
+    DecimalAdjustAccumulator(usize),
     Unknown(usize),
 }
 
@@ -166,6 +167,7 @@ impl fmt::Display for Opcode {
             Opcode::LoadRepeat(_) => write!(f, "lddr"),
             Opcode::AddCarry(op1, op2, _) => write!(f, "adc {}, {}", op1, op2),
             Opcode::SetCarryFlag(_) => write!(f, "scf"),
+            Opcode::DecimalAdjustAccumulator(_) => write!(f, "daa"),
             Opcode::JumpRelative(op1, op2, _) => {
                 write!(f, "jr")?;
                 if *op1 != Condition::None {

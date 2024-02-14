@@ -7,7 +7,7 @@ pub trait Mapper {
     fn memory(&self) -> &Memory<usize>;
     fn memory_mut(&mut self) -> &mut Memory<usize>;
     fn name(&self) -> String;
-    
+
     fn read(&self, address: usize) -> u8 {
         let bank = (address / 0x4000) as usize;
         let addr = (address % 0x4000) as u16;
@@ -28,7 +28,7 @@ pub struct SegaMapper {
 impl SegaMapper {
     pub fn new(size: usize) -> SegaMapper {
         SegaMapper {
-            rom: Memory::new(size, 0x0000)
+            rom: Memory::new(size, 0x0000),
         }
     }
 }
