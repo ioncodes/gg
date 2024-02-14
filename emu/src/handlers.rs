@@ -642,7 +642,7 @@ impl<'a> Handlers<'a> {
         self.cpu
             .registers
             .f
-            .set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(a, value, result));
+            .set(Flags::PARITY_OR_OVERFLOW, self.is_underflow(a, value, result));
         self.cpu.registers.f.set(Flags::SUBTRACT, true);
         self.cpu.registers.f.set(Flags::HALF_CARRY, hc);
         self.cpu.registers.f.set(Flags::CARRY, result > a);
@@ -1094,7 +1094,7 @@ impl<'a> Handlers<'a> {
             .set(Flags::PARITY_OR_OVERFLOW, self.is_overflow(dst, src, result));
         self.cpu.registers.f.set(Flags::SUBTRACT, false);
         self.cpu.registers.f.set(Flags::HALF_CARRY, hc);
-        self.cpu.registers.f.set(Flags::CARRY, result < dst);
+        self.cpu.registers.f.set(Flags::CARRY, self.detect_carry_u8(dst, src, result));
 
         Ok(())
     }
@@ -1128,6 +1128,14 @@ impl<'a> Handlers<'a> {
 
     fn detect_half_carry_u16(&self, lhs: u16, rhs: u16, result: u16) -> bool {
         (lhs ^ rhs ^ result) & 0x1000 > 0
+    }
+
+    fn detect_carry_u8(&self, lhs: u8, rhs: u8, result: u8) -> bool {
+        (result < lhs) || (result < rhs)
+    }
+
+    fn detect_carry_u16(&self, lhs: u16, rhs: u16, result: u16) -> bool {
+        (result < lhs) || (result < rhs)
     }
 
     fn is_overflow(&self, lhs: u8, rhs: u8, result: u8) -> bool {

@@ -7,7 +7,7 @@ mod tests {
     fn is_ignore(path: &std::path::Path) -> bool {
         // we dont wanna test interrupts
         path.ends_with("76.json")
-        // !path.ends_with("88.json")
+        // !path.ends_with("89.json")
     }
 
     #[datatest::files("../external/jsmoo/misc/tests/GeneratedTests/z80/v1", {
