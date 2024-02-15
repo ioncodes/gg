@@ -280,6 +280,7 @@ impl Emulator {
                 });
 
             ui.add_space(3.0);
+            ui.label("         00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f");
 
             let range = match self.memory_view {
                 MemoryView::Rom => (0x0000..0xc000).into_iter(),
