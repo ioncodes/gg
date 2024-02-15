@@ -929,12 +929,7 @@ impl<'a> Handlers<'a> {
             Opcode::RotateRightCarry(Operand::Register(Register::Reg8(dst_reg), false), _) => {
                 let value = self.cpu.get_register_u8(dst_reg);
                 let carry = value & 0b0000_0001 != 0;
-                let result = (value >> 1)
-                    | (if self.cpu.registers.f.contains(Flags::CARRY) {
-                        0b1000_0000
-                    } else {
-                        0
-                    });
+                let result = if carry { value >> 1 | 0b1000_0000 } else { value >> 1 };
                 self.cpu.set_register_u8(dst_reg, result);
 
                 self.cpu.registers.f.set(Flags::CARRY, carry);
@@ -949,13 +944,8 @@ impl<'a> Handlers<'a> {
             Opcode::RotateRightCarry(Operand::Register(Register::Reg16(dst_reg), true), _) => {
                 let dst = self.cpu.get_register_u16(dst_reg);
                 let value = self.bus.read(dst)?;
-                let carry = value & 0b0000_0001 != 0;
-                let result = (value >> 1)
-                    | (if self.cpu.registers.f.contains(Flags::CARRY) {
-                        0b1000_0000
-                    } else {
-                        0
-                    });
+                let carry = value & 0b0000_0001 > 0;
+                let result = if carry { value >> 1 | 0b1000_0000 } else { value >> 1 };
                 self.bus.write(dst, result)?;
 
                 self.cpu.registers.f.set(Flags::CARRY, carry);
@@ -995,12 +985,8 @@ impl<'a> Handlers<'a> {
                 let dst = self.cpu.get_register_u16(dst_reg);
                 let value = self.bus.read(dst)?;
                 let carry = value & 0b0000_0001 != 0;
-                let result = (value >> 1)
-                    | (if self.cpu.registers.f.contains(Flags::CARRY) {
-                        0b1000_0000
-                    } else {
-                        0
-                    });
+                let previous_carry = self.cpu.registers.f.contains(Flags::CARRY);
+                let result = (value >> 1) | (if previous_carry { 0b1000_0000 } else { 0 });
                 self.bus.write(dst, result)?;
 
                 self.cpu.registers.f.set(Flags::CARRY, carry);
@@ -1022,13 +1008,8 @@ impl<'a> Handlers<'a> {
         match instruction.opcode {
             Opcode::RotateLeftCarry(Operand::Register(Register::Reg8(dst_reg), false), _) => {
                 let value = self.cpu.get_register_u8(dst_reg);
-                let carry = value & 0b1000_0000 != 0;
-                let result = (value << 1)
-                    | (if self.cpu.registers.f.contains(Flags::CARRY) {
-                        0b0000_0001
-                    } else {
-                        0
-                    });
+                let carry = value & 0b1000_0000 > 0;
+                let result = if carry { value << 1 | 0b0000_0001 } else { value << 1 };
                 self.cpu.set_register_u8(dst_reg, result);
 
                 self.cpu.registers.f.set(Flags::CARRY, carry);
@@ -1043,13 +1024,8 @@ impl<'a> Handlers<'a> {
             Opcode::RotateLeftCarry(Operand::Register(Register::Reg16(dst_reg), true), _) => {
                 let dst = self.cpu.get_register_u16(dst_reg);
                 let value = self.bus.read(dst)?;
-                let carry = value & 0b1000_0000 != 0;
-                let result = (value << 1)
-                    | (if self.cpu.registers.f.contains(Flags::CARRY) {
-                        0b0000_0001
-                    } else {
-                        0
-                    });
+                let carry = value & 0b1000_0000 > 0;
+                let result = if carry { value << 1 | 0b0000_0001 } else { value << 1 };
                 self.bus.write(dst, result)?;
 
                 self.cpu.registers.f.set(Flags::CARRY, carry);
