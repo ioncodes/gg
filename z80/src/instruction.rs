@@ -124,6 +124,10 @@ pub enum Opcode {
     DecimalAdjustAccumulator(usize),
     RotateLeftCarry(Operand, usize),
     RotateLeft(Operand, usize),
+    ShiftLeftArithmetic(Operand, usize),
+    ShiftRightArithmetic(Operand, usize),
+    ShiftLeftLogical(Operand, usize),
+    ShiftRightLogical(Operand, usize),
     Unknown(usize),
 }
 
@@ -225,13 +229,16 @@ impl fmt::Display for Opcode {
             Opcode::RotateRight(op, _) => write!(f, "rr {}", op),
             Opcode::RotateLeftCarry(op, _) => write!(f, "rlc {}", op),
             Opcode::RotateLeft(op, _) => write!(f, "rl {}", op),
-
             Opcode::Complement(_) => write!(f, "cpl"),
             Opcode::Halt(_) => write!(f, "halt"),
             Opcode::Exchange(op1, op2, _) => write!(f, "ex {}, {}", op1, op2),
             Opcode::ExchangeAll(_) => write!(f, "exx"),
             Opcode::TestBit(op1, op2, _) => write!(f, "bit {}, {}", op1, op2),
             Opcode::OutDecrement(_) => write!(f, "outd"),
+            Opcode::ShiftRightArithmetic(op, _) => write!(f, "sra {}", op),
+            Opcode::ShiftRightLogical(op, _) => write!(f, "srl {}", op),
+            Opcode::ShiftLeftArithmetic(op, _) => write!(f, "sla {}", op),
+            Opcode::ShiftLeftLogical(op, _) => write!(f, "sll {}", op),
             Opcode::Unknown(_) => unreachable!("Unknown opcode"),
         }
     }

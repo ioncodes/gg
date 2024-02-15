@@ -1258,6 +1258,142 @@ impl<'a> Handlers<'a> {
         todo!("Decimal adjust accumulator")
     }
 
+    pub(crate) fn shift_right_arithmetic(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let (result, carry) = match instruction.opcode {
+            Opcode::ShiftRightArithmetic(Operand::Register(Register::Reg8(dst_reg), false), _) => {
+                let value = self.cpu.get_register_u8(dst_reg);
+                let carry = value & 0b0000_0001 > 0;
+                let result = (value & 0b1000_0000) | (value >> 1);
+                self.cpu.set_register_u8(dst_reg, result);
+                (result, carry)
+            }
+            Opcode::ShiftRightArithmetic(Operand::Register(Register::Reg16(dst_reg), true), _) => {
+                let dst = self.cpu.get_register_u16(dst_reg);
+                let value = self.bus.read(dst)?;
+                let carry = value & 0b0000_0001 > 0;
+                let result = (value & 0b1000_0000) | (value >> 1);
+                self.bus.write(dst, result)?;
+                (result, carry)
+            }
+            _ => {
+                return Err(GgError::InvalidOpcodeImplementation {
+                    instruction: instruction.opcode,
+                })
+            }
+        };
+
+        self.cpu.registers.f.set(Flags::CARRY, carry);
+        self.cpu.registers.f.set(Flags::ZERO, result == 0);
+        self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+        self.cpu.registers.f.set(Flags::SUBTRACT, false);
+        self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+
+        Ok(())
+    }
+
+    pub(crate) fn shift_right_logical(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let (result, carry) = match instruction.opcode {
+            Opcode::ShiftRightLogical(Operand::Register(Register::Reg8(dst_reg), false), _) => {
+                let value = self.cpu.get_register_u8(dst_reg);
+                let carry = value & 0b0000_0001 > 0;
+                let result = value >> 1;
+                self.cpu.set_register_u8(dst_reg, result);
+                (result, carry)
+            }
+            Opcode::ShiftRightLogical(Operand::Register(Register::Reg16(dst_reg), true), _) => {
+                let dst = self.cpu.get_register_u16(dst_reg);
+                let value = self.bus.read(dst)?;
+                let carry = value & 0b0000_0001 > 0;
+                let result = value >> 1;
+                self.bus.write(dst, result)?;
+                (result, carry)
+            }
+            _ => {
+                return Err(GgError::InvalidOpcodeImplementation {
+                    instruction: instruction.opcode,
+                })
+            }
+        };
+
+        self.cpu.registers.f.set(Flags::CARRY, carry);
+        self.cpu.registers.f.set(Flags::ZERO, result == 0);
+        self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+        self.cpu.registers.f.set(Flags::SUBTRACT, false);
+        self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+
+        Ok(())
+    }
+
+    pub(crate) fn shift_left_arithmetic(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let (result, carry) = match instruction.opcode {
+            Opcode::ShiftLeftArithmetic(Operand::Register(Register::Reg8(dst_reg), false), _) => {
+                let value = self.cpu.get_register_u8(dst_reg);
+                let carry = value & 0b1000_0000 > 0;
+                let result = value << 1;
+                self.cpu.set_register_u8(dst_reg, result);
+                (result, carry)
+            }
+            Opcode::ShiftLeftArithmetic(Operand::Register(Register::Reg16(dst_reg), true), _) => {
+                let dst = self.cpu.get_register_u16(dst_reg);
+                let value = self.bus.read(dst)?;
+                let carry = value & 0b1000_0000 > 0;
+                let result = value << 1;
+                self.bus.write(dst, result)?;
+                (result, carry)
+            }
+            _ => {
+                return Err(GgError::InvalidOpcodeImplementation {
+                    instruction: instruction.opcode,
+                })
+            }
+        };
+
+        self.cpu.registers.f.set(Flags::CARRY, carry);
+        self.cpu.registers.f.set(Flags::ZERO, result == 0);
+        self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+        self.cpu.registers.f.set(Flags::SUBTRACT, false);
+        self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+
+        Ok(())
+    }
+
+    pub(crate) fn shift_left_logical(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let (result, carry) = match instruction.opcode {
+            Opcode::ShiftLeftLogical(Operand::Register(Register::Reg8(dst_reg), false), _) => {
+                let value = self.cpu.get_register_u8(dst_reg);
+                let carry = value & 0b1000_0000 > 0;
+                let result = value << 1 | 0b0000_0001;
+                self.cpu.set_register_u8(dst_reg, result);
+                (result, carry)
+            }
+            Opcode::ShiftLeftLogical(Operand::Register(Register::Reg16(dst_reg), true), _) => {
+                let dst = self.cpu.get_register_u16(dst_reg);
+                let value = self.bus.read(dst)?;
+                let carry = value & 0b1000_0000 > 0;
+                let result = value << 1 | 0b0000_0001;
+                self.bus.write(dst, result)?;
+                (result, carry)
+            }
+            _ => {
+                return Err(GgError::InvalidOpcodeImplementation {
+                    instruction: instruction.opcode,
+                })
+            }
+        };
+
+        self.cpu.registers.f.set(Flags::CARRY, carry);
+        self.cpu.registers.f.set(Flags::ZERO, result == 0);
+        self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+        self.cpu.registers.f.set(Flags::SUBTRACT, false);
+        self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+
+        Ok(())
+    }
+
     // Helpers
 
     fn check_cpu_flag(&self, condition: Condition) -> bool {

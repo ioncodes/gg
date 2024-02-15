@@ -205,6 +205,10 @@ impl Cpu {
                     Opcode::AddCarry(_, _, _) => handlers.add_carry(&instruction),
                     Opcode::SetCarryFlag(_) => handlers.set_carry_flag(&instruction),
                     Opcode::DecimalAdjustAccumulator(_) => handlers.decimal_adjust_accumulator(&instruction),
+                    Opcode::ShiftRightArithmetic(_, _) => handlers.shift_right_arithmetic(&instruction),
+                    Opcode::ShiftRightLogical(_, _) => handlers.shift_right_logical(&instruction),
+                    Opcode::ShiftLeftArithmetic(_, _) => handlers.shift_left_arithmetic(&instruction),
+                    Opcode::ShiftLeftLogical(_, _) => handlers.shift_left_logical(&instruction),
                     Opcode::NoOperation(_) => Ok(()),
                     _ => {
                         error!("Handler missing for instruction: {}\n{}", instruction.opcode, self);
