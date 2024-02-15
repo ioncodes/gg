@@ -186,12 +186,14 @@ impl Cpu {
                     Opcode::Add(_, _, _) => handlers.add(&instruction),
                     Opcode::And(_, _) => handlers.and(&instruction),
                     Opcode::SubtractCarry(_, _, _) => handlers.subtract_carry(&instruction),
-                    Opcode::RotateRightCarry(_) => handlers.rotate_right_carry(&instruction),
+
+                    Opcode::RotateRightCarryAccumulator(_) => handlers.rotate_right_carry_accumulator(&instruction),
                     Opcode::RotateRightAccumulator(_) => handlers.rotate_right_accumulator(&instruction),
-                    Opcode::RotateLeftCarry(_) => handlers.rotate_left_carry(&instruction),
+                    Opcode::RotateLeftCarryAccumulator(_) => handlers.rotate_left_carry_accumulator(&instruction),
                     Opcode::RotateLeftAccumulator(_) => handlers.rotate_left_accumulator(&instruction),
-                    Opcode::RotateRightCarrySideeffect(_, _) => handlers.rotate_right_carry_sideeffect(&instruction),
-                    Opcode::RotateRightCarrySwapSideeffect(_, _) => handlers.rotate_right_carry_swap_sideeffect(&instruction),
+
+                    Opcode::RotateRightCarry(_, _) => handlers.rotate_right_carry(&instruction),
+                    Opcode::RotateRight(_, _) => handlers.rotate_right(&instruction),
                     Opcode::Complement(_) => handlers.complement(&instruction),
                     Opcode::SetBit(_, _, _) => handlers.set_bit(&instruction),
                     Opcode::Halt(_) => return Err(GgError::CpuHalted),

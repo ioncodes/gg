@@ -16,6 +16,7 @@ pub struct System {
     pub vdp: Vdp,
     pub psg: Psg,
     lua: LuaEngine,
+    abort_invalid_io_op: bool,
 }
 
 impl System {
@@ -30,6 +31,7 @@ impl System {
             vdp: Vdp::new(mode),
             psg: Psg::new(),
             lua: LuaEngine::new(lua_script),
+            abort_invalid_io_op: true,
         }
     }
 
@@ -83,6 +85,18 @@ impl System {
             Err(GgError::JumpNotTaken) => (),
             Err(GgError::CpuHalted) => (),
             Err(GgError::RepeatNotFulfilled) => (),
+            Err(GgError::IoControllerInvalidPort) | Err(GgError::VdpInvalidIoMode) => {
+                if self.abort_invalid_io_op {
+                    error!("Identified I/O error at address: {:04x}", self.cpu.registers.pc);
+                    if self.cpu.registers.pc < 0xc000 {
+                        error!(
+                            "Real address in ROM: {:08x}",
+                            self.bus.translate_address_to_real(self.cpu.registers.pc).unwrap()
+                        );
+                    }
+                    return Err(result.err().unwrap());
+                }
+            }
             Err(e) => {
                 error!("Identified error at address: {:04x}", self.cpu.registers.pc);
                 if self.cpu.registers.pc < 0xc000 {
@@ -115,6 +129,10 @@ impl System {
         for i in 0..data.len() {
             self.bus.write_passthrough(&rom, i, data[i]);
         }
+    }
+
+    pub fn set_abort_on_io_operation_behavior(&mut self, value: bool) {
+        self.abort_invalid_io_op = value;
     }
 
     fn ready_to_redraw(&self) -> bool {

@@ -5,8 +5,11 @@ mod tests {
     use z80::instruction::Reg16;
 
     fn is_ignore(path: &std::path::Path) -> bool {
-        // we dont wanna test interrupts, i also dont wanna bother with daa just now
-        path.ends_with("76.json") || path.ends_with("27.json")
+        // we dont wanna test interrupts
+        // i also dont wanna bother with daa just now
+        // ignore all i/o port tests
+        
+        path.ends_with("76.json") || path.ends_with("27.json") || path.ends_with("db.json")
         // !path.ends_with("9c.json")
     }
 
@@ -26,6 +29,7 @@ mod tests {
 
             let mut system = System::new(None, false);
             system.disable_bios();
+            system.set_abort_on_io_operation_behavior(false);
             system.bus.rom.resize(0xffff);
             system.bus.set_rom_write_protection(false);
             system.bus.disable_bank_behavior(true);

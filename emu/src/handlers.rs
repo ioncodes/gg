@@ -480,6 +480,13 @@ impl<'a> Handlers<'a> {
                 self.cpu.set_register_u8(dst_reg, result);
                 Ok(())
             }
+            Opcode::ResetBit(Immediate::U8(bit), Operand::Register(Register::Reg16(dst_reg), true), _) => {
+                let dst = self.cpu.get_register_u16(dst_reg);
+                let value = self.bus.read(dst)?;
+                let result = value & !(1 << bit);
+                self.bus.write(dst, result)?;
+                Ok(())
+            }
             _ => Err(GgError::InvalidOpcodeImplementation {
                 instruction: instruction.opcode,
             }),
@@ -824,9 +831,9 @@ impl<'a> Handlers<'a> {
         }
     }
 
-    pub(crate) fn rotate_right_carry(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+    pub(crate) fn rotate_right_carry_accumulator(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
-            Opcode::RotateRightCarry(_) => {
+            Opcode::RotateRightCarryAccumulator(_) => {
                 let value = self.cpu.get_register_u8(Reg8::A);
                 let carry = value & 0b0000_0001 > 0;
                 let value = if carry { value >> 1 | 0b1000_0000 } else { value >> 1 };
@@ -868,9 +875,9 @@ impl<'a> Handlers<'a> {
         }
     }
 
-    pub(crate) fn rotate_left_carry(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+    pub(crate) fn rotate_left_carry_accumulator(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
-            Opcode::RotateLeftCarry(_) => {
+            Opcode::RotateLeftCarryAccumulator(_) => {
                 let value = self.cpu.get_register_u8(Reg8::A);
                 let carry = value & 0b1000_0000 > 0;
                 let value = if carry { value << 1 | 0b0000_0001 } else { value << 1 };
@@ -912,9 +919,9 @@ impl<'a> Handlers<'a> {
         }
     }
 
-    pub(crate) fn rotate_right_carry_sideeffect(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+    pub(crate) fn rotate_right_carry(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
-            Opcode::RotateRightCarrySideeffect(Operand::Register(Register::Reg8(dst_reg), false), _) => {
+            Opcode::RotateRightCarry(Operand::Register(Register::Reg8(dst_reg), false), _) => {
                 let value = self.cpu.get_register_u8(dst_reg);
                 let carry = value & 0b0000_0001 != 0;
                 let result = (value >> 1)
@@ -930,6 +937,7 @@ impl<'a> Handlers<'a> {
                 self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
                 self.cpu.registers.f.set(Flags::SUBTRACT, false);
                 self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
 
                 Ok(())
             }
@@ -939,9 +947,9 @@ impl<'a> Handlers<'a> {
         }
     }
 
-    pub(crate) fn rotate_right_carry_swap_sideeffect(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+    pub(crate) fn rotate_right(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
-            Opcode::RotateRightCarrySwapSideeffect(Operand::Register(Register::Reg8(dst_reg), false), _) => {
+            Opcode::RotateRight(Operand::Register(Register::Reg8(dst_reg), false), _) => {
                 let previous_carry = self.cpu.registers.f.contains(Flags::CARRY);
                 let value = self.cpu.get_register_u8(dst_reg);
                 let carry = value & 0b0000_0001 != 0;
@@ -949,8 +957,11 @@ impl<'a> Handlers<'a> {
                 self.cpu.set_register_u8(dst_reg, result);
 
                 self.cpu.registers.f.set(Flags::CARRY, carry);
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
                 self.cpu.registers.f.set(Flags::SUBTRACT, false);
                 self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
 
                 Ok(())
             }
@@ -1018,22 +1029,18 @@ impl<'a> Handlers<'a> {
         let de = self.cpu.get_register_u16(Reg16::DE);
         let hl = self.cpu.get_register_u16(Reg16::HL);
         let bc = self.cpu.get_register_u16(Reg16::BC);
-        let af = self.cpu.get_register_u16(Reg16::AF);
 
         let de_ = self.cpu.get_register_u16(Reg16::DEShadow);
         let hl_ = self.cpu.get_register_u16(Reg16::HLShadow);
         let bc_ = self.cpu.get_register_u16(Reg16::BCShadow);
-        let af_ = self.cpu.get_register_u16(Reg16::AFShadow);
 
         self.cpu.set_register_u16(Reg16::DE, de_);
         self.cpu.set_register_u16(Reg16::HL, hl_);
         self.cpu.set_register_u16(Reg16::BC, bc_);
-        self.cpu.set_register_u16(Reg16::AF, af_);
 
         self.cpu.set_register_u16(Reg16::DEShadow, de);
         self.cpu.set_register_u16(Reg16::HLShadow, hl);
         self.cpu.set_register_u16(Reg16::BCShadow, bc);
-        self.cpu.set_register_u16(Reg16::AFShadow, af);
 
         Ok(())
     }
@@ -1086,6 +1093,11 @@ impl<'a> Handlers<'a> {
                 let dst = self.cpu.get_register_u8(dst_reg);
                 let carry = if self.cpu.registers.f.contains(Flags::CARRY) { 1 } else { 0 };
                 (src, dst, carry, dst_reg)
+            }
+            Opcode::AddCarry(Operand::Register(Register::Reg8(dst_reg), false), Operand::Immediate(Immediate::U8(imm), false), _) => {
+                let dst = self.cpu.get_register_u8(dst_reg);
+                let carry = if self.cpu.registers.f.contains(Flags::CARRY) { 1 } else { 0 };
+                (imm, dst, carry, dst_reg)
             }
             Opcode::AddCarry(Operand::Register(Register::Reg8(dst_reg), false), Operand::Register(Register::Reg16(src_reg), true), _) => {
                 let src = self.cpu.get_register_u16(src_reg);
