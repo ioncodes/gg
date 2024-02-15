@@ -847,9 +847,7 @@ impl<'a> Disassembler<'a> {
             (Some(0xcb), Some(0x1b), _, _) => Opcode::RotateRight(Operand::Register(Register::Reg8(Reg8::E), false), 2),
             (Some(0xcb), Some(0x1c), _, _) => Opcode::RotateRight(Operand::Register(Register::Reg8(Reg8::H), false), 2),
             (Some(0xcb), Some(0x1d), _, _) => Opcode::RotateRight(Operand::Register(Register::Reg8(Reg8::L), false), 2),
-            (Some(0xcb), Some(0x1e), _, _) => {
-                Opcode::RotateRight(Operand::Register(Register::Reg16(Reg16::HL), true), 2)
-            }
+            (Some(0xcb), Some(0x1e), _, _) => Opcode::RotateRight(Operand::Register(Register::Reg16(Reg16::HL), true), 2),
             (Some(0xcb), Some(0x1f), _, _) => Opcode::RotateRight(Operand::Register(Register::Reg8(Reg8::A), false), 2),
             (Some(0xcb), Some(0x40), _, _) => Opcode::TestBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::B), false), 2),
             (Some(0xcb), Some(0x41), _, _) => Opcode::TestBit(Immediate::U8(0), Operand::Register(Register::Reg8(Reg8::C), false), 2),

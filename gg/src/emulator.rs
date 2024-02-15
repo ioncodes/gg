@@ -98,7 +98,7 @@ impl Emulator {
         } else {
             system.load_cartridge(cartridge.as_ref());
         }
-        
+
         let texture = cc.egui_ctx.load_texture(
             "frame",
             ColorImage::new([INTERNAL_WIDTH, INTERNAL_HEIGHT], Color32::BLACK),
@@ -265,9 +265,7 @@ impl Emulator {
                 rom2_bank.unwrap_or(0),
                 self.system.bus.translate_address_to_real(0x8000).unwrap_or(0)
             ));
-            ui.label(format!(
-                "SRAM Bank: {}", if sram_active { "Active" } else { "Inactive" }
-            ));
+            ui.label(format!("SRAM Bank: {}", if sram_active { "Active" } else { "Inactive" }));
         });
 
         Window::new("Memory").resizable(false).min_width(500.0).show(ctx, |ui| {

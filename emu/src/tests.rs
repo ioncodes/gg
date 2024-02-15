@@ -8,9 +8,9 @@ mod tests {
         // we dont wanna test interrupts
         // i also dont wanna bother with daa just now
         // ignore all i/o port tests
-        
-        path.ends_with("76.json") || path.ends_with("27.json") || path.ends_with("db.json")
-        // !path.ends_with("9c.json")
+
+        // path.ends_with("76.json") || path.ends_with("27.json") || path.ends_with("db.json")
+        !path.ends_with("dd 22.json")
     }
 
     #[datatest::files("../external/jsmoo/misc/tests/GeneratedTests/z80/v1", {
@@ -54,6 +54,8 @@ mod tests {
             system
                 .cpu
                 .set_register_u16(Reg16::HLShadow, initial.get("hl_").unwrap().as_u64().unwrap() as u16);
+            system.cpu.set_register_u16(Reg16::IX(None), initial.get("ix").unwrap().as_u64().unwrap() as u16);
+            system.cpu.set_register_u16(Reg16::IY(None), initial.get("iy").unwrap().as_u64().unwrap() as u16);
 
             system.cpu.registers.pc = initial.get("pc").unwrap().as_u64().unwrap() as u16;
             system.cpu.registers.sp = initial.get("sp").unwrap().as_u64().unwrap() as u16;
@@ -149,6 +151,20 @@ mod tests {
             assert_eq!(
                 system.cpu.get_register_u16(Reg16::HLShadow),
                 final_.get("hl_").unwrap().as_u64().unwrap() as u16,
+                "Testcase {} ({})",
+                name,
+                decoded
+            );
+            assert_eq!(
+                system.cpu.get_register_u16(Reg16::IX(None)),
+                final_.get("ix").unwrap().as_u64().unwrap() as u16,
+                "Testcase {} ({})",
+                name,
+                decoded
+            );
+            assert_eq!(
+                system.cpu.get_register_u16(Reg16::IY(None)),
+                final_.get("iy").unwrap().as_u64().unwrap() as u16,
                 "Testcase {} ({})",
                 name,
                 decoded

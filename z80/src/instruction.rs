@@ -216,7 +216,7 @@ impl fmt::Display for Opcode {
             Opcode::SetBit(op1, op2, _) => write!(f, "set {}, {}", op1, op2),
             Opcode::OutIncrement(_) => write!(f, "outi"),
             Opcode::SetInterruptMode(op, _) => write!(f, "im {}", op),
-            Opcode::And(op, _) => write!(f, "and {}", op),            
+            Opcode::And(op, _) => write!(f, "and {}", op),
             Opcode::RotateRightCarryAccumulator(_) => write!(f, "rrca"),
             Opcode::RotateRightAccumulator(_) => write!(f, "rra"),
             Opcode::RotateLeftCarryAccumulator(_) => write!(f, "rlca"),
@@ -225,7 +225,7 @@ impl fmt::Display for Opcode {
             Opcode::RotateRight(op, _) => write!(f, "rr {}", op),
             Opcode::RotateLeftCarry(op, _) => write!(f, "rlc {}", op),
             Opcode::RotateLeft(op, _) => write!(f, "rl {}", op),
-            
+
             Opcode::Complement(_) => write!(f, "cpl"),
             Opcode::Halt(_) => write!(f, "halt"),
             Opcode::Exchange(op1, op2, _) => write!(f, "ex {}, {}", op1, op2),

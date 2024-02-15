@@ -2,8 +2,8 @@ mod emulator;
 
 use std::fs::File;
 
-use eframe::NativeOptions;
 use eframe::egui::{FontFamily, FontId, Style, TextStyle, ViewportBuilder, Visuals};
+use eframe::NativeOptions;
 use emu::vdp::{INTERNAL_HEIGHT, INTERNAL_WIDTH};
 use emulator::{Emulator, SCALE};
 use env_logger::{Builder, Target};

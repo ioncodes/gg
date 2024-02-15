@@ -20,7 +20,7 @@ enum IoMode {
     VramRead,
     VramWrite,
     CramWrite,
-    None
+    None,
 }
 
 #[derive(Debug)]
@@ -63,7 +63,7 @@ pub struct Registers {
 #[derive(PartialEq)]
 pub enum Mode {
     SegaMasterSystem,
-    GameGear
+    GameGear,
 }
 
 pub struct Vdp {
@@ -79,7 +79,7 @@ pub struct Vdp {
     pub(crate) vram_dirty: bool,
     pub(crate) buffer: Vec<u8>,
     io_mode: IoMode,
-    mode: Mode
+    mode: Mode,
 }
 
 impl Vdp {
@@ -97,7 +97,7 @@ impl Vdp {
             vram_dirty: false,
             buffer: Vec::new(),
             io_mode: IoMode::None,
-            mode
+            mode,
         }
     }
 
@@ -113,7 +113,7 @@ impl Vdp {
     pub(crate) fn is_vblank(&self) -> bool {
         self.v == 0
     }
-    
+
     pub(crate) fn is_hblank(&self) -> bool {
         self.h == 0
     }
@@ -246,7 +246,7 @@ impl Vdp {
         // 32 bytes CRAM if master system mode
         // SMS:  --BBGGRR
         // GG:   --------BBBBGGGGRRRR
-        
+
         let (r, g, b) = if self.mode == Mode::GameGear {
             index = index * 2;
 
@@ -260,7 +260,7 @@ impl Vdp {
             (r, g, b)
         } else {
             let data = self.cram.read(index);
-            
+
             let r = (data & 0b0000_0011) << 6;
             let g = ((data >> 2) & 0b0000_0011) << 6;
             let b = (data & 0b0000_0011) << 6;
@@ -310,7 +310,7 @@ impl Vdp {
 
                 self.registers.address += 1;
                 self.registers.address %= 0x3fff; // ensure we wrap around
-                
+
                 debug!("Setting address register to {:04x}", address);
                 self.buffer.push(value);
 
@@ -376,13 +376,13 @@ impl Vdp {
     }
 
     fn status(&self) -> u8 {
-        // The VBlank flag is set when a VBlank interrupt has just occurred. 
+        // The VBlank flag is set when a VBlank interrupt has just occurred.
         //   An interrupt handler can use this to tell the difference between VBlank interrupts and line interrupts.
         // The sprite overflow flag is set when sprite overflow has occurred.
         // The sprite collision flag will be set if any sprites overlap - see collision detection.
         // The "fifth sprite" field contains undefined data unless the VDP is in a TMS9918a mode, and sprite overflow has occurred,
-        //   in which case it contains the number of the first sprite that could not be displayed due to overflow. 
-        
+        //   in which case it contains the number of the first sprite that could not be displayed due to overflow.
+
         let mut status = 0;
         if self.is_vblank() {
             status |= 0b1000_0000;
@@ -419,7 +419,10 @@ impl Controller for Vdp {
                     IoMode::VramWrite => self.vram_write(value),
                     IoMode::CramWrite => self.cram_write(value),
                     _ => {
-                        error!("Received byte on data port ({:02x}) without being in a specific mode: {:02x}", DATA_PORT, value);
+                        error!(
+                            "Received byte on data port ({:02x}) without being in a specific mode: {:02x}",
+                            DATA_PORT, value
+                        );
                         return Err(GgError::VdpInvalidIoMode);
                     }
                 }

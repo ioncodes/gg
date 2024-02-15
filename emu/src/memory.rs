@@ -5,8 +5,9 @@ pub struct Memory<T> {
     pub(crate) base_address: T,
 }
 
-impl<T> Memory<T> 
-where T: Add<Output = T> + Sub<Output = T> + Into<usize> + From<u16> + Copy
+impl<T> Memory<T>
+where
+    T: Add<Output = T> + Sub<Output = T> + Into<usize> + From<u16> + Copy,
 {
     pub(crate) fn new(size: usize, base_address: T) -> Memory<T> {
         Memory {

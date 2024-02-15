@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use lazy_static::lazy_static;
-use log::{info, debug};
+use log::{debug, info};
 use rlua::{Context, Function, Lua};
 use std::sync::Mutex;
 use z80::instruction::{Reg16, Reg8};
