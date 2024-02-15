@@ -797,7 +797,7 @@ impl<'a> Disassembler<'a> {
             ),
             (Some(0xf3), _, _, _) => Opcode::DisableInterrupts(1),
             (Some(0xf4), _, _, _) => Opcode::Call(
-                Condition::Sign,
+                Condition::NotSign,
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 1)), false),
                 3,
             ),
@@ -1404,7 +1404,7 @@ impl<'a> Disassembler<'a> {
                 Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true), 3)
             }
             (Some(0xfd), Some(0x36), Some(offset), Some(n)) => Opcode::Load(
-                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), false),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
                 Operand::Immediate(Immediate::U8(n), false),
                 4,
             ),
@@ -1453,7 +1453,7 @@ impl<'a> Disassembler<'a> {
             (Some(0xfd), Some(0x46), Some(offset), _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
-                4,
+                3,
             ),
             (Some(0xfd), Some(0x47), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::B), false),
@@ -1493,7 +1493,7 @@ impl<'a> Disassembler<'a> {
             (Some(0xfd), Some(0x4e), Some(offset), _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
-                4,
+                3,
             ),
             (Some(0xfd), Some(0x4f), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::C), false),
@@ -1533,7 +1533,7 @@ impl<'a> Disassembler<'a> {
             (Some(0xfd), Some(0x56), Some(offset), _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
-                4,
+                3,
             ),
             (Some(0xfd), Some(0x57), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::D), false),
@@ -1573,7 +1573,7 @@ impl<'a> Disassembler<'a> {
             (Some(0xfd), Some(0x5e), Some(offset), _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::E), false),
                 Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
-                4,
+                3,
             ),
             (Some(0xfd), Some(0x5f), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::E), false),
@@ -1661,37 +1661,37 @@ impl<'a> Disassembler<'a> {
                 2,
             ),
             (Some(0xfd), Some(0x70), Some(offset), _) => Opcode::Load(
-                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), false),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
                 Operand::Register(Register::Reg8(Reg8::B), false),
                 3,
             ),
             (Some(0xfd), Some(0x71), Some(offset), _) => Opcode::Load(
-                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), false),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
                 Operand::Register(Register::Reg8(Reg8::C), false),
                 3,
             ),
             (Some(0xfd), Some(0x72), Some(offset), _) => Opcode::Load(
-                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), false),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 3,
             ),
             (Some(0xfd), Some(0x73), Some(offset), _) => Opcode::Load(
-                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), false),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
                 Operand::Register(Register::Reg8(Reg8::E), false),
                 3,
             ),
             (Some(0xfd), Some(0x74), Some(offset), _) => Opcode::Load(
-                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), false),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 3,
             ),
             (Some(0xfd), Some(0x75), Some(offset), _) => Opcode::Load(
-                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), false),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
                 Operand::Register(Register::Reg8(Reg8::L), false),
                 3,
             ),
             (Some(0xfd), Some(0x77), Some(offset), _) => Opcode::Load(
-                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), false),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 3,
             ),
@@ -1768,7 +1768,7 @@ impl<'a> Disassembler<'a> {
             (Some(0xfd), Some(0x86), Some(offset), _) => Opcode::Add(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
-                4,
+                3,
             ),
             (Some(0xfd), Some(0x87), _, _) => Opcode::Add(
                 Operand::Register(Register::Reg8(Reg8::A), false),
@@ -1808,7 +1808,7 @@ impl<'a> Disassembler<'a> {
             (Some(0xfd), Some(0x8e), Some(offset), _) => Opcode::AddCarry(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
-                4,
+                3,
             ),
             (Some(0xfd), Some(0x8f), _, _) => Opcode::AddCarry(
                 Operand::Register(Register::Reg8(Reg8::A), false),
