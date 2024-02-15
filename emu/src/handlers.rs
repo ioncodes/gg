@@ -1129,7 +1129,7 @@ impl<'a> Handlers<'a> {
 
     pub(crate) fn exchange(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
-            Opcode::Exchange(Register::Reg16(lhs_reg), Register::Reg16(rhs_reg), _) => {
+            Opcode::Exchange(Operand::Register(Register::Reg16(lhs_reg), false), Operand::Register(Register::Reg16(rhs_reg), false), _) => {
                 let rhs = self.cpu.get_register_u16(rhs_reg);
                 let lhs = self.cpu.get_register_u16(lhs_reg);
                 self.cpu.set_register_u16(rhs_reg, lhs);

@@ -114,7 +114,7 @@ pub enum Opcode {
     RotateRight(Operand, usize),
     Complement(usize),
     Halt(usize),
-    Exchange(Register, Register, usize),
+    Exchange(Operand, Operand, usize),
     ExchangeAll(usize),
     TestBit(Immediate, Operand, usize),
     LoadRepeat(usize),
