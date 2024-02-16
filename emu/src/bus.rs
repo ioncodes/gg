@@ -1,6 +1,6 @@
 use crate::error::GgError;
 use crate::io::Controller;
-use crate::joystick::{Joystick, JoystickPort};
+use crate::joystick::{self, Joystick, JoystickPort};
 use crate::mapper::Mapper;
 use crate::memory::Memory;
 use crate::sdsc::{self, DebugConsole};
@@ -240,26 +240,26 @@ impl Controller for Bus {
         match port {
             0x00..=0x06 => {
                 if let Some(value) = self.gear_to_gear_cache {
-                    return Ok(value);
+                    Ok(value)
                 } else {
-                    return Err(GgError::IoRequestNotFulfilled);
+                    Err(GgError::IoRequestNotFulfilled)
                 }
             }
-            0xdc => {
+            joystick::JOYSTICK_AB_PORT => {
                 if self.joysticks_enabled {
                     self.joysticks[0].read_io(port)
                 } else {
                     Err(GgError::JoystickDisabled)
                 }
             }
-            0xdd => {
+            joystick::JOYSTICK_B_MISC_PORT => {
                 if self.joysticks_enabled {
                     self.joysticks[1].read_io(port)
                 } else {
                     Err(GgError::JoystickDisabled)
                 }
             }
-            _ => return Err(GgError::IoControllerInvalidPort),
+            _ => Err(GgError::IoControllerInvalidPort),
         }
     }
 
