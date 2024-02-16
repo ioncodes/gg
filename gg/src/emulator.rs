@@ -314,6 +314,15 @@ impl Emulator {
             });
         });
 
+        Window::new("SDSC Debug Console")
+            .resizable(false)
+            .default_open(false)
+            .show(ctx, |ui| {
+                ScrollArea::vertical().stick_to_bottom(true).max_height(200.0).show(ui, |ui| {
+                    ui.label(&self.system.bus.sdsc_console.buffer);
+                });
+            });
+
         SidePanel::right("Right Panel").show(ctx, |ui| {
             ui.heading("Disassembly");
             let mut addr = self.system.cpu.registers.pc;

@@ -33,7 +33,7 @@ pub struct Bus {
     gear_to_gear_cache: Option<u8>, // Cache for Gear to Gear communication (ports 0..6)
     pub(crate) joysticks: [Joystick; 2],
     joysticks_enabled: bool,
-    sdsc_console: DebugConsole,
+    pub sdsc_console: DebugConsole,
     rom_write_protection: bool,  // Useful for unit tests that are not SMS/GG specific
     disable_bank_behavior: bool, // Useful for unit tests that are not SMS/GG specific
 }
@@ -49,7 +49,7 @@ impl Bus {
             gear_to_gear_cache: None,
             joysticks: [Joystick::new(JoystickPort::Player1), Joystick::new(JoystickPort::Player2)],
             joysticks_enabled: true,
-            sdsc_console: DebugConsole {},
+            sdsc_console: DebugConsole::new(),
             rom_write_protection: true,
             disable_bank_behavior: false,
         }
