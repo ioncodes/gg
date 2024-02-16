@@ -1,5 +1,8 @@
 use crate::{error::GgError, io};
 
+pub(crate) const JOYSTICK_AB_PORT: u8 = 0xdc;
+pub(crate) const JOYSTICK_B_MISC_PORT: u8 = 0xdd;
+
 #[derive(PartialEq)]
 pub enum JoystickPort {
     Player1,
@@ -19,8 +22,8 @@ impl Joystick {
 impl io::Controller for Joystick {
     fn read_io(&self, port: u8) -> Result<u8, GgError> {
         match (port, &self.port) {
-            (0xdc, JoystickPort::Player1) => return Ok(0b1111_1110),
-            (0xdd, JoystickPort::Player2) => return Ok(0b1111_1110),
+            (JOYSTICK_AB_PORT, JoystickPort::Player1) => return Ok(0b1111_1110),
+            (JOYSTICK_B_MISC_PORT, JoystickPort::Player2) => return Ok(0b1111_1110),
             _ => {}
         }
 

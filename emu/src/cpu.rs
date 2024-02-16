@@ -1,11 +1,12 @@
 use crate::{
-    bus::{Bus, MEMORY_CONTROL_PORT},
+    bus::{self, Bus},
     error::GgError,
     handlers::Handlers,
     io::Controller as _,
+    joystick,
     psg::Psg,
     sdsc,
-    vdp::{Vdp, CONTROL_PORT, DATA_PORT, V_COUNTER_PORT},
+    vdp::{self, Vdp},
 };
 use bitflags::bitflags;
 use log::{error, trace};
@@ -277,9 +278,9 @@ impl Cpu {
     pub(crate) fn write_io(&mut self, port: u8, value: u8, vdp: &mut Vdp, bus: &mut Bus, psg: &mut Psg) -> Result<(), GgError> {
         match port {
             0x00..=0x06 => bus.write_io(port, value)?,
-            DATA_PORT | CONTROL_PORT => vdp.write_io(port, value)?,
-            MEMORY_CONTROL_PORT => bus.write_io(port, value)?,
+            vdp::CONTROL_PORT | vdp::DATA_PORT => vdp.write_io(port, value)?,
             sdsc::CONTROL_PORT | sdsc::DATA_PORT => bus.write_io(port, value)?,
+            bus::MEMORY_CONTROL_PORT => bus.write_io(port, value)?,
             0x7f => psg.write_io(port, value)?,
             _ => {
                 error!("Unassigned port (write): {:02x}", port);
@@ -293,8 +294,8 @@ impl Cpu {
     pub(crate) fn read_io(&self, port: u8, vdp: &mut Vdp, bus: &mut Bus, _psg: &mut Psg) -> Result<u8, GgError> {
         match port {
             0x00..=0x06 => bus.read_io(port),
-            DATA_PORT | CONTROL_PORT | V_COUNTER_PORT => vdp.read_io(port),
-            0xdc | 0xdd => bus.read_io(port),
+            vdp::CONTROL_PORT | vdp::DATA_PORT | vdp::V_COUNTER_PORT => vdp.read_io(port),
+            joystick::JOYSTICK_AB_PORT | joystick::JOYSTICK_B_MISC_PORT => bus.read_io(port),
             _ => {
                 error!("Unassigned port (read): {:02x}", port);
                 Err(GgError::IoControllerInvalidPort)
