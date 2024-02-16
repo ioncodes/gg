@@ -1174,10 +1174,43 @@ impl<'a> Disassembler<'a> {
             (Some(0xed), Some(0xb8), _, _) => Opcode::LoadRepeat(2),
 
             // 0xDD PREFIX
+            (Some(0xdd), Some(0x04), _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xdd), Some(0x05), _, _) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xdd), Some(0x06), Some(n), _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                Operand::Immediate(Immediate::U8(n), false),
+                3,
+            ),
+            (Some(0xdd), Some(0x09), _, _) => Opcode::Add(
+                Operand::Register(Register::Reg16(Reg16::IX(None)), false),
+                Operand::Register(Register::Reg16(Reg16::BC), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x0c), _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xdd), Some(0x0d), _, _) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xdd), Some(0x0e), Some(n), _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                Operand::Immediate(Immediate::U8(n), false),
+                3,
+            ),
+            (Some(0xdd), Some(0x14), _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xdd), Some(0x15), _, _) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xdd), Some(0x16), Some(n), _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                Operand::Immediate(Immediate::U8(n), false),
+                3,
+            ),
             (Some(0xdd), Some(0x19), _, _) => Opcode::Add(
                 Operand::Register(Register::Reg16(Reg16::IX(None)), false),
                 Operand::Register(Register::Reg16(Reg16::DE), false),
                 2,
+            ),
+            (Some(0xdd), Some(0x1c), _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xdd), Some(0x1d), _, _) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xdd), Some(0x1e), Some(n), _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                Operand::Immediate(Immediate::U8(n), false),
+                3,
             ),
             (Some(0xdd), Some(0x21), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::IX(None)), false),
@@ -1190,22 +1223,322 @@ impl<'a> Disassembler<'a> {
                 4,
             ),
             (Some(0xdd), Some(0x23), _, _) => Opcode::Increment(Operand::Register(Register::Reg16(Reg16::IX(None)), false), 2),
+            (Some(0xdd), Some(0x24), _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::IXH), false), 2),
+            (Some(0xdd), Some(0x25), _, _) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::IXH), false), 2),
+            (Some(0xdd), Some(0x26), Some(n), _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                Operand::Immediate(Immediate::U8(n), false),
+                3,
+            ),
+            (Some(0xdd), Some(0x29), _, _) => Opcode::Add(
+                Operand::Register(Register::Reg16(Reg16::IX(None)), false),
+                Operand::Register(Register::Reg16(Reg16::IX(None)), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x2a), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::IX(None)), false),
+                Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
+                4,
+            ),
+            (Some(0xdd), Some(0x2b), _, _) => Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::IX(None)), false), 2),
+            (Some(0xdd), Some(0x2c), _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::IXL), false), 2),
+            (Some(0xdd), Some(0x2d), _, _) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::IXL), false), 2),
+            (Some(0xdd), Some(0x2e), Some(n), _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::IXL), false),
+                Operand::Immediate(Immediate::U8(n), false),
+                3,
+            ),
             (Some(0xdd), Some(0x34), Some(offset), _) => {
                 Opcode::Increment(Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true), 3)
+            }
+            (Some(0xdd), Some(0x35), Some(offset), _) => {
+                Opcode::Decrement(Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true), 3)
             }
             (Some(0xdd), Some(0x36), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
                 Operand::Immediate(Immediate::U8(self.data[offset + 3]), false),
                 4,
             ),
+            (Some(0xdd), Some(0x39), _, _) => Opcode::Add(
+                Operand::Register(Register::Reg16(Reg16::IX(None)), false),
+                Operand::Register(Register::Reg16(Reg16::SP), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x3c), _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xdd), Some(0x3d), _, _) => Opcode::Decrement(Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xdd), Some(0x3e), Some(n), _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Immediate(Immediate::U8(n), false),
+                3,
+            ),
+            (Some(0xdd), Some(0x40), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x41), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x42), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x43), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x44), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x45), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                Operand::Register(Register::Reg8(Reg8::IXL), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x46), Some(offset), _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                3,
+            ),
+            (Some(0xdd), Some(0x47), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x48), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x49), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x4a), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x4b), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x4c), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x4d), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                Operand::Register(Register::Reg8(Reg8::IXL), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x4e), Some(offset), _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                3,
+            ),
+            (Some(0xdd), Some(0x4f), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x50), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x51), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x52), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x53), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x54), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x55), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                Operand::Register(Register::Reg8(Reg8::IXL), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x56), Some(offset), _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                3,
+            ),
+            (Some(0xdd), Some(0x57), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x58), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x59), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x5a), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x5b), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x5c), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x5d), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                Operand::Register(Register::Reg8(Reg8::IXL), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x5e), Some(offset), _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                3,
+            ),
+            (Some(0xdd), Some(0x5f), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x60), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x61), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x62), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x63), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x64), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x65), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                Operand::Register(Register::Reg8(Reg8::IXL), false),
+                2,
+            ),
             (Some(0xdd), Some(0x66), Some(offset), _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
                 3,
             ),
+            (Some(0xdd), Some(0x67), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x68), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::IXL), false),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x69), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::IXL), false),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x6a), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::IXL), false),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x6b), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::IXL), false),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x6c), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::IXL), false),
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x6d), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::IXL), false),
+                Operand::Register(Register::Reg8(Reg8::IXL), false),
+                2,
+            ),
             (Some(0xdd), Some(0x6e), Some(offset), _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::L), false),
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                3,
+            ),
+            (Some(0xdd), Some(0x6f), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::IXL), false),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x70), Some(offset), _) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                3,
+            ),
+            (Some(0xdd), Some(0x71), Some(offset), _) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                3,
+            ),
+            (Some(0xdd), Some(0x72), Some(offset), _) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                3,
+            ),
+            (Some(0xdd), Some(0x73), Some(offset), _) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                3,
+            ),
+            (Some(0xdd), Some(0x74), Some(offset), _) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                3,
+            ),
+            (Some(0xdd), Some(0x75), Some(offset), _) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
                 3,
             ),
             (Some(0xdd), Some(0x77), _, _) => Opcode::Load(
@@ -1213,17 +1546,229 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 3,
             ),
+            (Some(0xdd), Some(0x78), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x79), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x7a), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x7b), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x7c), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                2,
+            ),
             (Some(0xdd), Some(0x7e), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::A), false),
                 Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
                 3,
             ),
+            (Some(0xdd), Some(0x7f), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x80), _, _) => Opcode::Add(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x81), _, _) => Opcode::Add(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x82), _, _) => Opcode::Add(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x83), _, _) => Opcode::Add(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x84), _, _) => Opcode::Add(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x85), _, _) => Opcode::Add(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::IXL), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x86), _, _) => Opcode::Add(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
+                3,
+            ),
+            (Some(0xdd), Some(0x87), _, _) => Opcode::Add(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x88), _, _) => Opcode::AddCarry(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x89), _, _) => Opcode::AddCarry(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x8a), _, _) => Opcode::AddCarry(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x8b), _, _) => Opcode::AddCarry(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x8c), _, _) => Opcode::AddCarry(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x8d), _, _) => Opcode::AddCarry(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::IXL), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x8e), _, _) => Opcode::AddCarry(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
+                3,
+            ),
+            (Some(0xdd), Some(0x8f), _, _) => Opcode::AddCarry(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x90), _, _) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xdd), Some(0x91), _, _) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xdd), Some(0x92), _, _) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xdd), Some(0x93), _, _) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xdd), Some(0x94), _, _) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::IXH), false), 2),
+            (Some(0xdd), Some(0x95), _, _) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::IXL), false), 2),
+            (Some(0xdd), Some(0x96), _, _) => Opcode::Subtract(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
+                3,
+            ),
+            (Some(0xdd), Some(0x97), _, _) => Opcode::Subtract(Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xdd), Some(0x98), _, _) => Opcode::SubtractCarry(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x99), _, _) => Opcode::SubtractCarry(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x9a), _, _) => Opcode::SubtractCarry(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x9b), _, _) => Opcode::SubtractCarry(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x9c), _, _) => Opcode::SubtractCarry(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::IXH), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x9d), _, _) => Opcode::SubtractCarry(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::IXL), false),
+                2,
+            ),
+            (Some(0xdd), Some(0x9e), _, _) => Opcode::SubtractCarry(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
+                3,
+            ),
+            (Some(0xdd), Some(0x9f), _, _) => Opcode::SubtractCarry(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                2,
+            ),
+            (Some(0xdd), Some(0xa0), _, _) => Opcode::And(Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xdd), Some(0xa1), _, _) => Opcode::And(Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xdd), Some(0xa2), _, _) => Opcode::And(Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xdd), Some(0xa3), _, _) => Opcode::And(Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xdd), Some(0xa4), _, _) => Opcode::And(Operand::Register(Register::Reg8(Reg8::IXH), false), 2),
+            (Some(0xdd), Some(0xa5), _, _) => Opcode::And(Operand::Register(Register::Reg8(Reg8::IXL), false), 2),
+            (Some(0xdd), Some(0xa6), _, _) => Opcode::And(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
+                3,
+            ),
+            (Some(0xdd), Some(0xa7), _, _) => Opcode::And(Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xdd), Some(0xa8), _, _) => Opcode::Xor(Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xdd), Some(0xa9), _, _) => Opcode::Xor(Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xdd), Some(0xaa), _, _) => Opcode::Xor(Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xdd), Some(0xab), _, _) => Opcode::Xor(Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xdd), Some(0xac), _, _) => Opcode::Xor(Operand::Register(Register::Reg8(Reg8::IXH), false), 2),
+            (Some(0xdd), Some(0xad), _, _) => Opcode::Xor(Operand::Register(Register::Reg8(Reg8::IXL), false), 2),
             (Some(0xdd), Some(0xae), _, _) => Opcode::Xor(
                 Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
                 3,
             ),
+            (Some(0xdd), Some(0xaf), _, _) => Opcode::Xor(Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xdd), Some(0xb0), _, _) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xdd), Some(0xb1), _, _) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xdd), Some(0xb2), _, _) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xdd), Some(0xb3), _, _) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xdd), Some(0xb4), _, _) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::IXH), false), 2),
+            (Some(0xdd), Some(0xb5), _, _) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::IXL), false), 2),
+            (Some(0xdd), Some(0xb6), _, _) => Opcode::Or(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
+                3,
+            ),
+            (Some(0xdd), Some(0xb7), _, _) => Opcode::Or(Operand::Register(Register::Reg8(Reg8::A), false), 2),
+            (Some(0xdd), Some(0xb8), _, _) => Opcode::Compare(Operand::Register(Register::Reg8(Reg8::B), false), 2),
+            (Some(0xdd), Some(0xb9), _, _) => Opcode::Compare(Operand::Register(Register::Reg8(Reg8::C), false), 2),
+            (Some(0xdd), Some(0xba), _, _) => Opcode::Compare(Operand::Register(Register::Reg8(Reg8::D), false), 2),
+            (Some(0xdd), Some(0xbb), _, _) => Opcode::Compare(Operand::Register(Register::Reg8(Reg8::E), false), 2),
+            (Some(0xdd), Some(0xbc), _, _) => Opcode::Compare(Operand::Register(Register::Reg8(Reg8::IXH), false), 2),
+            (Some(0xdd), Some(0xbd), _, _) => Opcode::Compare(Operand::Register(Register::Reg8(Reg8::IXL), false), 2),
+            (Some(0xdd), Some(0xbe), _, _) => Opcode::Compare(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
+                3,
+            ),
+            (Some(0xdd), Some(0xbf), _, _) => Opcode::Compare(Operand::Register(Register::Reg8(Reg8::A), false), 2),
             (Some(0xdd), Some(0xe1), _, _) => Opcode::Pop(Register::Reg16(Reg16::IX(None)), 2),
+            (Some(0xdd), Some(0xe3), _, _) => Opcode::Exchange(
+                Operand::Register(Register::Reg16(Reg16::SP), true),
+                Operand::Register(Register::Reg16(Reg16::IX(None)), false),
+                2,
+            ),
             (Some(0xdd), Some(0xe5), _, _) => Opcode::Push(Register::Reg16(Reg16::IX(None)), 2),
+            (Some(0xdd), Some(0xe9), _, _) => Opcode::Jump(Condition::None, Operand::Register(Register::Reg16(Reg16::IX(None)), true), 2),
+            (Some(0xdd), Some(0xf9), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg16(Reg16::SP), true),
+                Operand::Register(Register::Reg16(Reg16::IX(None)), false),
+                2,
+            ),
 
             // 0xDDCB PREFIX
             (Some(0xdd), Some(0xcb), Some(offset), Some(0x66)) => Opcode::TestBit(
