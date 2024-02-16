@@ -1098,8 +1098,29 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::BC), false),
                 2,
             ),
+            (Some(0xed), Some(0x43), _, _) => Opcode::Load(
+                Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
+                Operand::Register(Register::Reg16(Reg16::BC), false),
+                4,
+            ),
+            (Some(0xed), Some(0x44), _, _) => Opcode::Negate(2),
             (Some(0xed), Some(0x45), _, _) => Opcode::ReturnFromNmi(2),
             (Some(0xed), Some(0x46), _, _) => Opcode::SetInterruptMode(Immediate::U8(0), 2),
+            (Some(0xed), Some(0x48), _, _) => Opcode::In(
+                Operand::Register(Register::Reg8(Reg8::C), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                2,
+            ),
+            (Some(0xed), Some(0x49), _, _) => Opcode::Out(
+                Operand::Register(Register::Reg8(Reg8::C), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                2,
+            ),
+            (Some(0xed), Some(0x4a), _, _) => Opcode::AddCarry(
+                Operand::Register(Register::Reg16(Reg16::HL), false),
+                Operand::Register(Register::Reg16(Reg16::BC), false),
+                2,
+            ),
             (Some(0xed), Some(0x4b), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::BC), false),
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
@@ -1119,6 +1140,11 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 Operand::Register(Register::Reg16(Reg16::DE), false),
                 2,
+            ),
+            (Some(0xed), Some(0x53), _, _) => Opcode::Load(
+                Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
+                Operand::Register(Register::Reg16(Reg16::DE), false),
+                4,
             ),
             (Some(0xed), Some(0x56), _, _) => Opcode::SetInterruptMode(Immediate::U8(1), 2),
             (Some(0xed), Some(0x5b), _, _) => Opcode::Load(
@@ -1141,6 +1167,11 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 2,
+            ),
+            (Some(0xed), Some(0x63), _, _) => Opcode::Load(
+                Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
+                Operand::Register(Register::Reg16(Reg16::HL), false),
+                4,
             ),
             (Some(0xed), Some(0x6b), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
@@ -1170,8 +1201,8 @@ impl<'a> Disassembler<'a> {
             (Some(0xed), Some(0xa3), _, _) => Opcode::OutIncrement(2),
             (Some(0xed), Some(0xa8), _, _) => Opcode::LoadDecrement(2),
             (Some(0xed), Some(0xab), _, _) => Opcode::OutDecrement(2),
-            (Some(0xed), Some(0xb0), _, _) => Opcode::LoadIndirectRepeat(2),
-            (Some(0xed), Some(0xb3), _, _) => Opcode::OutIndirectRepeat(2),
+            (Some(0xed), Some(0xb0), _, _) => Opcode::LoadIncrementRepeat(2),
+            (Some(0xed), Some(0xb3), _, _) => Opcode::OutIncrementRepeat(2),
             (Some(0xed), Some(0xb8), _, _) => Opcode::LoadDecrementRepeat(2),
 
             // 0xDD PREFIX
@@ -5142,7 +5173,7 @@ impl<'a> Disassembler<'a> {
             Opcode::EnableInterrupts(length) => length,
             Opcode::SubtractCarry(_, _, length) => length,
             Opcode::Load(_, _, length) => length,
-            Opcode::LoadIndirectRepeat(length) => length,
+            Opcode::LoadIncrementRepeat(length) => length,
             Opcode::Out(_, _, length) => length,
             Opcode::In(_, _, length) => length,
             Opcode::Compare(_, length) => length,
@@ -5150,7 +5181,7 @@ impl<'a> Disassembler<'a> {
             Opcode::Jump(_, _, length) => length,
             Opcode::Call(_, _, length) => length,
             Opcode::Xor(_, length) => length,
-            Opcode::OutIndirectRepeat(length) => length,
+            Opcode::OutIncrementRepeat(length) => length,
             Opcode::NoOperation(length) => length,
             Opcode::ReturnFromNmi(length) => length,
             Opcode::Or(_, length) => length,
@@ -5202,6 +5233,17 @@ impl<'a> Disassembler<'a> {
             Opcode::ShiftRightLogicalStore(_, _, length) => length,
             Opcode::ShiftLeftArithmeticStore(_, _, length) => length,
             Opcode::ShiftLeftLogicalStore(_, _, length) => length,
+            Opcode::LoadIncrement(length) => length,
+            Opcode::CompareIncrement(length) => length,
+            Opcode::CompareIncrementRepeat(length) => length,
+            Opcode::CompareDecrement(length) => length,
+            Opcode::CompareDecrementRepeat(length) => length,
+            Opcode::InIncrement(length) => length,
+            Opcode::InIncrementRepeat(length) => length,
+            Opcode::InDecrement(length) => length,
+            Opcode::InDecrementRepeat(length) => length,
+            Opcode::OutDecrementRepeat(length) => length,
+            Opcode::Negate(length) => length,
             Opcode::Unknown(length) => length,
         }
     }

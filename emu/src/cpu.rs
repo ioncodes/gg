@@ -159,14 +159,14 @@ impl Cpu {
                     Opcode::DisableInterrupts(_) => handlers.set_interrupt_state(false, &instruction),
                     Opcode::EnableInterrupts(_) => handlers.set_interrupt_state(true, &instruction),
                     Opcode::Load(_, _, _) => handlers.load(&instruction),
-                    Opcode::LoadIndirectRepeat(_) => handlers.load_indirect_repeat(&instruction),
+                    Opcode::LoadIncrementRepeat(_) => handlers.load_indirect_repeat(&instruction),
                     Opcode::Out(_, _, _) => handlers.out(&instruction),
                     Opcode::In(_, _, _) => handlers.in_(&instruction),
                     Opcode::Compare(_, _) => handlers.compare(&instruction),
                     Opcode::JumpRelative(_, _, _) => handlers.jump_relative(&instruction),
                     Opcode::Call(_, _, _) => handlers.call(&instruction),
                     Opcode::Return(_, _) => handlers.return_(&instruction),
-                    Opcode::OutIndirectRepeat(_) => handlers.out_indirect_repeat(&instruction),
+                    Opcode::OutIncrementRepeat(_) => handlers.out_indirect_repeat(&instruction),
                     Opcode::Or(_, _) => handlers.or(&instruction),
                     Opcode::Push(_, _) => handlers.push(&instruction),
                     Opcode::Pop(_, _) => handlers.pop(&instruction),
@@ -192,7 +192,6 @@ impl Cpu {
                     Opcode::RotateRight(_, _) => handlers.rotate_right(&instruction),
                     Opcode::RotateLeftCarry(_, _) => handlers.rotate_left_carry(&instruction),
                     Opcode::RotateLeft(_, _) => handlers.rotate_left(&instruction),
-
                     Opcode::RotateLeftCarryStore(_, _, _) => handlers.rotate_left_carry_store(&instruction),
                     Opcode::RotateRightCarryStore(_, _, _) => handlers.rotate_right_carry_store(&instruction),
                     Opcode::RotateLeftStore(_, _, _) => handlers.rotate_left_store(&instruction),
@@ -203,7 +202,6 @@ impl Cpu {
                     Opcode::ShiftLeftLogicalStore(_, _, _) => handlers.shift_left_logical_store(&instruction),
                     Opcode::SetBitStore(_, _, _, _) => handlers.set_bit_store(&instruction),
                     Opcode::ResetBitStore(_, _, _, _) => handlers.reset_bit_store(&instruction),
-
                     Opcode::Complement(_) => handlers.complement(&instruction),
                     Opcode::SetBit(_, _, _) => handlers.set_bit(&instruction),
                     Opcode::Halt(_) => return Err(GgError::CpuHalted),
@@ -221,6 +219,7 @@ impl Cpu {
                     Opcode::ShiftLeftArithmetic(_, _) => handlers.shift_left_arithmetic(&instruction),
                     Opcode::ShiftLeftLogical(_, _) => handlers.shift_left_logical(&instruction),
                     Opcode::NoOperation(_) => Ok(()),
+                    Opcode::Negate(_) => handlers.negate(&instruction),
                     _ => {
                         error!("Handler missing for instruction: {}\n{}", instruction.opcode, self);
                         return Err(GgError::OpcodeNotImplemented {
@@ -244,8 +243,8 @@ impl Cpu {
                     Opcode::Restart(_, _) => result.is_ok(),
                     // Do NOT increase PC if the repeat instruction's condition is not met
                     Opcode::LoadDecrementRepeat(_) => result.is_err(),
-                    Opcode::LoadIndirectRepeat(_) => result.is_err(),
-                    Opcode::OutIndirectRepeat(_) => result.is_err(),
+                    Opcode::LoadIncrementRepeat(_) => result.is_err(),
+                    Opcode::OutIncrementRepeat(_) => result.is_err(),
                     _ => false,
                 };
 

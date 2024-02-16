@@ -1,7 +1,7 @@
 FEATURES = {
     -- "cpu",
     -- "vdp",
-    "memory"
+    -- "memory"
 }
 
 -- function _dump_vram()
@@ -60,15 +60,15 @@ FEATURES = {
 --     _dump_vram()
 -- end
 
-function post_mapper_setup_hook()
-    log("Bank Slot 0: " .. string.format("%02x", memory["ram"][0xfffd + 1]))
-    log("Bank Slot 1: " .. string.format("%02x", memory["ram"][0xfffe + 1]))
-    log("Bank Slot 2: " .. string.format("%02x", memory["ram"][0xffff + 1]))
-end
+-- function post_mapper_setup_hook()
+--     log("Bank Slot 0: " .. string.format("%02x", memory["ram"][0xfffd + 1]))
+--     log("Bank Slot 1: " .. string.format("%02x", memory["ram"][0xfffe + 1]))
+--     log("Bank Slot 2: " .. string.format("%02x", memory["ram"][0xffff + 1]))
+-- end
 
-function dump_ix()
-    log("ix: " .. string.format("%04x", cpu["ix"]))
-end
+-- function dump_ix()
+--     log("ix: " .. string.format("%04x", cpu["ix"]))
+-- end
 
 -- install_hook(0x9f, PRE_TICK, "post_sega_license_hook")
 -- install_hook(0x135, PRE_TICK, "vdp_set_address_hook")
@@ -76,5 +76,5 @@ end
 -- install_hook(0x157, POST_TICK, "outi_hook")
 -- install_hook(0xbc, PRE_TICK, "post_unknown_function_hook")
 -- install_hook(0xd4, PRE_TICK, "post_vram_copy_hook")
-install_hook(0x0a, POST_TICK, "post_mapper_setup_hook")
+-- install_hook(0x0a, POST_TICK, "post_mapper_setup_hook")
 -- install_hook(0x1b94, PRE_TICK, "dump_ix")

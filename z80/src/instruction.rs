@@ -78,10 +78,20 @@ pub enum Opcode {
     DisableInterrupts(usize),
     EnableInterrupts(usize),
     Load(Operand, Operand, usize),
-    LoadIndirectRepeat(usize),
+    LoadIncrement(usize),
+    LoadIncrementRepeat(usize),
+    CompareIncrement(usize),
+    CompareIncrementRepeat(usize),
+    CompareDecrement(usize),
+    CompareDecrementRepeat(usize),
+    InIncrement(usize),
+    InIncrementRepeat(usize),
+    InDecrement(usize),
+    InDecrementRepeat(usize),
     Out(Operand, Operand, usize),
     OutIncrement(usize),
     OutDecrement(usize),
+    OutDecrementRepeat(usize),
     In(Operand, Operand, usize),
     Compare(Operand, usize), // todo: ?
     JumpRelative(Condition, Immediate, usize),
@@ -90,7 +100,7 @@ pub enum Opcode {
     Xor(Operand, usize),
     Or(Operand, usize),
     Call(Condition, Operand, usize),
-    OutIndirectRepeat(usize),
+    OutIncrementRepeat(usize),
     NoOperation(usize),
     ReturnFromNmi(usize),
     Decrement(Operand, usize),
@@ -139,6 +149,7 @@ pub enum Opcode {
     ShiftRightArithmetic(Operand, usize),
     ShiftLeftLogical(Operand, usize),
     ShiftRightLogical(Operand, usize),
+    Negate(usize),
     Unknown(usize),
 }
 
@@ -176,7 +187,7 @@ impl fmt::Display for Opcode {
             Opcode::DisableInterrupts(_) => write!(f, "di"),
             Opcode::EnableInterrupts(_) => write!(f, "ei"),
             Opcode::Load(op1, op2, _) => write!(f, "ld {}, {}", op1, op2),
-            Opcode::LoadIndirectRepeat(_) => write!(f, "ldir"),
+            Opcode::LoadIncrementRepeat(_) => write!(f, "ldir"),
             Opcode::Out(op1, op2, _) => write!(f, "out {}, {}", op1, op2),
             Opcode::In(op1, op2, _) => write!(f, "in {}, {}", op1, op2),
             Opcode::Compare(op1, _) => write!(f, "cp {}", op1),
@@ -210,7 +221,7 @@ impl fmt::Display for Opcode {
                 }
                 write!(f, " {}", op)
             }
-            Opcode::OutIndirectRepeat(_) => write!(f, "otir"),
+            Opcode::OutIncrementRepeat(_) => write!(f, "otir"),
             Opcode::NoOperation(_) => write!(f, "nop"),
             Opcode::ReturnFromNmi(_) => write!(f, "retn"),
             Opcode::Decrement(op, _) => write!(f, "dec {}", op),
@@ -261,7 +272,18 @@ impl fmt::Display for Opcode {
             Opcode::ShiftRightArithmeticStore(op1, op2, _) => write!(f, "sra {}, {}", op1, op2),
             Opcode::ShiftLeftLogicalStore(op1, op2, _) => write!(f, "sll {}, {}", op1, op2),
             Opcode::ShiftRightLogicalStore(op1, op2, _) => write!(f, "srl {}, {}", op1, op2),
+            Opcode::Negate(_) => write!(f, "neg"),
             Opcode::Unknown(_) => unreachable!("Unknown opcode"),
+            Opcode::CompareIncrementRepeat(_) => write!(f, "cpir"),
+            Opcode::CompareDecrement(_) => write!(f, "cpd"),
+            Opcode::CompareDecrementRepeat(_) => write!(f, "cpdr"),
+            Opcode::LoadIncrement(_) => write!(f, "ldi"),
+            Opcode::CompareIncrement(_) => write!(f, "cpi"),
+            Opcode::InIncrement(_) => write!(f, "ini"),
+            Opcode::InDecrementRepeat(_) => write!(f, "indr"),
+            Opcode::OutDecrementRepeat(_) => write!(f, "otdr"),
+            Opcode::InIncrementRepeat(_) => write!(f, "inir"),
+            Opcode::InDecrement(_) => write!(f, "ind"),
         }
     }
 }

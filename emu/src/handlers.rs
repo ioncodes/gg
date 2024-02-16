@@ -219,6 +219,20 @@ impl<'a> Handlers<'a> {
         }
     }
 
+    pub(crate) fn negate(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let a = self.cpu.get_register_u8(Reg8::A);
+        let result = a.wrapping_neg();
+        self.cpu.set_register_u8(Reg8::A, result);
+
+        self.cpu.registers.f.set(Flags::ZERO, result == 0);
+        self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, result == 128);
+        self.cpu.registers.f.set(Flags::SUBTRACT, true);
+        self.cpu.registers.f.set(Flags::HALF_CARRY, result & 0b0000_1111 == 0);
+
+        Ok(())
+    }
+
     pub(crate) fn out(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         let (port, value) = match instruction.opcode {
             Opcode::Out(Operand::Immediate(Immediate::U8(dst_port), true), Operand::Register(Register::Reg8(src_reg), false), _) => {
