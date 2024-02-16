@@ -3,7 +3,7 @@ use crate::io::Controller;
 use crate::joystick::{Joystick, JoystickPort};
 use crate::mapper::Mapper;
 use crate::memory::Memory;
-use crate::sdsc::DebugConsole;
+use crate::sdsc::{self, DebugConsole};
 
 pub(crate) const MEMORY_CONTROL_PORT: u8 = 0x3e;
 pub(crate) const MEMORY_REGISTER_RAM_MAPPING: u16 = 0xfffc;
@@ -279,15 +279,10 @@ impl Controller for Bus {
         match port {
             0x00..=0x06 => self.gear_to_gear_cache = Some(value),
             MEMORY_CONTROL_PORT => {
-                self.bios_enabled = value & 0b0000_1000 == 0;
-                self.joysticks_enabled = value & 0b0000_0100 == 0;
+                self.bios_enabled = (value & 0b0000_1000) == 0;
+                self.joysticks_enabled = (value & 0b0000_0100) == 0;
             }
-            0xfc => {
-                if !self.joysticks_enabled {
-                    self.sdsc_console.write_io(port, value)?;
-                }
-            }
-            0xfd => {
+            sdsc::CONTROL_PORT | sdsc::DATA_PORT => {
                 if !self.joysticks_enabled {
                     self.sdsc_console.write_io(port, value)?;
                 }

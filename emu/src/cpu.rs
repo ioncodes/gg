@@ -4,6 +4,7 @@ use crate::{
     handlers::Handlers,
     io::Controller as _,
     psg::Psg,
+    sdsc,
     vdp::{Vdp, CONTROL_PORT, DATA_PORT, V_COUNTER_PORT},
 };
 use bitflags::bitflags;
@@ -278,9 +279,8 @@ impl Cpu {
             0x00..=0x06 => bus.write_io(port, value)?,
             DATA_PORT | CONTROL_PORT => vdp.write_io(port, value)?,
             MEMORY_CONTROL_PORT => bus.write_io(port, value)?,
+            sdsc::CONTROL_PORT | sdsc::DATA_PORT => bus.write_io(port, value)?,
             0x7f => psg.write_io(port, value)?,
-            0xfc => (),
-            0xfd => (),
             _ => {
                 error!("Unassigned port (write): {:02x}", port);
                 return Err(GgError::IoControllerInvalidPort);
