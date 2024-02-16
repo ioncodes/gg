@@ -210,7 +210,8 @@ impl Cpu {
                     Opcode::Exchange(_, _, _) => handlers.exchange(&instruction),
                     Opcode::ExchangeAll(_) => handlers.exchange_all(&instruction),
                     Opcode::TestBit(_, _, _) => handlers.test_bit(&instruction),
-                    Opcode::LoadRepeat(_) => handlers.load_repeat(&instruction),
+                    Opcode::LoadDecrementRepeat(_) => handlers.load_decrement_repeat(&instruction),
+                    Opcode::LoadDecrement(_) => handlers.load_decrement(&instruction),
                     Opcode::InvertCarry(_) => handlers.invert_carry(&instruction),
                     Opcode::AddCarry(_, _, _) => handlers.add_carry(&instruction),
                     Opcode::SetCarryFlag(_) => handlers.set_carry_flag(&instruction),
@@ -242,7 +243,7 @@ impl Cpu {
                     Opcode::Return(_, _) => result.is_ok(),
                     Opcode::Restart(_, _) => result.is_ok(),
                     // Do NOT increase PC if the repeat instruction's condition is not met
-                    Opcode::LoadRepeat(_) => result.is_err(),
+                    Opcode::LoadDecrementRepeat(_) => result.is_err(),
                     Opcode::LoadIndirectRepeat(_) => result.is_err(),
                     Opcode::OutIndirectRepeat(_) => result.is_err(),
                     _ => false,

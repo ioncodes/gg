@@ -167,7 +167,7 @@ impl<'a> Handlers<'a> {
         }
     }
 
-    pub(crate) fn load_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+    pub(crate) fn load_decrement_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         let src = {
             let hl = self.cpu.get_register_u16(Reg16::HL);
             self.bus.read(hl)?
@@ -185,6 +185,32 @@ impl<'a> Handlers<'a> {
         self.cpu.registers.f.set(Flags::HALF_CARRY, false);
         self.cpu.registers.f.set(Flags::SUBTRACT, false);
         self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, false);
+
+        if self.cpu.get_register_u16(Reg16::BC) == 0 {
+            Ok(())
+        } else {
+            Err(GgError::RepeatNotFulfilled)
+        }
+    }
+
+    pub(crate) fn load_decrement(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let src = {
+            let hl = self.cpu.get_register_u16(Reg16::HL);
+            self.bus.read(hl)?
+        };
+        let dst = self.cpu.get_register_u16(Reg16::DE);
+        self.bus.write(dst, src)?;
+
+        let hl = self.cpu.get_register_u16(Reg16::HL);
+        let de = self.cpu.get_register_u16(Reg16::DE);
+        let bc = self.cpu.get_register_u16(Reg16::BC);
+        self.cpu.set_register_u16(Reg16::HL, hl - 1);
+        self.cpu.set_register_u16(Reg16::DE, de - 1);
+        self.cpu.set_register_u16(Reg16::BC, bc - 1);
+
+        self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+        self.cpu.registers.f.set(Flags::SUBTRACT, false);
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, bc - 1 > 0);
 
         if self.cpu.get_register_u16(Reg16::BC) == 0 {
             Ok(())

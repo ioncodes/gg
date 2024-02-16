@@ -1168,10 +1168,11 @@ impl<'a> Disassembler<'a> {
                 4,
             ),
             (Some(0xed), Some(0xa3), _, _) => Opcode::OutIncrement(2),
+            (Some(0xed), Some(0xa8), _, _) => Opcode::LoadDecrement(2),
             (Some(0xed), Some(0xab), _, _) => Opcode::OutDecrement(2),
             (Some(0xed), Some(0xb0), _, _) => Opcode::LoadIndirectRepeat(2),
             (Some(0xed), Some(0xb3), _, _) => Opcode::OutIndirectRepeat(2),
-            (Some(0xed), Some(0xb8), _, _) => Opcode::LoadRepeat(2),
+            (Some(0xed), Some(0xb8), _, _) => Opcode::LoadDecrementRepeat(2),
 
             // 0xDD PREFIX
             (Some(0xdd), Some(0x04), _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::B), false), 2),
@@ -5180,7 +5181,8 @@ impl<'a> Disassembler<'a> {
             Opcode::Exchange(_, _, length) => length,
             Opcode::ExchangeAll(length) => length,
             Opcode::TestBit(_, _, length) => length,
-            Opcode::LoadRepeat(length) => length,
+            Opcode::LoadDecrementRepeat(length) => length,
+            Opcode::LoadDecrement(length) => length,
             Opcode::OutDecrement(length) => length,
             Opcode::InvertCarry(length) => length,
             Opcode::AddCarry(_, _, length) => length,
