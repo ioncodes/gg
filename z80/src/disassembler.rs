@@ -1771,8 +1771,537 @@ impl<'a> Disassembler<'a> {
             ),
 
             // 0xDDCB PREFIX
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x00)) => Opcode::RotateLeftCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x01)) => Opcode::RotateLeftCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x02)) => Opcode::RotateLeftCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x03)) => Opcode::RotateLeftCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x04)) => Opcode::RotateLeftCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x05)) => Opcode::RotateLeftCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x06)) => {
+                Opcode::RotateLeftCarry(Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true), 4)
+            }
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x07)) => Opcode::RotateLeftCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x08)) => Opcode::RotateRightCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x09)) => Opcode::RotateRightCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x0a)) => Opcode::RotateRightCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x0b)) => Opcode::RotateRightCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x0c)) => Opcode::RotateRightCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x0d)) => Opcode::RotateRightCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x0e)) => {
+                Opcode::RotateRightCarry(Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true), 4)
+            }
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x0f)) => Opcode::RotateRightCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x10)) => Opcode::RotateLeftStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x11)) => Opcode::RotateLeftStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x12)) => Opcode::RotateLeftStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x13)) => Opcode::RotateLeftStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x14)) => Opcode::RotateLeftStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x15)) => Opcode::RotateLeftStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x16)) => {
+                Opcode::RotateLeft(Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true), 4)
+            }
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x17)) => Opcode::RotateLeftStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x18)) => Opcode::RotateRightStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x19)) => Opcode::RotateRightStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x1a)) => Opcode::RotateRightStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x1b)) => Opcode::RotateRightStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x1c)) => Opcode::RotateRightStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x1d)) => Opcode::RotateRightStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x1e)) => {
+                Opcode::RotateRight(Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true), 4)
+            }
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x1f)) => Opcode::RotateRightStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x20)) => Opcode::ShiftLeftArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x21)) => Opcode::ShiftLeftArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x22)) => Opcode::ShiftLeftArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x23)) => Opcode::ShiftLeftArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x24)) => Opcode::ShiftLeftArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x25)) => Opcode::ShiftLeftArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x26)) => {
+                Opcode::ShiftLeftArithmetic(Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true), 4)
+            }
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x27)) => Opcode::ShiftLeftArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x28)) => Opcode::ShiftRightArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x29)) => Opcode::ShiftRightArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x2a)) => Opcode::ShiftRightArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x2b)) => Opcode::ShiftRightArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x2c)) => Opcode::ShiftRightArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x2d)) => Opcode::ShiftRightArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x2e)) => {
+                Opcode::ShiftRightArithmetic(Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true), 4)
+            }
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x2f)) => Opcode::ShiftRightArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x30)) => Opcode::ShiftLeftLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x31)) => Opcode::ShiftLeftLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x32)) => Opcode::ShiftLeftLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x33)) => Opcode::ShiftLeftLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x34)) => Opcode::ShiftLeftLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x35)) => Opcode::ShiftLeftLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x36)) => {
+                Opcode::ShiftLeftLogical(Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true), 4)
+            }
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x37)) => Opcode::ShiftLeftLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x38)) => Opcode::ShiftRightLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x39)) => Opcode::ShiftRightLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x3a)) => Opcode::ShiftRightLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x3b)) => Opcode::ShiftRightLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x3c)) => Opcode::ShiftRightLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x3d)) => Opcode::ShiftRightLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x3e)) => {
+                Opcode::ShiftRightLogical(Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true), 4)
+            }
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x3f)) => Opcode::ShiftRightLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x40)) => Opcode::TestBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x41)) => Opcode::TestBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x42)) => Opcode::TestBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x43)) => Opcode::TestBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x44)) => Opcode::TestBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x45)) => Opcode::TestBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x46)) => Opcode::TestBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x47)) => Opcode::TestBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x48)) => Opcode::TestBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x49)) => Opcode::TestBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x4a)) => Opcode::TestBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x4b)) => Opcode::TestBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x4c)) => Opcode::TestBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x4d)) => Opcode::TestBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x4e)) => Opcode::TestBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x4f)) => Opcode::TestBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x50)) => Opcode::TestBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x51)) => Opcode::TestBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x52)) => Opcode::TestBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x53)) => Opcode::TestBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x54)) => Opcode::TestBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x55)) => Opcode::TestBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x56)) => Opcode::TestBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x57)) => Opcode::TestBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x58)) => Opcode::TestBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x59)) => Opcode::TestBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x5a)) => Opcode::TestBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x5b)) => Opcode::TestBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x5c)) => Opcode::TestBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x5d)) => Opcode::TestBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x5e)) => Opcode::TestBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x5f)) => Opcode::TestBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x60)) => Opcode::TestBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x61)) => Opcode::TestBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x62)) => Opcode::TestBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x63)) => Opcode::TestBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x64)) => Opcode::TestBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x65)) => Opcode::TestBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0x66)) => Opcode::TestBit(
                 Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x67)) => Opcode::TestBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x68)) => Opcode::TestBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x69)) => Opcode::TestBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x6a)) => Opcode::TestBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x6b)) => Opcode::TestBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x6c)) => Opcode::TestBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x6d)) => Opcode::TestBit(
+                Immediate::U8(5),
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
                 4,
             ),
@@ -1781,9 +2310,125 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
                 4,
             ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x6f)) => Opcode::TestBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x70)) => Opcode::TestBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x71)) => Opcode::TestBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x72)) => Opcode::TestBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x73)) => Opcode::TestBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x74)) => Opcode::TestBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x75)) => Opcode::TestBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x76)) => Opcode::TestBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x77)) => Opcode::TestBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x78)) => Opcode::TestBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x79)) => Opcode::TestBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x7a)) => Opcode::TestBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x7b)) => Opcode::TestBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x7c)) => Opcode::TestBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x7d)) => Opcode::TestBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0x7e)) => Opcode::TestBit(
                 Immediate::U8(7),
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x7f)) => Opcode::TestBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x80)) => Opcode::ResetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x81)) => Opcode::ResetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x82)) => Opcode::ResetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x83)) => Opcode::ResetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x84)) => Opcode::ResetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x85)) => Opcode::ResetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
                 4,
             ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0x86)) => Opcode::ResetBit(
@@ -1791,9 +2436,93 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
                 4,
             ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x87)) => Opcode::ResetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x88)) => Opcode::ResetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x89)) => Opcode::ResetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x8a)) => Opcode::ResetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x8b)) => Opcode::ResetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x8c)) => Opcode::ResetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x8d)) => Opcode::ResetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0x8e)) => Opcode::ResetBit(
                 Immediate::U8(1),
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x8f)) => Opcode::ResetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x90)) => Opcode::ResetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x91)) => Opcode::ResetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x92)) => Opcode::ResetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x93)) => Opcode::ResetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x94)) => Opcode::ResetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x95)) => Opcode::ResetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
                 4,
             ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0x96)) => Opcode::ResetBit(
@@ -1801,9 +2530,93 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
                 4,
             ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x97)) => Opcode::ResetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x98)) => Opcode::ResetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x99)) => Opcode::ResetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x9a)) => Opcode::ResetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x9b)) => Opcode::ResetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x9c)) => Opcode::ResetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x9d)) => Opcode::ResetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0x9e)) => Opcode::ResetBit(
                 Immediate::U8(3),
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0x9f)) => Opcode::ResetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xa0)) => Opcode::ResetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xa1)) => Opcode::ResetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xa2)) => Opcode::ResetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xa3)) => Opcode::ResetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xa4)) => Opcode::ResetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xa5)) => Opcode::ResetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
                 4,
             ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0xa6)) => Opcode::ResetBit(
@@ -1811,9 +2624,93 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
                 4,
             ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xa7)) => Opcode::ResetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xa8)) => Opcode::ResetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xa9)) => Opcode::ResetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xaa)) => Opcode::ResetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xab)) => Opcode::ResetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xac)) => Opcode::ResetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xad)) => Opcode::ResetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0xae)) => Opcode::ResetBit(
                 Immediate::U8(5),
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xaf)) => Opcode::ResetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xb0)) => Opcode::ResetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xb1)) => Opcode::ResetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xb2)) => Opcode::ResetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xb3)) => Opcode::ResetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xb4)) => Opcode::ResetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xb5)) => Opcode::ResetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
                 4,
             ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0xb6)) => Opcode::ResetBit(
@@ -1821,9 +2718,93 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
                 4,
             ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xb7)) => Opcode::ResetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xb8)) => Opcode::ResetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xb9)) => Opcode::ResetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xba)) => Opcode::ResetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xbb)) => Opcode::ResetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xbc)) => Opcode::ResetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xbd)) => Opcode::ResetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0xbe)) => Opcode::ResetBit(
                 Immediate::U8(7),
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xbf)) => Opcode::ResetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xc0)) => Opcode::SetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xc1)) => Opcode::SetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xc2)) => Opcode::SetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xc3)) => Opcode::SetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xc4)) => Opcode::SetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xc5)) => Opcode::SetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
                 4,
             ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0xc6)) => Opcode::SetBit(
@@ -1831,9 +2812,93 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
                 4,
             ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xc7)) => Opcode::SetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xc8)) => Opcode::SetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xc9)) => Opcode::SetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xca)) => Opcode::SetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xcb)) => Opcode::SetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xcc)) => Opcode::SetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xcd)) => Opcode::SetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0xce)) => Opcode::SetBit(
                 Immediate::U8(1),
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xcf)) => Opcode::SetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xd0)) => Opcode::SetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xd1)) => Opcode::SetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xd2)) => Opcode::SetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xd3)) => Opcode::SetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xd4)) => Opcode::SetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xd5)) => Opcode::SetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
                 4,
             ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0xd6)) => Opcode::SetBit(
@@ -1841,9 +2906,93 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
                 4,
             ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xd7)) => Opcode::SetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xd8)) => Opcode::SetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xd9)) => Opcode::SetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xda)) => Opcode::SetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xdb)) => Opcode::SetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xdc)) => Opcode::SetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xdd)) => Opcode::SetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0xde)) => Opcode::SetBit(
                 Immediate::U8(3),
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xdf)) => Opcode::SetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xe0)) => Opcode::SetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xe1)) => Opcode::SetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xe2)) => Opcode::SetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xe3)) => Opcode::SetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xe4)) => Opcode::SetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xe5)) => Opcode::SetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
                 4,
             ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0xe6)) => Opcode::SetBit(
@@ -1851,9 +3000,93 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
                 4,
             ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xe7)) => Opcode::SetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xe8)) => Opcode::SetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xe9)) => Opcode::SetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xea)) => Opcode::SetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xeb)) => Opcode::SetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xec)) => Opcode::SetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xed)) => Opcode::SetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0xee)) => Opcode::SetBit(
                 Immediate::U8(5),
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xef)) => Opcode::SetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xf0)) => Opcode::SetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xf1)) => Opcode::SetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xf2)) => Opcode::SetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xf3)) => Opcode::SetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xf4)) => Opcode::SetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xf5)) => Opcode::SetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
                 4,
             ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0xf6)) => Opcode::SetBit(
@@ -1861,9 +3094,57 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
                 4,
             ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xf7)) => Opcode::SetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xf8)) => Opcode::SetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xf9)) => Opcode::SetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xfa)) => Opcode::SetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xfb)) => Opcode::SetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xfc)) => Opcode::SetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xfd)) => Opcode::SetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
             (Some(0xdd), Some(0xcb), Some(offset), Some(0xfe)) => Opcode::SetBit(
                 Immediate::U8(7),
                 Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xdd), Some(0xcb), Some(offset), Some(0xff)) => Opcode::SetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IX(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
                 4,
             ),
 
@@ -2463,6 +3744,1385 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::IY(None)), true),
                 2,
             ),
+
+            // 0xFDCB PREFIX
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x00)) => Opcode::RotateLeftCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x01)) => Opcode::RotateLeftCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x02)) => Opcode::RotateLeftCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x03)) => Opcode::RotateLeftCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x04)) => Opcode::RotateLeftCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x05)) => Opcode::RotateLeftCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x06)) => {
+                Opcode::RotateLeftCarry(Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true), 4)
+            }
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x07)) => Opcode::RotateLeftCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x08)) => Opcode::RotateRightCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x09)) => Opcode::RotateRightCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x0a)) => Opcode::RotateRightCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x0b)) => Opcode::RotateRightCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x0c)) => Opcode::RotateRightCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x0d)) => Opcode::RotateRightCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x0e)) => {
+                Opcode::RotateRightCarry(Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true), 4)
+            }
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x0f)) => Opcode::RotateRightCarryStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x10)) => Opcode::RotateLeftStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x11)) => Opcode::RotateLeftStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x12)) => Opcode::RotateLeftStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x13)) => Opcode::RotateLeftStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x14)) => Opcode::RotateLeftStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x15)) => Opcode::RotateLeftStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x16)) => {
+                Opcode::RotateLeft(Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true), 4)
+            }
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x17)) => Opcode::RotateLeftStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x18)) => Opcode::RotateRightStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x19)) => Opcode::RotateRightStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x1a)) => Opcode::RotateRightStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x1b)) => Opcode::RotateRightStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x1c)) => Opcode::RotateRightStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x1d)) => Opcode::RotateRightStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x1e)) => {
+                Opcode::RotateRight(Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true), 4)
+            }
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x1f)) => Opcode::RotateRightStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x20)) => Opcode::ShiftLeftArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x21)) => Opcode::ShiftLeftArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x22)) => Opcode::ShiftLeftArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x23)) => Opcode::ShiftLeftArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x24)) => Opcode::ShiftLeftArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x25)) => Opcode::ShiftLeftArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x26)) => {
+                Opcode::ShiftLeftArithmetic(Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true), 4)
+            }
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x27)) => Opcode::ShiftLeftArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x28)) => Opcode::ShiftRightArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x29)) => Opcode::ShiftRightArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x2a)) => Opcode::ShiftRightArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x2b)) => Opcode::ShiftRightArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x2c)) => Opcode::ShiftRightArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x2d)) => Opcode::ShiftRightArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x2e)) => {
+                Opcode::ShiftRightArithmetic(Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true), 4)
+            }
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x2f)) => Opcode::ShiftRightArithmeticStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x30)) => Opcode::ShiftLeftLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x31)) => Opcode::ShiftLeftLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x32)) => Opcode::ShiftLeftLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x33)) => Opcode::ShiftLeftLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x34)) => Opcode::ShiftLeftLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x35)) => Opcode::ShiftLeftLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x36)) => {
+                Opcode::ShiftLeftLogical(Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true), 4)
+            }
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x37)) => Opcode::ShiftLeftLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x38)) => Opcode::ShiftRightLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x39)) => Opcode::ShiftRightLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x3a)) => Opcode::ShiftRightLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x3b)) => Opcode::ShiftRightLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x3c)) => Opcode::ShiftRightLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x3d)) => Opcode::ShiftRightLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x3e)) => {
+                Opcode::ShiftRightLogical(Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true), 4)
+            }
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x3f)) => Opcode::ShiftRightLogicalStore(
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x40)) => Opcode::TestBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x41)) => Opcode::TestBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x42)) => Opcode::TestBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x43)) => Opcode::TestBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x44)) => Opcode::TestBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x45)) => Opcode::TestBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x46)) => Opcode::TestBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x47)) => Opcode::TestBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x48)) => Opcode::TestBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x49)) => Opcode::TestBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x4a)) => Opcode::TestBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x4b)) => Opcode::TestBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x4c)) => Opcode::TestBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x4d)) => Opcode::TestBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x4e)) => Opcode::TestBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x4f)) => Opcode::TestBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x50)) => Opcode::TestBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x51)) => Opcode::TestBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x52)) => Opcode::TestBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x53)) => Opcode::TestBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x54)) => Opcode::TestBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x55)) => Opcode::TestBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x56)) => Opcode::TestBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x57)) => Opcode::TestBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x58)) => Opcode::TestBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x59)) => Opcode::TestBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x5a)) => Opcode::TestBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x5b)) => Opcode::TestBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x5c)) => Opcode::TestBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x5d)) => Opcode::TestBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x5e)) => Opcode::TestBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x5f)) => Opcode::TestBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x60)) => Opcode::TestBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x61)) => Opcode::TestBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x62)) => Opcode::TestBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x63)) => Opcode::TestBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x64)) => Opcode::TestBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x65)) => Opcode::TestBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x66)) => Opcode::TestBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x67)) => Opcode::TestBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x68)) => Opcode::TestBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x69)) => Opcode::TestBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x6a)) => Opcode::TestBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x6b)) => Opcode::TestBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x6c)) => Opcode::TestBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x6d)) => Opcode::TestBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x6e)) => Opcode::TestBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x6f)) => Opcode::TestBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x70)) => Opcode::TestBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x71)) => Opcode::TestBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x72)) => Opcode::TestBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x73)) => Opcode::TestBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x74)) => Opcode::TestBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x75)) => Opcode::TestBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x76)) => Opcode::TestBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x77)) => Opcode::TestBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x78)) => Opcode::TestBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x79)) => Opcode::TestBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x7a)) => Opcode::TestBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x7b)) => Opcode::TestBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x7c)) => Opcode::TestBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x7d)) => Opcode::TestBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x7e)) => Opcode::TestBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x7f)) => Opcode::TestBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x80)) => Opcode::ResetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x81)) => Opcode::ResetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x82)) => Opcode::ResetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x83)) => Opcode::ResetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x84)) => Opcode::ResetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x85)) => Opcode::ResetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x86)) => Opcode::ResetBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x87)) => Opcode::ResetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x88)) => Opcode::ResetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x89)) => Opcode::ResetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x8a)) => Opcode::ResetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x8b)) => Opcode::ResetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x8c)) => Opcode::ResetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x8d)) => Opcode::ResetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x8e)) => Opcode::ResetBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x8f)) => Opcode::ResetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x90)) => Opcode::ResetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x91)) => Opcode::ResetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x92)) => Opcode::ResetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x93)) => Opcode::ResetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x94)) => Opcode::ResetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x95)) => Opcode::ResetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x96)) => Opcode::ResetBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x97)) => Opcode::ResetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x98)) => Opcode::ResetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x99)) => Opcode::ResetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x9a)) => Opcode::ResetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x9b)) => Opcode::ResetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x9c)) => Opcode::ResetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x9d)) => Opcode::ResetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x9e)) => Opcode::ResetBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0x9f)) => Opcode::ResetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xa0)) => Opcode::ResetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xa1)) => Opcode::ResetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xa2)) => Opcode::ResetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xa3)) => Opcode::ResetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xa4)) => Opcode::ResetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xa5)) => Opcode::ResetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xa6)) => Opcode::ResetBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xa7)) => Opcode::ResetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xa8)) => Opcode::ResetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xa9)) => Opcode::ResetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xaa)) => Opcode::ResetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xab)) => Opcode::ResetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xac)) => Opcode::ResetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xad)) => Opcode::ResetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xae)) => Opcode::ResetBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xaf)) => Opcode::ResetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xb0)) => Opcode::ResetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xb1)) => Opcode::ResetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xb2)) => Opcode::ResetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xb3)) => Opcode::ResetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xb4)) => Opcode::ResetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xb5)) => Opcode::ResetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xb6)) => Opcode::ResetBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xb7)) => Opcode::ResetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xb8)) => Opcode::ResetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xb9)) => Opcode::ResetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xba)) => Opcode::ResetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xbb)) => Opcode::ResetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xbc)) => Opcode::ResetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xbd)) => Opcode::ResetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xbe)) => Opcode::ResetBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xbf)) => Opcode::ResetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xc0)) => Opcode::SetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xc1)) => Opcode::SetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xc2)) => Opcode::SetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xc3)) => Opcode::SetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xc4)) => Opcode::SetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xc5)) => Opcode::SetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xc6)) => Opcode::SetBit(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xc7)) => Opcode::SetBitStore(
+                Immediate::U8(0),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xc8)) => Opcode::SetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xc9)) => Opcode::SetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xca)) => Opcode::SetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xcb)) => Opcode::SetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xcc)) => Opcode::SetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xcd)) => Opcode::SetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xce)) => Opcode::SetBit(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xcf)) => Opcode::SetBitStore(
+                Immediate::U8(1),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xd0)) => Opcode::SetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xd1)) => Opcode::SetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xd2)) => Opcode::SetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xd3)) => Opcode::SetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xd4)) => Opcode::SetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xd5)) => Opcode::SetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xd6)) => Opcode::SetBit(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xd7)) => Opcode::SetBitStore(
+                Immediate::U8(2),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xd8)) => Opcode::SetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xd9)) => Opcode::SetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xda)) => Opcode::SetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xdb)) => Opcode::SetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xdc)) => Opcode::SetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xdd)) => Opcode::SetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xde)) => Opcode::SetBit(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xdf)) => Opcode::SetBitStore(
+                Immediate::U8(3),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xe0)) => Opcode::SetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xe1)) => Opcode::SetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xe2)) => Opcode::SetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xe3)) => Opcode::SetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xe4)) => Opcode::SetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xe5)) => Opcode::SetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xe6)) => Opcode::SetBit(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xe7)) => Opcode::SetBitStore(
+                Immediate::U8(4),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xe8)) => Opcode::SetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xe9)) => Opcode::SetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xea)) => Opcode::SetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xeb)) => Opcode::SetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xec)) => Opcode::SetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xed)) => Opcode::SetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xee)) => Opcode::SetBit(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xef)) => Opcode::SetBitStore(
+                Immediate::U8(5),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xf0)) => Opcode::SetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xf1)) => Opcode::SetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xf2)) => Opcode::SetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xf3)) => Opcode::SetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xf4)) => Opcode::SetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xf5)) => Opcode::SetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xf6)) => Opcode::SetBit(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xf7)) => Opcode::SetBitStore(
+                Immediate::U8(6),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xf8)) => Opcode::SetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::B), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xf9)) => Opcode::SetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::C), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xfa)) => Opcode::SetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::D), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xfb)) => Opcode::SetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::E), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xfc)) => Opcode::SetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::H), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xfd)) => Opcode::SetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xfe)) => Opcode::SetBit(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                4,
+            ),
+            (Some(0xfd), Some(0xcb), Some(offset), Some(0xff)) => Opcode::SetBitStore(
+                Immediate::U8(7),
+                Operand::Register(Register::Reg16(Reg16::IY(Some(offset as i8))), true),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                4,
+            ),
+
             // Default decode error case
             _ => Opcode::Unknown(0),
         }
@@ -2530,6 +5190,16 @@ impl<'a> Disassembler<'a> {
             Opcode::ShiftRightArithmetic(_, length) => length,
             Opcode::ShiftRightLogical(_, length) => length,
             Opcode::ShiftLeftLogical(_, length) => length,
+            Opcode::ResetBitStore(_, _, _, length) => length,
+            Opcode::SetBitStore(_, _, _, length) => length,
+            Opcode::RotateRightCarryStore(_, _, length) => length,
+            Opcode::RotateRightStore(_, _, length) => length,
+            Opcode::RotateLeftCarryStore(_, _, length) => length,
+            Opcode::RotateLeftStore(_, _, length) => length,
+            Opcode::ShiftRightArithmeticStore(_, _, length) => length,
+            Opcode::ShiftRightLogicalStore(_, _, length) => length,
+            Opcode::ShiftLeftArithmeticStore(_, _, length) => length,
+            Opcode::ShiftLeftLogicalStore(_, _, length) => length,
             Opcode::Unknown(length) => length,
         }
     }

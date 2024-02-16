@@ -498,6 +498,28 @@ impl<'a> Handlers<'a> {
         }
     }
 
+    pub(crate) fn reset_bit_store(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::ResetBitStore(
+                Immediate::U8(bit),
+                Operand::Register(Register::Reg16(src_reg), true),
+                Operand::Register(Register::Reg8(dst_reg), false),
+                _,
+            ) => {
+                let src = self.cpu.get_register_u16(src_reg);
+                let value = self.bus.read(src)?;
+                let dst = self.cpu.get_register_u8(dst_reg);
+                let result = value & !(1 << bit);
+                self.cpu.set_register_u8(dst_reg, result);
+                self.bus.write(src, result)?;
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
+    }
+
     pub(crate) fn decrement_and_jump_relative(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
             Opcode::DecrementAndJumpRelative(Immediate::S8(imm), _) => {
@@ -1088,6 +1110,145 @@ impl<'a> Handlers<'a> {
         }
     }
 
+    pub(crate) fn rotate_right_carry_store(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::RotateRightCarryStore(
+                Operand::Register(Register::Reg16(src_reg), true),
+                Operand::Register(Register::Reg8(dst_reg), false),
+                _,
+            ) => {
+                let src = self.cpu.get_register_u16(src_reg);
+                let value = self.bus.read(src)?;
+                let carry = value & 0b0000_0001 != 0;
+                let result = if carry { value >> 1 | 0b1000_0000 } else { value >> 1 };
+                self.cpu.set_register_u8(dst_reg, result);
+                self.bus.write(src, result)?;
+
+                self.cpu.registers.f.set(Flags::CARRY, carry);
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.registers.f.set(Flags::SUBTRACT, false);
+                self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
+    }
+
+    pub(crate) fn rotate_right_store(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::RotateRightStore(
+                Operand::Register(Register::Reg16(src_reg), true),
+                Operand::Register(Register::Reg8(dst_reg), false),
+                _,
+            ) => {
+                let previous_carry = self.cpu.registers.f.contains(Flags::CARRY);
+                let src = self.cpu.get_register_u16(src_reg);
+                let value = self.bus.read(src)?;
+                let carry = value & 0b0000_0001 != 0;
+                let result = (value >> 1) | (if previous_carry { 0b1000_0000 } else { 0 });
+                self.cpu.set_register_u8(dst_reg, result);
+                self.bus.write(src, result)?;
+
+                self.cpu.registers.f.set(Flags::CARRY, carry);
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.registers.f.set(Flags::SUBTRACT, false);
+                self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
+    }
+
+    pub(crate) fn rotate_left_carry_store(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::RotateLeftCarryStore(
+                Operand::Register(Register::Reg16(src_reg), true),
+                Operand::Register(Register::Reg8(dst_reg), false),
+                _,
+            ) => {
+                let src = self.cpu.get_register_u16(src_reg);
+                let value = self.bus.read(src)?;
+                let carry = value & 0b1000_0000 > 0;
+                let result = if carry { value << 1 | 0b0000_0001 } else { value << 1 };
+                self.cpu.set_register_u8(dst_reg, result);
+                self.bus.write(src, result)?;
+
+                self.cpu.registers.f.set(Flags::CARRY, carry);
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.registers.f.set(Flags::SUBTRACT, false);
+                self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
+    }
+
+    pub(crate) fn rotate_left_store(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::RotateLeftStore(
+                Operand::Register(Register::Reg16(src_reg), true),
+                Operand::Register(Register::Reg8(dst_reg), false),
+                _,
+            ) => {
+                let previous_carry = self.cpu.registers.f.contains(Flags::CARRY);
+                let src = self.cpu.get_register_u16(src_reg);
+                let value = self.bus.read(src)?;
+                let carry = value & 0b1000_0000 != 0;
+                let result = (value << 1) | (if previous_carry { 0b0000_0001 } else { 0 });
+                self.cpu.set_register_u8(dst_reg, result);
+                self.bus.write(src, result)?;
+
+                self.cpu.registers.f.set(Flags::CARRY, carry);
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.registers.f.set(Flags::SUBTRACT, false);
+                self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+
+                Ok(())
+            }
+            Opcode::RotateLeft(Operand::Register(Register::Reg16(dst_reg), true), _) => {
+                let dst = self.cpu.get_register_u16(dst_reg);
+                let value = self.bus.read(dst)?;
+                let carry = value & 0b1000_0000 != 0;
+                let result = (value << 1)
+                    | (if self.cpu.registers.f.contains(Flags::CARRY) {
+                        0b0000_0001
+                    } else {
+                        0
+                    });
+                self.bus.write(dst, result)?;
+
+                self.cpu.registers.f.set(Flags::CARRY, carry);
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.registers.f.set(Flags::SUBTRACT, false);
+                self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
+    }
+
     pub(crate) fn complement(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
             Opcode::Complement(_) => {
@@ -1119,6 +1280,28 @@ impl<'a> Handlers<'a> {
                 let value = self.bus.read(dst)?;
                 let result = value | (1 << bit);
                 self.bus.write(dst, result)?;
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
+    }
+
+    pub(crate) fn set_bit_store(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::SetBitStore(
+                Immediate::U8(bit),
+                Operand::Register(Register::Reg16(src_reg), true),
+                Operand::Register(Register::Reg8(dst_reg), false),
+                _,
+            ) => {
+                let src = self.cpu.get_register_u16(src_reg);
+                let value = self.bus.read(src)?;
+                let dst = self.cpu.get_register_u8(dst_reg);
+                let result = value | (1 << bit);
+                self.cpu.set_register_u8(dst_reg, result);
+                self.bus.write(src, result)?;
                 Ok(())
             }
             _ => Err(GgError::InvalidOpcodeImplementation {
@@ -1326,6 +1509,70 @@ impl<'a> Handlers<'a> {
         Ok(())
     }
 
+    pub(crate) fn shift_right_arithmetic_store(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let (result, carry) = match instruction.opcode {
+            Opcode::ShiftRightArithmeticStore(
+                Operand::Register(Register::Reg16(src_reg), true),
+                Operand::Register(Register::Reg8(dst_reg), false),
+                _,
+            ) => {
+                let src = self.cpu.get_register_u16(src_reg);
+                let value = self.bus.read(src)?;
+                let carry = value & 0b0000_0001 > 0;
+                let result = (value & 0b1000_0000) | (value >> 1);
+                self.cpu.set_register_u8(dst_reg, result);
+                self.bus.write(src, result)?;
+                (result, carry)
+            }
+            _ => {
+                return Err(GgError::InvalidOpcodeImplementation {
+                    instruction: instruction.opcode,
+                })
+            }
+        };
+
+        self.cpu.registers.f.set(Flags::CARRY, carry);
+        self.cpu.registers.f.set(Flags::ZERO, result == 0);
+        self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+        self.cpu.registers.f.set(Flags::SUBTRACT, false);
+        self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+
+        Ok(())
+    }
+
+    pub(crate) fn shift_right_logical_store(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let (result, carry) = match instruction.opcode {
+            Opcode::ShiftRightLogicalStore(
+                Operand::Register(Register::Reg16(src_reg), true),
+                Operand::Register(Register::Reg8(dst_reg), false),
+                _,
+            ) => {
+                let src = self.cpu.get_register_u16(src_reg);
+                let value = self.bus.read(src)?;
+                let carry = value & 0b0000_0001 > 0;
+                let result = value >> 1;
+                self.cpu.set_register_u8(dst_reg, result);
+                self.bus.write(src, result)?;
+                (result, carry)
+            }
+            _ => {
+                return Err(GgError::InvalidOpcodeImplementation {
+                    instruction: instruction.opcode,
+                })
+            }
+        };
+
+        self.cpu.registers.f.set(Flags::CARRY, carry);
+        self.cpu.registers.f.set(Flags::ZERO, result == 0);
+        self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+        self.cpu.registers.f.set(Flags::SUBTRACT, false);
+        self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+
+        Ok(())
+    }
+
     pub(crate) fn shift_left_arithmetic(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         let (result, carry) = match instruction.opcode {
             Opcode::ShiftLeftArithmetic(Operand::Register(Register::Reg8(dst_reg), false), _) => {
@@ -1375,6 +1622,70 @@ impl<'a> Handlers<'a> {
                 let carry = value & 0b1000_0000 > 0;
                 let result = value << 1 | 0b0000_0001;
                 self.bus.write(dst, result)?;
+                (result, carry)
+            }
+            _ => {
+                return Err(GgError::InvalidOpcodeImplementation {
+                    instruction: instruction.opcode,
+                })
+            }
+        };
+
+        self.cpu.registers.f.set(Flags::CARRY, carry);
+        self.cpu.registers.f.set(Flags::ZERO, result == 0);
+        self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+        self.cpu.registers.f.set(Flags::SUBTRACT, false);
+        self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+
+        Ok(())
+    }
+
+    pub(crate) fn shift_left_arithmetic_store(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let (result, carry) = match instruction.opcode {
+            Opcode::ShiftLeftArithmeticStore(
+                Operand::Register(Register::Reg16(src_reg), true),
+                Operand::Register(Register::Reg8(dst_reg), false),
+                _,
+            ) => {
+                let src = self.cpu.get_register_u16(src_reg);
+                let value = self.bus.read(src)?;
+                let carry = value & 0b1000_0000 > 0;
+                let result = value << 1;
+                self.cpu.set_register_u8(dst_reg, result);
+                self.bus.write(src, result)?;
+                (result, carry)
+            }
+            _ => {
+                return Err(GgError::InvalidOpcodeImplementation {
+                    instruction: instruction.opcode,
+                })
+            }
+        };
+
+        self.cpu.registers.f.set(Flags::CARRY, carry);
+        self.cpu.registers.f.set(Flags::ZERO, result == 0);
+        self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+        self.cpu.registers.f.set(Flags::SUBTRACT, false);
+        self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+
+        Ok(())
+    }
+
+    pub(crate) fn shift_left_logical_store(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let (result, carry) = match instruction.opcode {
+            Opcode::ShiftLeftLogicalStore(
+                Operand::Register(Register::Reg16(src_reg), true),
+                Operand::Register(Register::Reg8(dst_reg), false),
+                _,
+            ) => {
+                let src = self.cpu.get_register_u16(src_reg);
+                let value = self.bus.read(src)?;
+                let carry = value & 0b1000_0000 > 0;
+                let result = value << 1 | 0b0000_0001;
+                self.cpu.set_register_u8(dst_reg, result);
+                self.bus.write(src, result)?;
                 (result, carry)
             }
             _ => {

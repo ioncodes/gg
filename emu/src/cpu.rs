@@ -183,6 +183,7 @@ impl Cpu {
                     Opcode::Add(_, _, _) => handlers.add(&instruction),
                     Opcode::And(_, _) => handlers.and(&instruction),
                     Opcode::SubtractCarry(_, _, _) => handlers.subtract_carry(&instruction),
+
                     Opcode::RotateRightCarryAccumulator(_) => handlers.rotate_right_carry_accumulator(&instruction),
                     Opcode::RotateRightAccumulator(_) => handlers.rotate_right_accumulator(&instruction),
                     Opcode::RotateLeftCarryAccumulator(_) => handlers.rotate_left_carry_accumulator(&instruction),
@@ -191,6 +192,18 @@ impl Cpu {
                     Opcode::RotateRight(_, _) => handlers.rotate_right(&instruction),
                     Opcode::RotateLeftCarry(_, _) => handlers.rotate_left_carry(&instruction),
                     Opcode::RotateLeft(_, _) => handlers.rotate_left(&instruction),
+
+                    Opcode::RotateLeftCarryStore(_, _, _) => handlers.rotate_left_carry_store(&instruction),
+                    Opcode::RotateRightCarryStore(_, _, _) => handlers.rotate_right_carry_store(&instruction),
+                    Opcode::RotateLeftStore(_, _, _) => handlers.rotate_left_store(&instruction),
+                    Opcode::RotateRightStore(_, _, _) => handlers.rotate_right_store(&instruction),
+                    Opcode::ShiftRightArithmeticStore(_, _, _) => handlers.shift_right_arithmetic_store(&instruction),
+                    Opcode::ShiftRightLogicalStore(_, _, _) => handlers.shift_right_logical_store(&instruction),
+                    Opcode::ShiftLeftArithmeticStore(_, _, _) => handlers.shift_left_arithmetic_store(&instruction),
+                    Opcode::ShiftLeftLogicalStore(_, _, _) => handlers.shift_left_logical_store(&instruction),
+                    Opcode::SetBitStore(_, _, _, _) => handlers.set_bit_store(&instruction),
+                    Opcode::ResetBitStore(_, _, _, _) => handlers.reset_bit_store(&instruction),
+
                     Opcode::Complement(_) => handlers.complement(&instruction),
                     Opcode::SetBit(_, _, _) => handlers.set_bit(&instruction),
                     Opcode::Halt(_) => return Err(GgError::CpuHalted),
