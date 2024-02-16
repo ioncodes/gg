@@ -6,7 +6,9 @@ use rlua::{Context, Function, Lua};
 use std::sync::Mutex;
 use z80::instruction::{Reg16, Reg8};
 
-use crate::{bus::Bus, cpu::Cpu, vdp::Vdp};
+use crate::bus::Bus;
+use crate::cpu::Cpu;
+use crate::vdp::Vdp;
 
 lazy_static! {
     static ref HOOKS: Mutex<HashMap<u16, (String, HookType)>> = Mutex::new(HashMap::new());

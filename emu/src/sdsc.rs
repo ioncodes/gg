@@ -1,6 +1,7 @@
 use log::debug;
 
-use crate::{error::GgError, io::Controller};
+use crate::error::GgError;
+use crate::io::Controller;
 
 pub(crate) const CONTROL_PORT: u8 = 0xfc;
 pub(crate) const DATA_PORT: u8 = 0xfd;

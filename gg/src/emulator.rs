@@ -1,20 +1,17 @@
 use std::collections::VecDeque;
 
+use eframe::egui::scroll_area::ScrollBarVisibility;
 use eframe::egui::{
-    self, scroll_area::ScrollBarVisibility, vec2, CentralPanel, Color32, ColorImage, ComboBox, Context, Image, Key, ScrollArea, SidePanel,
-    TextureHandle, TextureOptions, Window,
+    self, vec2, CentralPanel, Color32, ColorImage, ComboBox, Context, Image, Key, ScrollArea, SidePanel, TextureHandle, TextureOptions,
+    Window,
 };
 use eframe::CreationContext;
-use emu::{
-    bus::{MEMORY_REGISTER_CR_BANK_SELECT_0, MEMORY_REGISTER_CR_BANK_SELECT_1, MEMORY_REGISTER_CR_BANK_SELECT_2},
-    system::System,
-    vdp::{Color, INTERNAL_HEIGHT, INTERNAL_WIDTH},
-};
+use emu::bus::{MEMORY_REGISTER_CR_BANK_SELECT_0, MEMORY_REGISTER_CR_BANK_SELECT_1, MEMORY_REGISTER_CR_BANK_SELECT_2};
+use emu::system::System;
+use emu::vdp::{Color, INTERNAL_HEIGHT, INTERNAL_WIDTH};
 use log::error;
-use z80::{
-    disassembler::Disassembler,
-    instruction::{Instruction, Opcode},
-};
+use z80::disassembler::Disassembler;
+use z80::instruction::{Instruction, Opcode};
 
 pub(crate) const SCALE: usize = 4;
 

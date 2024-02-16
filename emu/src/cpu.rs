@@ -1,20 +1,15 @@
-use crate::{
-    bus::{self, Bus},
-    error::GgError,
-    handlers::Handlers,
-    io::Controller as _,
-    joystick,
-    psg::Psg,
-    sdsc,
-    vdp::{self, Vdp},
-};
+use crate::bus::{self, Bus};
+use crate::error::GgError;
+use crate::handlers::Handlers;
+use crate::io::Controller as _;
+use crate::psg::Psg;
+use crate::vdp::{self, Vdp};
+use crate::{joystick, sdsc};
 use bitflags::bitflags;
 use log::{error, trace};
 use std::fmt;
-use z80::{
-    disassembler::Disassembler,
-    instruction::{Instruction, Opcode, Reg16, Reg8, Register},
-};
+use z80::disassembler::Disassembler;
+use z80::instruction::{Instruction, Opcode, Reg16, Reg8, Register};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Registers {

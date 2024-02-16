@@ -1,2 +1,4 @@
 fn_params_layout = "Compressed"
 max_width = 140
+chain_width = 80
+imports_granularity = "Module"

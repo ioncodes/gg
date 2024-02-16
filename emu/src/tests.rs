@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use crate::{bus::Passthrough, cpu::Flags, system::System};
+    use crate::bus::Passthrough;
+    use crate::cpu::Flags;
+    use crate::system::System;
     use serde_json::Value;
     use z80::instruction::Reg16;
 

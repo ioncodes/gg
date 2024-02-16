@@ -1,6 +1,9 @@
 use std::collections::VecDeque;
 
-use crate::{cpu::Cpu, error::GgError, io::Controller, memory::Memory};
+use crate::cpu::Cpu;
+use crate::error::GgError;
+use crate::io::Controller;
+use crate::memory::Memory;
 use log::{debug, error, trace};
 
 // todo: ????

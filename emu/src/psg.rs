@@ -1,4 +1,5 @@
-use crate::{error::GgError, io::Controller};
+use crate::error::GgError;
+use crate::io::Controller;
 
 pub struct Psg {}
 

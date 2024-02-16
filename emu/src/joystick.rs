@@ -1,4 +1,5 @@
-use crate::{error::GgError, io};
+use crate::error::GgError;
+use crate::io;
 
 pub(crate) const JOYSTICK_AB_PORT: u8 = 0xdc;
 pub(crate) const JOYSTICK_B_MISC_PORT: u8 = 0xdd;
