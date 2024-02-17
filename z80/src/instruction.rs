@@ -29,6 +29,8 @@ pub enum Reg8 {
     IYL,
     IXH,
     IXL,
+    I,
+    R,
 }
 
 #[derive(PartialEq, Copy, Clone)]
@@ -348,6 +350,8 @@ impl fmt::Display for Reg8 {
             Reg8::IYL => write!(f, "iyl"),
             Reg8::IXH => write!(f, "ixh"),
             Reg8::IXL => write!(f, "ixl"),
+            Reg8::I => write!(f, "i"),
+            Reg8::R => write!(f, "r"),
         }
     }
 }

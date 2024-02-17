@@ -1126,6 +1126,11 @@ impl<'a> Disassembler<'a> {
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
                 4,
             ),
+            (Some(0xed), Some(0x4f), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::R), false),
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                2,
+            ),
             (Some(0xed), Some(0x50), _, _) => Opcode::In(
                 Operand::Register(Register::Reg8(Reg8::D), false),
                 Operand::Register(Register::Reg8(Reg8::C), true),
@@ -1153,6 +1158,11 @@ impl<'a> Disassembler<'a> {
                 4,
             ),
             (Some(0xed), Some(0x5e), _, _) => Opcode::SetInterruptMode(Immediate::U8(2), 2),
+            (Some(0xed), Some(0x5f), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::R), false),
+                2,
+            ),
             (Some(0xed), Some(0x60), _, _) => Opcode::In(
                 Operand::Register(Register::Reg8(Reg8::H), false),
                 Operand::Register(Register::Reg8(Reg8::C), true),
@@ -1198,12 +1208,22 @@ impl<'a> Disassembler<'a> {
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
                 4,
             ),
+            (Some(0xed), Some(0xa0), _, _) => Opcode::LoadIncrement(2),
+            (Some(0xed), Some(0xa1), _, _) => Opcode::CompareIncrement(2),
+            (Some(0xed), Some(0xa2), _, _) => Opcode::InIncrement(2),
             (Some(0xed), Some(0xa3), _, _) => Opcode::OutIncrement(2),
             (Some(0xed), Some(0xa8), _, _) => Opcode::LoadDecrement(2),
+            (Some(0xed), Some(0xa9), _, _) => Opcode::CompareDecrement(2),
+            (Some(0xed), Some(0xaa), _, _) => Opcode::InDecrement(2),
             (Some(0xed), Some(0xab), _, _) => Opcode::OutDecrement(2),
             (Some(0xed), Some(0xb0), _, _) => Opcode::LoadIncrementRepeat(2),
+            (Some(0xed), Some(0xb1), _, _) => Opcode::CompareIncrementRepeat(2),
+            (Some(0xed), Some(0xb2), _, _) => Opcode::InIncrementRepeat(2),
             (Some(0xed), Some(0xb3), _, _) => Opcode::OutIncrementRepeat(2),
             (Some(0xed), Some(0xb8), _, _) => Opcode::LoadDecrementRepeat(2),
+            (Some(0xed), Some(0xb9), _, _) => Opcode::CompareDecrementRepeat(2),
+            (Some(0xed), Some(0xba), _, _) => Opcode::InDecrementRepeat(2),
+            (Some(0xed), Some(0xbb), _, _) => Opcode::OutDecrementRepeat(2),
 
             // 0xDD PREFIX
             (Some(0xdd), Some(0x04), _, _) => Opcode::Increment(Operand::Register(Register::Reg8(Reg8::B), false), 2),
