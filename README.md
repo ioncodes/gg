@@ -55,6 +55,10 @@ The emulator features a debugger built around [egui and eframe](https://github.c
 * View CPU and VDP infromation such as registers
 * SDSC Debug Console
 
+There's more features that are CLI only:
+* Lua scripting (pretick/posttick hooks with access to CPU & VDP state and memory)
+* Debug and trace logging ("debug", "trace")
+
 ## Testing
 Currently the Z80 implementation can be tested using [ZEXDOC/ZEXALL](https://github.com/maxim-zhao/zexall-smsjsm) and using the JSON unit tests 
 provided by [jsmoo](https://github.com/raddad772/jsmoo/tree/main/misc/tests/GeneratedTests/z80/v1). However, some features are ignored/disabled/not implemented.
