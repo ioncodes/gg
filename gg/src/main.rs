@@ -1,8 +1,8 @@
 mod emulator;
 
+use core::vdp::{INTERNAL_HEIGHT, INTERNAL_WIDTH};
 use eframe::egui::{FontFamily, FontId, Style, TextStyle, ViewportBuilder, Visuals};
 use eframe::NativeOptions;
-use emu::vdp::{INTERNAL_HEIGHT, INTERNAL_WIDTH};
 use emulator::{Emulator, SCALE};
 
 fn main() {

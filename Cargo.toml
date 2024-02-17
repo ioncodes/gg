@@ -1,5 +1,3 @@
 [workspace]
 resolver = "2"
-members = [
-    "gg", "emu", "z80"
-]
+members = ["gg", "core", "z80"]

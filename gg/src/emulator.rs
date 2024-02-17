@@ -3,15 +3,15 @@ use std::fs::File;
 use std::io::Read;
 
 use clap::Parser;
+use core::bus::{MEMORY_REGISTER_CR_BANK_SELECT_0, MEMORY_REGISTER_CR_BANK_SELECT_1, MEMORY_REGISTER_CR_BANK_SELECT_2};
+use core::system::System;
+use core::vdp::{Color, INTERNAL_HEIGHT, INTERNAL_WIDTH};
 use eframe::egui::scroll_area::ScrollBarVisibility;
 use eframe::egui::{
     self, vec2, CentralPanel, Color32, ColorImage, ComboBox, Context, Image, Key, ScrollArea, SidePanel, TextureHandle, TextureOptions,
     Window,
 };
 use eframe::CreationContext;
-use emu::bus::{MEMORY_REGISTER_CR_BANK_SELECT_0, MEMORY_REGISTER_CR_BANK_SELECT_1, MEMORY_REGISTER_CR_BANK_SELECT_2};
-use emu::system::System;
-use emu::vdp::{Color, INTERNAL_HEIGHT, INTERNAL_WIDTH};
 use env_logger::{Builder, Target};
 use log::{error, Level};
 use z80::disassembler::Disassembler;
@@ -494,7 +494,7 @@ impl Emulator {
         }
 
         Builder::new()
-            .filter(Some("emu"), default_log_level)
+            .filter(Some("core"), default_log_level)
             .filter(Some("gg"), default_log_level)
             .target(target)
             .format_timestamp(None)
