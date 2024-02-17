@@ -1496,7 +1496,26 @@ impl<'a> Handlers<'a> {
     }
 
     pub(crate) fn decimal_adjust_accumulator(&mut self, instruction: &Instruction) -> Result<(), GgError> {
-        todo!("Decimal adjust accumulator")
+        // Straight up stolen from: https://github.com/JDRobotter/rgg/blob/master/src/cpu/z80.rs#L1480
+
+        let mut a = self.cpu.get_register_u8(Reg8::A);
+
+        if ((a & 0x0f) > 9) || self.cpu.registers.f.contains(Flags::HALF_CARRY) {
+            a += 0x06;
+        }
+
+        if ((a & 0xf0) > 0x90) || self.cpu.registers.f.contains(Flags::CARRY) {
+            a += 0x60;
+            self.cpu.registers.f.set(Flags::CARRY, true);
+        }
+
+        self.cpu.set_register_u8(Reg8::A, a);
+
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(a));
+        self.cpu.registers.f.set(Flags::ZERO, a == 0);
+        self.cpu.registers.f.set(Flags::SIGN, a & 0b1000_0000 != 0);
+
+        Ok(())
     }
 
     pub(crate) fn shift_right_arithmetic(&mut self, instruction: &Instruction) -> Result<(), GgError> {
