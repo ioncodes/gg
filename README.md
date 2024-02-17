@@ -5,8 +5,8 @@ the hardware and software myself or by using the excellent docs found on [smspow
 <details>
   <summary>Demos</summary>
 
-  | Sonic The Hedgehog 2 Demo  | Lucky Dime Caper Starring Donald Duck Demo |
-  | ---------- | ---------- |
+  | Sonic The Hedgehog 2 Demo                                                                         | Lucky Dime Caper Starring Donald Duck Demo                                                        |
+  | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
   | <video src="https://github.com/ioncodes/gg/assets/18533297/610fd9c9-1562-457e-b787-7230bc7c39c1"> | <video src="https://github.com/ioncodes/gg/assets/18533297/d52ea86e-b962-4d86-a3f9-3881b5cc44f7"> |
 </details>
 
@@ -16,11 +16,12 @@ the hardware and software myself or by using the excellent docs found on [smspow
 | [BIOS] Sega Game Gear (USA) (Majesco)                    | `0ebea9d4` |     👌      |
 | Sonic The Hedgehog 2 (U) [!]                             | `95a18ec7` |     🐣      |
 | Lucky Dime Caper Starring Donald Duck, The (USA, Europe) | `07a7815a` |     🐣      |
+| Pac-Man (USA)                                            | `b318dd37` |     🐣      |
 | Asterix and the Great Rescue (Europe) (En,Fr,De,Es,It)   | `328c5cc8` |     🐞      |
 | Shinobi (USA, Europe)                                    | `30f1c984` |     🐞      |
 
 * 👌: Playable
-* 🐣: In-Game, but not playable
+* 🐣: In-Game, but not (properly) playable
 * 🐞: Bugged/Broken
 
 ## Running
