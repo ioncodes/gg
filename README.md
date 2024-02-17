@@ -1,6 +1,7 @@
 ## gg
 WIP GameGear (and possibly Sega Master System) emulator. Most of the information I either figured out by reverse engineering
-the hardware and software myself or by using the excellent docs found on [smspower.org](https://www.smspower.org/).
+the hardware and software myself or by using the excellent docs found on [smspower.org](https://www.smspower.org/).  
+This document currently reflects https://github.com/ioncodes/gg/commit/d76a8e07ab522396109d058e618693cb9fca75e9.
 
 <details>
   <summary>Demos</summary>
