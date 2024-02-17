@@ -1,16 +1,11 @@
 mod emulator;
 
-use std::fs::File;
-
 use eframe::egui::{FontFamily, FontId, Style, TextStyle, ViewportBuilder, Visuals};
 use eframe::NativeOptions;
 use emu::vdp::{INTERNAL_HEIGHT, INTERNAL_WIDTH};
 use emulator::{Emulator, SCALE};
-use env_logger::{Builder, Target};
-use log::Level;
 
 fn main() {
-    initialize_logging();
     let native_options = NativeOptions {
         viewport: ViewportBuilder::default()
             .with_inner_size([(INTERNAL_WIDTH * SCALE) as f32, (INTERNAL_HEIGHT * SCALE) as f32])
@@ -38,31 +33,4 @@ fn main() {
             Box::new(Emulator::new(cc))
         }),
     );
-}
-
-fn initialize_logging() {
-    let mut default_log_level = Level::Info.to_level_filter();
-
-    let mut target = Target::Stderr;
-
-    let enable_trace = std::env::args().any(|arg| arg == "--trace" || arg == "-t");
-    if enable_trace {
-        default_log_level = Level::Trace.to_level_filter();
-    }
-
-    let enable_debug = std::env::args().any(|arg| arg == "--debug" || arg == "-d");
-    if enable_debug {
-        default_log_level = Level::Debug.to_level_filter();
-    }
-
-    if std::env::args().any(|arg| arg == "--log-to-file") {
-        target = Target::Pipe(Box::new(File::create("trace.log").expect("Can't create file")));
-    }
-
-    Builder::new()
-        .filter(Some("emu"), default_log_level)
-        .filter(Some("gg"), default_log_level)
-        .target(target)
-        .format_timestamp(None)
-        .init();
 }

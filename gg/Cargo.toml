@@ -11,3 +11,4 @@ log = "0.4.20"
 env_logger = "0.10.1"
 eframe = "0.26.0"
 z80 = { path = "../z80" }
+clap = { version = "4.5.1", features = ["derive"] }

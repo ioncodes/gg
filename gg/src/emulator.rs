@@ -1,5 +1,8 @@
 use std::collections::VecDeque;
+use std::fs::File;
+use std::io::Read;
 
+use clap::Parser;
 use eframe::egui::scroll_area::ScrollBarVisibility;
 use eframe::egui::{
     self, vec2, CentralPanel, Color32, ColorImage, ComboBox, Context, Image, Key, ScrollArea, SidePanel, TextureHandle, TextureOptions,
@@ -9,11 +12,33 @@ use eframe::CreationContext;
 use emu::bus::{MEMORY_REGISTER_CR_BANK_SELECT_0, MEMORY_REGISTER_CR_BANK_SELECT_1, MEMORY_REGISTER_CR_BANK_SELECT_2};
 use emu::system::System;
 use emu::vdp::{Color, INTERNAL_HEIGHT, INTERNAL_WIDTH};
-use log::error;
+use env_logger::{Builder, Target};
+use log::{error, Level};
 use z80::disassembler::Disassembler;
 use z80::instruction::{Instruction, Opcode};
 
 pub(crate) const SCALE: usize = 4;
+
+#[derive(Parser, Debug)]
+struct Args {
+    #[arg(short, long)]
+    bios: String,
+
+    #[arg(short, long)]
+    rom: String,
+
+    #[arg(short, long)]
+    lua: Option<String>,
+
+    #[arg(short, long, default_value_t = false)]
+    cpu_test: bool,
+
+    #[arg(short, long, default_value_t = String::from("info"))]
+    log_level: String,
+
+    #[arg(short, long, default_value_t = false)]
+    log_to_file: bool,
+}
 
 #[derive(PartialEq, Debug)]
 enum MemoryView {
@@ -76,23 +101,43 @@ impl eframe::App for Emulator {
 
 impl Emulator {
     pub(crate) fn new(cc: &CreationContext) -> Emulator {
-        let run_cpu_test = std::env::args().any(|arg| arg == "--cpu-test");
-        let (is_sms, cartridge) = if run_cpu_test {
-            (true, Vec::from(include_bytes!("../../external/zexdoc.sms")))
+        let args = Args::parse();
+
+        match args.log_level {
+            level if level == "trace" => Emulator::setup_logging(true, false, args.log_to_file),
+            level if level == "debug" => Emulator::setup_logging(false, true, args.log_to_file),
+            _ => Emulator::setup_logging(false, false, args.log_to_file),
+        }
+
+        let (is_sms, cartridge) = if args.cpu_test {
+            (true, Vec::from(include_bytes!("../../external/test_roms/zexdoc.sms")))
         } else {
-            (false, Vec::from(include_bytes!("../../external/sonic2.gg")))
+            let mut file = File::open(&args.rom).unwrap();
+            let mut buffer: Vec<u8> = Vec::new();
+            let _ = file.read_to_end(&mut buffer).unwrap();
+            (false, buffer)
         };
 
-        let lua_script = String::from(include_str!("../../external/test.lua"));
-        let bios = include_bytes!("../../external/majbios.gg");
+        let lua = if let Some(lua) = args.lua {
+            let mut file = File::open(lua).unwrap();
+            let mut script = String::new();
+            let _ = file.read_to_string(&mut script).unwrap();
+            Some(script)
+        } else {
+            None
+        };
 
-        let mut system = System::new(Some(lua_script), is_sms);
-        system.load_bios(bios);
+        let mut file = File::open(&args.bios).unwrap();
+        let mut bios: Vec<u8> = Vec::new();
+        let _ = file.read_to_end(&mut bios).unwrap();
 
-        if run_cpu_test {
+        let mut system = System::new(lua, is_sms);
+
+        if args.cpu_test {
             system.load_cartridge(cartridge.as_ref());
             system.disable_bios();
         } else {
+            system.load_bios(&bios);
             system.load_cartridge(cartridge.as_ref());
         }
 
@@ -429,5 +474,30 @@ impl Emulator {
 
         self.texture.set(image, TextureOptions::NEAREST);
         self.background_color = background_color;
+    }
+
+    fn setup_logging(enable_trace: bool, enable_debug: bool, enable_log_to_file: bool) {
+        let mut default_log_level = Level::Info.to_level_filter();
+
+        let mut target = Target::Stderr;
+
+        if enable_trace {
+            default_log_level = Level::Trace.to_level_filter();
+        }
+
+        if enable_debug {
+            default_log_level = Level::Debug.to_level_filter();
+        }
+
+        if enable_log_to_file {
+            target = Target::Pipe(Box::new(File::create("trace.log").expect("Can't create file")));
+        }
+
+        Builder::new()
+            .filter(Some("emu"), default_log_level)
+            .filter(Some("gg"), default_log_level)
+            .target(target)
+            .format_timestamp(None)
+            .init();
     }
 }
