@@ -119,10 +119,10 @@ impl<'a> Handlers<'a> {
                     Err(GgError::JumpNotTaken)
                 }
             }
-            Opcode::Jump(condition, Operand::Register(Register::Reg16(reg), deref), _) => {
+            Opcode::Jump(condition, Operand::Register(Register::Reg16(reg), true), _) => {
                 let dst = self.cpu.get_register_u16(reg);
                 if self.check_cpu_flag(condition) {
-                    Ok(if deref { self.bus.read_word(dst)? } else { dst })
+                    Ok(dst)
                 } else {
                     Err(GgError::JumpNotTaken)
                 }

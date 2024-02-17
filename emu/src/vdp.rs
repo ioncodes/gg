@@ -239,8 +239,6 @@ impl Vdp {
     }
 
     fn read_palette_entry(&self, mut index: u16) -> (u8, u8, u8, u8) {
-        trace!("Reading palette entry at {:04x}", index);
-
         // row 0 is the background color
         // row 1 is the sprite color?
         // todo: verify
