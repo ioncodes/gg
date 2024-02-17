@@ -393,7 +393,7 @@ impl Vdp {
 }
 
 impl Controller for Vdp {
-    fn read_io(&self, port: u8) -> Result<u8, GgError> {
+    fn read_io(&mut self, port: u8) -> Result<u8, GgError> {
         match port {
             V_COUNTER_PORT => Ok(self.v),
             CONTROL_PORT => Ok(self.status()),

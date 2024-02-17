@@ -31,7 +31,7 @@ pub struct Bus {
     pub bios_rom: Memory<u16>,      // Only for BIOS. Enabled on startup, disabled by end of BIOS
     pub bios_enabled: bool,         // BIOS is enabled by default
     gear_to_gear_cache: Option<u8>, // Cache for Gear to Gear communication (ports 0..6)
-    pub(crate) joysticks: [Joystick; 2],
+    pub joysticks: [Joystick; 2],
     joysticks_enabled: bool,
     pub sdsc_console: DebugConsole,
     rom_write_protection: bool,  // Useful for unit tests that are not SMS/GG specific
@@ -236,9 +236,9 @@ impl Bus {
 }
 
 impl Controller for Bus {
-    fn read_io(&self, port: u8) -> Result<u8, GgError> {
+    fn read_io(&mut self, port: u8) -> Result<u8, GgError> {
         match port {
-            0x00..=0x06 => {
+            0x01..=0x06 => {
                 if let Some(value) = self.gear_to_gear_cache {
                     Ok(value)
                 } else {
@@ -255,6 +255,13 @@ impl Controller for Bus {
             joystick::JOYSTICK_B_MISC_PORT => {
                 if self.joysticks_enabled {
                     self.joysticks[1].read_io(port)
+                } else {
+                    Err(GgError::JoystickDisabled)
+                }
+            }
+            joystick::JOYSTICK_START_PORT => {
+                if self.joysticks_enabled {
+                    self.joysticks[0].read_io(port)
                 } else {
                     Err(GgError::JoystickDisabled)
                 }

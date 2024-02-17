@@ -273,6 +273,30 @@ impl Cpu {
     }
 
     pub(crate) fn trigger_irq(&mut self, bus: &mut Bus) -> Result<(), GgError> {
+        /*
+            Interrupt mode 0
+
+            The interrupting device can place a single or multi-byte opcode on the
+            data bus for the Z80 to fetch and execute when an interrupt occurs.
+
+            For the SMS 2, Game Gear, and Genesis, the value $FF is always read from
+            the data bus, which corresponds to the instruction 'RST 38H'.
+
+            For the SMS, a random value is returned which could correspond to any
+            possible instruction.
+
+            Interrupt mode 1
+
+            When an interrupt occurs the Z80's PC register is set to $0038.
+
+            Interrupt mode 2
+
+            The interrupting device can place a single byte on the data bus which is
+            used as the LSB of a 16-bit address, of which the MSB comes from the Z80's
+            I register. The Z80 manual says the address must be even, but odd addresses
+            work fine. The Z80 then jumps to that address.
+        */
+
         if self.interrupts_enabled {
             let instr_length = self.decode_at_pc(bus).unwrap().length as u16;
             let vector = match self.interrupt_mode {

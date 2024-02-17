@@ -10,7 +10,7 @@ impl Psg {
 }
 
 impl Controller for Psg {
-    fn read_io(&self, _port: u8) -> Result<u8, GgError> {
+    fn read_io(&mut self, _port: u8) -> Result<u8, GgError> {
         Ok(0)
     }
 

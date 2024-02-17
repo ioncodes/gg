@@ -76,15 +76,6 @@ impl eframe::App for Emulator {
             }
         }
 
-        if ctx.input(|i| i.key_pressed(Key::F1)) {
-            self.debugger_enabled = !self.debugger_enabled;
-            if !self.debugger_enabled {
-                self.paused = false;
-            } else {
-                self.paused = true;
-            }
-        }
-
         CentralPanel::default().show(ctx, |ui| {
             let image = Image::new(&self.texture);
             let image = image.fit_to_exact_size(vec2((INTERNAL_WIDTH * SCALE) as f32, (INTERNAL_HEIGHT * SCALE) as f32));
@@ -94,6 +85,8 @@ impl eframe::App for Emulator {
         if self.debugger_enabled {
             self.draw_debugger(ctx);
         }
+
+        self.handle_input(ctx);
 
         ctx.request_repaint();
     }
@@ -160,6 +153,61 @@ impl Emulator {
             texture,
             memory_view: MemoryView::Rom,
         }
+    }
+
+    fn handle_input(&mut self, ctx: &Context) {
+        if ctx.input(|i| i.key_pressed(Key::F1)) {
+            self.debugger_enabled = !self.debugger_enabled;
+            if !self.debugger_enabled {
+                self.paused = false;
+            } else {
+                self.paused = true;
+            }
+        }
+
+        ctx.input(|i| {
+            if i.key_pressed(Key::Enter) {
+                self.system.bus.joysticks[0].set_start(true);
+            } else if i.key_released(Key::Enter) {
+                self.system.bus.joysticks[0].set_start(false);
+            }
+
+            if i.key_pressed(Key::A) {
+                self.system.bus.joysticks[0].set_input_button1(true);
+            } else if i.key_released(Key::Space) {
+                self.system.bus.joysticks[0].set_input_button1(false);
+            }
+
+            if i.key_pressed(Key::S) {
+                self.system.bus.joysticks[0].set_input_button2(true);
+            } else if i.key_released(Key::Backspace) {
+                self.system.bus.joysticks[0].set_input_button2(false);
+            }
+
+            if i.key_pressed(Key::ArrowUp) {
+                self.system.bus.joysticks[0].set_input_up(true);
+            } else if i.key_released(Key::ArrowUp) {
+                self.system.bus.joysticks[0].set_input_up(false);
+            }
+
+            if i.key_pressed(Key::ArrowDown) {
+                self.system.bus.joysticks[0].set_input_down(true);
+            } else if i.key_released(Key::ArrowDown) {
+                self.system.bus.joysticks[0].set_input_down(false);
+            }
+
+            if i.key_pressed(Key::ArrowLeft) {
+                self.system.bus.joysticks[0].set_input_left(true);
+            } else if i.key_released(Key::ArrowLeft) {
+                self.system.bus.joysticks[0].set_input_left(false);
+            }
+
+            if i.key_pressed(Key::ArrowRight) {
+                self.system.bus.joysticks[0].set_input_right(true);
+            } else if i.key_released(Key::ArrowRight) {
+                self.system.bus.joysticks[0].set_input_right(false);
+            }
+        });
     }
 
     fn draw_debugger(&mut self, ctx: &Context) {
