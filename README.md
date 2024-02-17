@@ -14,3 +14,16 @@ the hardware and software myself or by using the excellent docs found on [smspow
 * 👌: Playable
 * 🐣: In-Game, but not playable
 * 🐞: Bugged/Broken
+
+## Testing
+Currently the Z80 implementation can be tested using [ZEXDOC/ZEXALL](https://github.com/maxim-zhao/zexall-smsjsm) and using the JSON unit tests 
+provided by [jsmoo](https://github.com/raddad772/jsmoo/tree/main/misc/tests/GeneratedTests/z80/v1). However, some features are ignored/disabled/not implemented.
+
+## ZEXDOC & ZEXALL
+`zexdoc` is built into the emulator and can be executed by passing the `--cpu-test` flag.
+
+## JSON Tests
+`cargo test` in the workspace folder will launch all unit tests. The current implementation measures only registers and RAM content. Status at the time of writing:  
+```
+test result: FAILED. 1359 passed; 248 failed; 3 ignored; 0 measured; 0 filtered out; finished in 64.65s
+```
