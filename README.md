@@ -2,6 +2,9 @@
 WIP GameGear (and possibly Sega Master System) emulator. Most of the information I either figured out by reverse engineering
 the hardware and software myself or by using the excellent docs found on [smspower.org](https://www.smspower.org/).
 
+![Sonic 2](external/demos/sonic2%20demo.mp4)
+![Donald Duck](external/demos/donald%20duck%20demo.mp4)
+
 ## Compatibility List
 | **Title**                                                | **CRC32**  | **Status** |
 | -------------------------------------------------------- | :--------: | :--------: |
@@ -14,6 +17,37 @@ the hardware and software myself or by using the excellent docs found on [smspow
 * 👌: Playable
 * 🐣: In-Game, but not playable
 * 🐞: Bugged/Broken
+
+## Running
+It is strongly recommended to run the emulator in release mode, no matter what.
+```
+cargo run --release -- --bios bios.gg --rom game.gg
+```
+
+It is possible to dump debug and/or trace information either to stderr or a file:
+
+```
+Usage: gg.exe [OPTIONS] --bios <BIOS> --rom <ROM>
+
+Options:
+  -b, --bios <BIOS>
+  -r, --rom <ROM>
+  -l, --lua <LUA>
+  -c, --cpu-test
+  -l, --log-level <LOG_LEVEL>  [default: info]
+  -l, --log-to-file
+  -h, --help                   Print help
+```
+
+## Debugging
+The emulator features a debugger built around [egui and eframe](https://github.com/emilk/egui). It is very simple and hosts the following features:
+
+* Memory Viewer (ROM, RAM, SRAM, VRAM, CRAM)
+* Display CPU memory address mappings (ROM / RAM banks)
+* "Resume", "Break On" and "Step" debugger controls
+* Disassembly & Trace
+* View CPU and VDP infromation such as registers
+* SDSC Debug Console
 
 ## Testing
 Currently the Z80 implementation can be tested using [ZEXDOC/ZEXALL](https://github.com/maxim-zhao/zexall-smsjsm) and using the JSON unit tests 
