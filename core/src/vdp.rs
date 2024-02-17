@@ -45,6 +45,26 @@ impl Pattern {
     pub(crate) fn get_pixel(&self, x: u8, y: u8) -> Color {
         self.data[y as usize][x as usize]
     }
+
+    pub(crate) fn flip_vertical(&mut self) {
+        for y in 0..4 {
+            for x in 0..8 {
+                let temp = self.data[y as usize][x as usize];
+                self.data[y as usize][x as usize] = self.data[7 - y as usize][x as usize];
+                self.data[7 - y as usize][x as usize] = temp;
+            }
+        }
+    }
+
+    pub(crate) fn flip_horizontal(&mut self) {
+        for y in 0..8 {
+            for x in 0..4 {
+                let temp = self.data[y as usize][x as usize];
+                self.data[y as usize][x as usize] = self.data[y as usize][7 - x as usize];
+                self.data[y as usize][7 - x as usize] = temp;
+            }
+        }
+    }
 }
 
 #[derive(Default, Debug)]
@@ -136,8 +156,11 @@ impl Vdp {
                 // Rendering every pattern starting at 0 would yield a classic tile map
                 // Source: As per Sega Game Gear Hardware Reference Manual, page 26
                 // Source: Chapter 6 "VDP Manual", subchapter 3 "Standard VRAM mapping"
-                let pattern_base_addr = self.vram.read_word(name_table_addr);
-                let pattern_base_addr = pattern_base_addr & 0b0000_0001_1111_1111;
+                let pattern_information = self.vram.read_word(name_table_addr);
+                let v_flip = (pattern_information & 0b0000_0100_0000_0000) > 0;
+                let h_flip = (pattern_information & 0b0000_0010_0000_0000) > 0;
+
+                let pattern_base_addr = pattern_information & 0b0000_0001_1111_1111;
                 let pattern_base_addr = pattern_base_addr * 32;
 
                 // pattern_base_addr = character/tile location in VRAM.
@@ -173,6 +196,14 @@ impl Vdp {
                         };
                         pattern.set_pixel(7 - bit, line as u8, color);
                     }
+                }
+
+                if v_flip {
+                    pattern.flip_vertical();
+                }
+
+                if h_flip {
+                    pattern.flip_horizontal();
                 }
 
                 for y in 0..8 {
