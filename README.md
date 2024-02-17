@@ -2,9 +2,13 @@
 WIP GameGear (and possibly Sega Master System) emulator. Most of the information I either figured out by reverse engineering
 the hardware and software myself or by using the excellent docs found on [smspower.org](https://www.smspower.org/).
 
-| Sonic The Hedgehog 2 Demo  | Lucky Dime Caper Starring Donald Duck Demo |
-| ---------- | ---------- |
-| <video src="https://github.com/ioncodes/gg/assets/18533297/610fd9c9-1562-457e-b787-7230bc7c39c1"> | <video src="https://github.com/ioncodes/gg/assets/18533297/d52ea86e-b962-4d86-a3f9-3881b5cc44f7"> |
+<details>
+  <summary>Demos</summary>
+
+  | Sonic The Hedgehog 2 Demo  | Lucky Dime Caper Starring Donald Duck Demo |
+  | ---------- | ---------- |
+  | <video src="https://github.com/ioncodes/gg/assets/18533297/610fd9c9-1562-457e-b787-7230bc7c39c1"> | <video src="https://github.com/ioncodes/gg/assets/18533297/d52ea86e-b962-4d86-a3f9-3881b5cc44f7"> |
+</details>
 
 ## Compatibility List
 | **Title**                                                | **CRC32**  | **Status** |
