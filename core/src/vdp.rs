@@ -19,6 +19,11 @@ pub const INTERNAL_HEIGHT: usize = 224;
 
 pub type Color = (u8, u8, u8, u8);
 
+enum SpriteSize {
+    Size8x8,
+    Size8x16,
+}
+
 enum IoMode {
     VramRead,
     VramWrite,
@@ -141,11 +146,57 @@ impl Vdp {
         self.h == 0
     }
 
-    pub fn render_background(&mut self) -> (Color, Vec<Color>) {
+    pub fn render(&mut self) -> (Color, Vec<Color>) {
         let background_color = self.read_palette_entry(0);
 
         let mut pixels = vec![(0, 0, 0, 0); INTERNAL_WIDTH * INTERNAL_HEIGHT];
+        self.render_background(&mut pixels);
+        self.render_sprites(&mut pixels);
 
+        self.vram_dirty = false;
+
+        (background_color, pixels)
+    }
+
+    pub fn render_sprites(&mut self, pixels: &mut Vec<Color>) {
+        debug!("Rendering sprites");
+
+        let sprite_table_base_addr = self.get_sprite_generator_addr();
+        let sprite_attr_base_addr = self.get_sprite_attribute_table_addr();
+        let sprite_size = self.sprite_size();
+
+        for idx in 0..64 {
+            let y = self.vram.read(sprite_attr_base_addr + idx);
+            let x = self.vram.read(sprite_attr_base_addr + 0x80 + 2 * idx);
+            let n = self.vram.read(sprite_attr_base_addr + 0x80 + 2 * idx + 1);
+            // println!("Sprite: idx: {} x: {:02x} y: {:02x} n: {:02x}", idx, x, y, n);
+
+            if y == 0xd0 {
+                break;
+            }
+
+            if y == 0xe0 {
+                continue;
+            }
+
+            let pattern = self.fetch_pattern(sprite_table_base_addr + n as u16);
+
+            for p_y in 0..8 {
+                for p_x in 0..8 {
+                    let color = pattern.get_pixel(p_x, p_y);
+                    let mut y = y.wrapping_add(p_y);
+                    if y >= 224 {
+                        y -= 224;
+                    }
+                    let x = x.wrapping_add(p_x);
+                    let idx = ((y + p_y) as usize * INTERNAL_WIDTH) + (x + p_x) as usize;
+                    pixels[idx] = color;
+                }
+            }
+        }
+    }
+
+    pub fn render_background(&mut self, pixels: &mut Vec<Color>) {
         debug!("Rendering background");
 
         for row in 0..28 {
@@ -167,36 +218,7 @@ impl Vdp {
                 // Each character/tile is 8x8 pixels, and each pixel consists of 4 bits.
                 // So each character/tile is 32 bytes (64 pixels).
 
-                let mut pattern = Pattern::new();
-                for line in 0..8 {
-                    let line_base_addr = pattern_base_addr + (line * 4);
-                    let line_data1 = self.vram.read(line_base_addr + 0);
-                    let line_data2 = self.vram.read(line_base_addr + 1);
-                    let line_data3 = self.vram.read(line_base_addr + 2);
-                    let line_data4 = self.vram.read(line_base_addr + 3);
-
-                    for bit in 0..8 {
-                        let mut color: u8 = 0;
-                        if line_data1 & (1 << bit) != 0 {
-                            color |= 0b0000_0001;
-                        }
-                        if line_data2 & (1 << bit) != 0 {
-                            color |= 0b0000_0010;
-                        }
-                        if line_data3 & (1 << bit) != 0 {
-                            color |= 0b0000_0100;
-                        }
-                        if line_data4 & (1 << bit) != 0 {
-                            color |= 0b0000_1000;
-                        }
-                        let color = if color == 0 {
-                            (0, 0, 0, 0) // transparent
-                        } else {
-                            self.read_palette_entry(color as u16)
-                        };
-                        pattern.set_pixel(7 - bit, line as u8, color);
-                    }
-                }
+                let mut pattern = self.fetch_pattern(pattern_base_addr);
 
                 if v_flip {
                     pattern.flip_vertical();
@@ -215,10 +237,42 @@ impl Vdp {
                 }
             }
         }
+    }
 
-        self.vram_dirty = false;
+    fn fetch_pattern(&self, pattern_base_addr: u16) -> Pattern {
+        let mut pattern = Pattern::new();
 
-        (background_color, pixels)
+        for line in 0..8 {
+            let line_base_addr = pattern_base_addr + (line * 4);
+            let line_data1 = self.vram.read(line_base_addr + 0);
+            let line_data2 = self.vram.read(line_base_addr + 1);
+            let line_data3 = self.vram.read(line_base_addr + 2);
+            let line_data4 = self.vram.read(line_base_addr + 3);
+
+            for bit in 0..8 {
+                let mut color: u8 = 0;
+                if line_data1 & (1 << bit) != 0 {
+                    color |= 0b0000_0001;
+                }
+                if line_data2 & (1 << bit) != 0 {
+                    color |= 0b0000_0010;
+                }
+                if line_data3 & (1 << bit) != 0 {
+                    color |= 0b0000_0100;
+                }
+                if line_data4 & (1 << bit) != 0 {
+                    color |= 0b0000_1000;
+                }
+                let color = if color == 0 {
+                    (0, 0, 0, 0) // transparent
+                } else {
+                    self.read_palette_entry(color as u16)
+                };
+                pattern.set_pixel(7 - bit, line as u8, color);
+            }
+        }
+
+        pattern
     }
 
     fn handle_counters(&mut self) {
@@ -267,6 +321,70 @@ impl Vdp {
         address |= ((y & 0b0001_1111) as u16) << 6;
         address |= ((x & 0b0001_1111) as u16) << 1;
         address
+    }
+
+    fn get_sprite_generator_addr(&self) -> u16 {
+        /*
+         *  Register $06 - Sprite Pattern Generator Base Address
+         *
+         *  D7 - No effect
+         *  D6 - No effect
+         *  D5 - No effect
+         *  D4 - No effect
+         *  D3 - No effect
+         *  D2 - Bit 13 of the table base address
+         *  D1 - No effect
+         *  D0 - No effect
+         */
+
+        if self.registers.r6 & 0b0000_0100 > 0 {
+            1 << 13
+        } else {
+            0
+        }
+    }
+
+    fn get_sprite_attribute_table_addr(&self) -> u16 {
+        /*
+         *  Register $05 - Sprite Attribute Table Base Address
+         *
+         *  D7 - No effect
+         *  D6 - Bit 13 of the table base address
+         *  D5 - Bit 12 of the table base address
+         *  D4 - Bit 11 of the table base address
+         *  D3 - Bit 10 of the table base address
+         *  D2 - Bit  9 of the table base address
+         *  D1 - Bit  8 of the table base address
+         *  D0 - No effect
+         */
+
+        let mut addr = self.registers.r5 as u16;
+        addr &= 0b0111_1110;
+        addr <<= 7;
+
+        addr
+    }
+
+    fn sprite_size(&self) -> SpriteSize {
+        /*
+         *  Register $01 - Mode Control No. 2
+         *
+         *  D7 - No effect
+         *  D6 - (BLK) 1= Display visible, 0= display blanked.
+         *  D5 - (IE0) 1= Frame interrupt enable.
+         *  D4 - (M1) Selects 224-line screen for Mode 4 if M2=1, else has no effect.
+         *  D3 - (M3) Selects 240-line screen for Mode 4 if M2=1, else has no effect.
+         *  D2 - No effect
+         *  D1 - Sprites are 1=16x16,0=8x8 (TMS9918), Sprites are 1=8x16,0=8x8 (Mode 4)
+         *  D0 - Sprite pixels are doubled in size.
+         */
+
+        if self.registers.r1 & 0b0000_0100 > 0 {
+            todo!();
+        } else {
+            // todo: this should be enough for pacman at least
+            SpriteSize::Size8x8
+        }
     }
 
     fn read_palette_entry(&self, mut index: u16) -> (u8, u8, u8, u8) {

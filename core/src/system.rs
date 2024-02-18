@@ -122,7 +122,7 @@ impl System {
     }
 
     pub fn render(&mut self) -> (Color, Vec<Color>) {
-        self.vdp.render_background()
+        self.vdp.render()
     }
 
     pub(crate) fn load_rom(&mut self, rom: Passthrough, data: &[u8]) {
