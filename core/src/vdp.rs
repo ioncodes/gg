@@ -161,15 +161,14 @@ impl Vdp {
     pub fn render_sprites(&mut self, pixels: &mut Vec<Color>) {
         debug!("Rendering sprites");
 
-        let sprite_table_base_addr = self.get_sprite_generator_addr();
-        let sprite_attr_base_addr = self.get_sprite_attribute_table_addr();
-        let sprite_size = self.sprite_size();
+        let _ = self.sprite_size();
 
         for idx in 0..64 {
+            let sprite_attr_base_addr = self.get_sprite_attribute_table_addr();
             let y = self.vram.read(sprite_attr_base_addr + idx);
             let x = self.vram.read(sprite_attr_base_addr + 0x80 + 2 * idx);
             let n = self.vram.read(sprite_attr_base_addr + 0x80 + 2 * idx + 1);
-            // println!("Sprite: idx: {} x: {:02x} y: {:02x} n: {:02x}", idx, x, y, n);
+            println!("Sprite: idx: {} x: {:02x} y: {:02x} n: {:02x}", idx, x, y, n);
 
             if y == 0xd0 {
                 break;
@@ -179,14 +178,16 @@ impl Vdp {
                 continue;
             }
 
-            let pattern = self.fetch_pattern(sprite_table_base_addr + n as u16);
+            let sprite_table_entry = self.get_sprite_generator_entry(n as u16);
+            let pattern_addr = sprite_table_entry * 32;
+            let pattern = self.fetch_pattern(pattern_addr);
 
             for p_y in 0..8 {
                 for p_x in 0..8 {
                     let color = pattern.get_pixel(p_x, p_y);
                     let mut y = y.wrapping_add(p_y);
                     if y >= 224 {
-                        y -= 224;
+                        y %= 224;
                     }
                     let x = x.wrapping_add(p_x);
                     let idx = (y as usize * INTERNAL_WIDTH) + x as usize;
@@ -212,13 +213,13 @@ impl Vdp {
                 let h_flip = (pattern_information & 0b0000_0010_0000_0000) > 0;
 
                 let pattern_base_addr = pattern_information & 0b0000_0001_1111_1111;
-                let pattern_base_addr = pattern_base_addr * 32;
+                let pattern_addr = pattern_base_addr * 32;
 
                 // pattern_base_addr = character/tile location in VRAM.
                 // Each character/tile is 8x8 pixels, and each pixel consists of 4 bits.
                 // So each character/tile is 32 bytes (64 pixels).
 
-                let mut pattern = self.fetch_pattern(pattern_base_addr);
+                let mut pattern = self.fetch_pattern(pattern_addr);
 
                 if v_flip {
                     pattern.flip_vertical();
@@ -239,11 +240,11 @@ impl Vdp {
         }
     }
 
-    fn fetch_pattern(&self, pattern_base_addr: u16) -> Pattern {
+    fn fetch_pattern(&self, pattern_addr: u16) -> Pattern {
         let mut pattern = Pattern::new();
 
         for line in 0..8 {
-            let line_base_addr = pattern_base_addr + (line * 4);
+            let line_base_addr = pattern_addr + (line * 4);
             let line_data1 = self.vram.read(line_base_addr + 0);
             let line_data2 = self.vram.read(line_base_addr + 1);
             let line_data3 = self.vram.read(line_base_addr + 2);
@@ -323,7 +324,7 @@ impl Vdp {
         address
     }
 
-    fn get_sprite_generator_addr(&self) -> u16 {
+    fn get_sprite_generator_entry(&self, idx: u16) -> u16 {
         /*
          *  Register $06 - Sprite Pattern Generator Base Address
          *
@@ -338,9 +339,9 @@ impl Vdp {
          */
 
         if self.registers.r6 & 0b0000_0100 > 0 {
-            1 << 13
+            (1 << 13) + idx
         } else {
-            0
+            idx
         }
     }
 
