@@ -172,7 +172,6 @@ impl Vdp {
             let y = self.vram.read(sprite_attr_base_addr + idx);
             let x = self.vram.read(sprite_attr_base_addr + 0x80 + 2 * idx);
             let n = self.vram.read(sprite_attr_base_addr + 0x80 + 2 * idx + 1);
-            println!("Sprite: idx: {} x: {:02x} y: {:02x} n: {:02x}", idx, x, y, n);
 
             if y == 0xd0 {
                 break;
@@ -204,6 +203,9 @@ impl Vdp {
     pub fn render_background(&mut self, pixels: &mut Vec<Color>) {
         debug!("Rendering background");
 
+        let h_scroll = self.registers.r8 as usize;
+        let v_scroll = self.registers.r9 as usize;
+
         for row in 0..28 {
             for column in 0..32 {
                 let name_table_addr = self.get_name_table_addr(column, row);
@@ -233,11 +235,21 @@ impl Vdp {
                     pattern.flip_horizontal();
                 }
 
+                let row = row as usize;
+                let column = column as usize;
+
+                // hscroll defines pixel spacing starting at the left of internal screen
+                let screen_x = (h_scroll + (column * 8)) % INTERNAL_WIDTH;
+                // vscroll defines pixel spacing starting at the bottom of internal screen
+                let screen_y = ((INTERNAL_HEIGHT - v_scroll) + (row * 8)) % INTERNAL_HEIGHT;
+
                 for y in 0..8 {
                     for x in 0..8 {
                         let color = pattern.get_pixel(x, y);
-                        let idx = (row * 8 + y) as usize * INTERNAL_WIDTH + (column * 8 + x) as usize;
-                        pixels[idx] = color;
+                        let idx = (screen_y + y as usize) * INTERNAL_WIDTH + (screen_x + x as usize);
+                        if idx < pixels.len() {
+                            pixels[idx] = color;
+                        }
                     }
                 }
             }
