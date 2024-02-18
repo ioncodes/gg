@@ -189,7 +189,7 @@ impl Vdp {
                         y -= 224;
                     }
                     let x = x.wrapping_add(p_x);
-                    let idx = ((y + p_y) as usize * INTERNAL_WIDTH) + (x + p_x) as usize;
+                    let idx = (y as usize * INTERNAL_WIDTH) + x as usize;
                     pixels[idx] = color;
                 }
             }
