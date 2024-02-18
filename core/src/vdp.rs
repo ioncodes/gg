@@ -151,7 +151,7 @@ impl Vdp {
     }
 
     pub fn render(&mut self) -> (Color, Vec<Color>) {
-        let background_color = self.read_palette_entry(0);
+        let background_color = self.read_palette_entry(0, 0);
 
         let mut pixels = vec![(0, 0, 0, 0); INTERNAL_WIDTH * INTERNAL_HEIGHT];
         self.render_background(&mut pixels);
@@ -183,7 +183,7 @@ impl Vdp {
 
             let sprite_table_entry = self.get_sprite_generator_entry(n as u16);
             let pattern_addr = sprite_table_entry * 32;
-            let pattern = self.fetch_pattern(pattern_addr, true);
+            let pattern = self.fetch_pattern(pattern_addr, false, 1);
 
             for p_y in 0..8 {
                 for p_x in 0..8 {
@@ -223,7 +223,7 @@ impl Vdp {
                 let pattern_information = self.vram.read_word(name_table_addr);
                 let v_flip = (pattern_information & 0b0000_0100_0000_0000) > 0;
                 let h_flip = (pattern_information & 0b0000_0010_0000_0000) > 0;
-                let palette_select = (pattern_information & 0b0000_1000_0000_0000) > 0;
+                let palette_row = if (pattern_information & 0b0000_1000_0000_0000) > 0 { 1 } else { 0 };
 
                 let pattern_base_addr = pattern_information & 0b0000_0001_1111_1111;
                 let pattern_addr = pattern_base_addr * 32;
@@ -232,7 +232,7 @@ impl Vdp {
                 // Each character/tile is 8x8 pixels, and each pixel consists of 4 bits.
                 // So each character/tile is 32 bytes (64 pixels).
 
-                let mut pattern = self.fetch_pattern(pattern_addr, palette_select);
+                let mut pattern = self.fetch_pattern(pattern_addr, true, palette_row);
 
                 if v_flip {
                     pattern.flip_vertical();
@@ -263,7 +263,7 @@ impl Vdp {
         }
     }
 
-    fn fetch_pattern(&self, pattern_addr: u16, palette_select: bool) -> Pattern {
+    fn fetch_pattern(&self, pattern_addr: u16, use_background: bool, palette_row: u8) -> Pattern {
         let mut pattern = Pattern::new();
 
         for line in 0..8 {
@@ -287,12 +287,12 @@ impl Vdp {
                 if line_data4 & (1 << bit) != 0 {
                     color |= 0b0000_1000;
                 }
-                let color = if palette_select && color == 0 {
+                let color = if !use_background && color == 0 {
                     (0, 0, 0, 0) // transparent
-                } else if color == 0 {
-                    self.read_palette_entry(0) // background color
+                } else if use_background && color == 0 {
+                    self.read_palette_entry(0, palette_row) // background color
                 } else {
-                    self.read_palette_entry(color as u16)
+                    self.read_palette_entry(color as u16, palette_row)
                 };
                 pattern.set_pixel(7 - bit, line as u8, color);
             }
@@ -413,7 +413,7 @@ impl Vdp {
         }
     }
 
-    fn read_palette_entry(&self, mut index: u16) -> (u8, u8, u8, u8) {
+    fn read_palette_entry(&self, mut index: u16, row: u8) -> (u8, u8, u8, u8) {
         // row 0 is the background color
         // row 1 is the sprite color?
         // todo: verify
@@ -424,7 +424,7 @@ impl Vdp {
         // GG:   --------BBBBGGGGRRRR
 
         let (r, g, b) = if self.mode == Mode::GameGear {
-            index = index * 2;
+            index = (index * 2) + (row as u16 * 32);
 
             let high = self.cram.read(index);
             let low = self.cram.read(index + 1);
@@ -435,6 +435,7 @@ impl Vdp {
 
             (r, g, b)
         } else {
+            // todo: do we need row select here too?
             let data = self.cram.read(index);
 
             let r = (data & 0b0000_0011) << 6;
