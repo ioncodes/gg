@@ -183,11 +183,17 @@ impl Vdp {
 
             let sprite_table_entry = self.get_sprite_generator_entry(n as u16);
             let pattern_addr = sprite_table_entry * 32;
-            let pattern = self.fetch_pattern(pattern_addr);
+            let pattern = self.fetch_pattern(pattern_addr, true);
 
             for p_y in 0..8 {
                 for p_x in 0..8 {
                     let color = pattern.get_pixel(p_x, p_y);
+                    if color == (0, 0, 0, 0) {
+                        // do not render transparent pixels to the internal frame
+                        // todo: do we rlly not want to render these pixels? this might lead to weird edge cases
+                        continue;
+                    }
+
                     let mut y = y.wrapping_add(p_y);
                     if y >= 224 {
                         y %= 224;
@@ -217,6 +223,7 @@ impl Vdp {
                 let pattern_information = self.vram.read_word(name_table_addr);
                 let v_flip = (pattern_information & 0b0000_0100_0000_0000) > 0;
                 let h_flip = (pattern_information & 0b0000_0010_0000_0000) > 0;
+                let palette_select = (pattern_information & 0b0000_1000_0000_0000) > 0;
 
                 let pattern_base_addr = pattern_information & 0b0000_0001_1111_1111;
                 let pattern_addr = pattern_base_addr * 32;
@@ -225,7 +232,7 @@ impl Vdp {
                 // Each character/tile is 8x8 pixels, and each pixel consists of 4 bits.
                 // So each character/tile is 32 bytes (64 pixels).
 
-                let mut pattern = self.fetch_pattern(pattern_addr);
+                let mut pattern = self.fetch_pattern(pattern_addr, palette_select);
 
                 if v_flip {
                     pattern.flip_vertical();
@@ -256,7 +263,7 @@ impl Vdp {
         }
     }
 
-    fn fetch_pattern(&self, pattern_addr: u16) -> Pattern {
+    fn fetch_pattern(&self, pattern_addr: u16, palette_select: bool) -> Pattern {
         let mut pattern = Pattern::new();
 
         for line in 0..8 {
@@ -280,8 +287,10 @@ impl Vdp {
                 if line_data4 & (1 << bit) != 0 {
                     color |= 0b0000_1000;
                 }
-                let color = if color == 0 {
+                let color = if palette_select && color == 0 {
                     (0, 0, 0, 0) // transparent
+                } else if color == 0 {
+                    self.read_palette_entry(0) // background color
                 } else {
                     self.read_palette_entry(color as u16)
                 };

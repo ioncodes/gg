@@ -513,12 +513,7 @@ impl Emulator {
         for y in 0..INTERNAL_HEIGHT {
             for x in 0..INTERNAL_WIDTH {
                 let (r, g, b, a) = frame_src[y * INTERNAL_WIDTH + x];
-                let color = if (r, g, b, a) == (0, 0, 0, 0) {
-                    (background_color.0, background_color.1, background_color.2, background_color.3)
-                } else {
-                    (r, g, b, a)
-                };
-                texture.push(Color32::from_rgba_premultiplied(color.0, color.1, color.2, color.3));
+                texture.push(Color32::from_rgba_premultiplied(r, g, b, a));
             }
         }
 
@@ -534,12 +529,7 @@ impl Emulator {
         for y in 0..VISIBLE_HEIGHT {
             for x in 0..VISIBLE_WIDTH {
                 let (r, g, b, a) = frame_src[(y + OFFSET_Y) * INTERNAL_WIDTH + (x + OFFSET_X)];
-                let color = if (r, g, b, a) == (0, 0, 0, 0) {
-                    (background_color.0, background_color.1, background_color.2, background_color.3)
-                } else {
-                    (r, g, b, a)
-                };
-                texture.push(Color32::from_rgba_premultiplied(color.0, color.1, color.2, color.3));
+                texture.push(Color32::from_rgba_premultiplied(r, g, b, a));
             }
         }
 
