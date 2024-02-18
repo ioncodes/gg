@@ -181,13 +181,13 @@ impl Emulator {
 
             if i.key_pressed(Key::A) {
                 self.system.bus.joysticks[0].set_input_button1(true);
-            } else if i.key_released(Key::Space) {
+            } else if i.key_released(Key::A) {
                 self.system.bus.joysticks[0].set_input_button1(false);
             }
 
             if i.key_pressed(Key::S) {
                 self.system.bus.joysticks[0].set_input_button2(true);
-            } else if i.key_released(Key::Backspace) {
+            } else if i.key_released(Key::S) {
                 self.system.bus.joysticks[0].set_input_button2(false);
             }
 
