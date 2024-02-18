@@ -5,7 +5,7 @@ use std::io::Read;
 use clap::Parser;
 use core::bus::{MEMORY_REGISTER_CR_BANK_SELECT_0, MEMORY_REGISTER_CR_BANK_SELECT_1, MEMORY_REGISTER_CR_BANK_SELECT_2};
 use core::system::System;
-use core::vdp::{Color, INTERNAL_HEIGHT, INTERNAL_WIDTH};
+use core::vdp::{Color, INTERNAL_HEIGHT, INTERNAL_WIDTH, OFFSET_X, OFFSET_Y, VISIBLE_HEIGHT, VISIBLE_WIDTH};
 use eframe::egui::scroll_area::ScrollBarVisibility;
 use eframe::egui::{
     self, vec2, CentralPanel, Color32, ColorImage, ComboBox, Context, Image, Key, ScrollArea, SidePanel, TextureHandle, TextureOptions,
@@ -17,7 +17,7 @@ use log::{error, Level};
 use z80::disassembler::Disassembler;
 use z80::instruction::{Instruction, Opcode};
 
-pub(crate) const SCALE: usize = 4;
+pub(crate) const SCALE: usize = 8;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -59,7 +59,8 @@ pub(crate) struct Emulator {
     debugger_enabled: bool,
     break_condition_active: bool,
     break_condition: String,
-    texture: TextureHandle,
+    internal_texture: TextureHandle,
+    visible_texture: TextureHandle,
     memory_view: MemoryView,
 }
 
@@ -77,8 +78,8 @@ impl eframe::App for Emulator {
         }
 
         CentralPanel::default().show(ctx, |ui| {
-            let image = Image::new(&self.texture);
-            let image = image.fit_to_exact_size(vec2((INTERNAL_WIDTH * SCALE) as f32, (INTERNAL_HEIGHT * SCALE) as f32));
+            let image = Image::new(&self.visible_texture);
+            let image = image.fit_to_exact_size(vec2((VISIBLE_WIDTH * SCALE) as f32, (VISIBLE_HEIGHT * SCALE) as f32));
             image.paint_at(ui, ui.ctx().screen_rect());
         });
 
@@ -134,9 +135,14 @@ impl Emulator {
             system.load_cartridge(cartridge.as_ref());
         }
 
-        let texture = cc.egui_ctx.load_texture(
-            "frame",
+        let internal_texture = cc.egui_ctx.load_texture(
+            "internal_frame",
             ColorImage::new([INTERNAL_WIDTH, INTERNAL_HEIGHT], Color32::BLACK),
+            TextureOptions::NEAREST,
+        );
+        let visible_texture = cc.egui_ctx.load_texture(
+            "visible_frame",
+            ColorImage::new([VISIBLE_WIDTH, VISIBLE_HEIGHT], Color32::BLACK),
             TextureOptions::NEAREST,
         );
 
@@ -150,7 +156,8 @@ impl Emulator {
             debugger_enabled: true,
             trace: VecDeque::with_capacity(1024),
             stepping: false,
-            texture,
+            internal_texture,
+            visible_texture,
             memory_view: MemoryView::Rom,
         }
     }
@@ -211,7 +218,7 @@ impl Emulator {
     }
 
     fn draw_debugger(&mut self, ctx: &Context) {
-        Window::new("Background Layer")
+        Window::new("Internal Frame")
             .resizable(false)
             .max_width(INTERNAL_WIDTH as f32)
             .max_height(INTERNAL_HEIGHT as f32)
@@ -229,7 +236,7 @@ impl Emulator {
                             self.background_color.0, self.background_color.1, self.background_color.2
                         ),
                     );
-                    ui.add(Image::new(&self.texture));
+                    ui.add(Image::new(&self.internal_texture));
                 });
             });
 
@@ -520,7 +527,29 @@ impl Emulator {
             pixels: texture,
         };
 
-        self.texture.set(image, TextureOptions::NEAREST);
+        self.internal_texture.set(image, TextureOptions::NEAREST);
+
+        let mut texture: Vec<Color32> = Vec::new();
+
+        for y in 0..VISIBLE_HEIGHT {
+            for x in 0..VISIBLE_WIDTH {
+                let (r, g, b, a) = frame_src[(y + OFFSET_Y) * INTERNAL_WIDTH + (x + OFFSET_X)];
+                let color = if (r, g, b, a) == (0, 0, 0, 0) {
+                    (background_color.0, background_color.1, background_color.2, background_color.3)
+                } else {
+                    (r, g, b, a)
+                };
+                texture.push(Color32::from_rgba_premultiplied(color.0, color.1, color.2, color.3));
+            }
+        }
+
+        let image = ColorImage {
+            size: [VISIBLE_WIDTH, VISIBLE_HEIGHT],
+            pixels: texture,
+        };
+
+        self.visible_texture.set(image, TextureOptions::NEAREST);
+
         self.background_color = background_color;
     }
 

@@ -16,6 +16,10 @@ pub(crate) const DATA_PORT: u8 = 0xbe;
 
 pub const INTERNAL_WIDTH: usize = 256;
 pub const INTERNAL_HEIGHT: usize = 224;
+pub const VISIBLE_WIDTH: usize = 160;
+pub const VISIBLE_HEIGHT: usize = 144;
+pub const OFFSET_X: usize = 48;
+pub const OFFSET_Y: usize = 24;
 
 pub type Color = (u8, u8, u8, u8);
 
