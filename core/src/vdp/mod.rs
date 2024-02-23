@@ -135,11 +135,16 @@ impl Vdp {
                         continue;
                     }
 
-                    let mut y = y.wrapping_add(p_y);
-                    if y >= 224 {
-                        y %= 224;
+                    let y = y + p_y;
+                    if y as usize >= INTERNAL_HEIGHT {
+                        continue;
                     }
-                    let x = x.wrapping_add(p_x);
+
+                    let x = x + p_x;
+                    if x as usize >= INTERNAL_WIDTH {
+                        continue;
+                    }
+
                     let idx = (y as usize * INTERNAL_WIDTH) + x as usize;
                     pixels[idx] = color;
                 }
@@ -174,10 +179,13 @@ impl Vdp {
 
                 write_pattern_to_internal(&pattern, pixels, x, y);
             } else {
-                let sprite_table_entry = self.get_sprite_generator_entry(n as u16 & 0xfe);
-                let pattern = self.fetch_pattern((sprite_table_entry | 0x00) * 32, false, 1);
+                let sprite_table_entry = self.get_sprite_generator_entry(n as u16 & 0b1111_1110);
+                let sprite1_addr = sprite_table_entry * 32;
+                let sprite2_addr = (sprite_table_entry + 1) * 32;
+
+                let pattern = self.fetch_pattern(sprite1_addr, false, 1);
                 write_pattern_to_internal(&pattern, pixels, x, y);
-                let pattern = self.fetch_pattern((sprite_table_entry | 0x01) * 32, false, 1);
+                let pattern = self.fetch_pattern(sprite2_addr, false, 1);
                 write_pattern_to_internal(&pattern, pixels, x, y + 8);
             }
         }
