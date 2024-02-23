@@ -28,6 +28,7 @@ pub const OFFSET_X: usize = 48;
 pub const OFFSET_Y: usize = 24;
 
 pub type Color = (u8, u8, u8, u8);
+
 enum IoMode {
     VramRead,
     VramWrite,
@@ -124,26 +125,7 @@ impl Vdp {
     pub fn render_sprites(&mut self, pixels: &mut Vec<Color>) {
         debug!("Rendering sprites");
 
-        let _ = self.sprite_size();
-
-        for idx in 0..64 {
-            let sprite_attr_base_addr = self.get_sprite_attribute_table_addr();
-            let y = self.vram.read(sprite_attr_base_addr + idx);
-            let x = self.vram.read(sprite_attr_base_addr + 0x80 + 2 * idx);
-            let n = self.vram.read(sprite_attr_base_addr + 0x80 + 2 * idx + 1);
-
-            if y == 0xd0 {
-                break;
-            }
-
-            if y == 0xe0 {
-                continue;
-            }
-
-            let sprite_table_entry = self.get_sprite_generator_entry(n as u16);
-            let pattern_addr = sprite_table_entry * 32;
-            let pattern = self.fetch_pattern(pattern_addr, false, 1);
-
+        let write_pattern_to_internal = |pattern: &Pattern, pixels: &mut Vec<Color>, x: u8, y: u8| {
             for p_y in 0..8 {
                 for p_x in 0..8 {
                     let color = pattern.get_pixel(p_x, p_y);
@@ -161,6 +143,37 @@ impl Vdp {
                     let idx = (y as usize * INTERNAL_WIDTH) + x as usize;
                     pixels[idx] = color;
                 }
+            }
+        };
+
+        let sprite_size = self.sprite_size();
+
+        for idx in 0..64 {
+            let sprite_attr_base_addr = self.get_sprite_attribute_table_addr();
+            let y = self.vram.read(sprite_attr_base_addr + idx) + 1;
+            let x = self.vram.read(sprite_attr_base_addr + 0x80 + 2 * idx);
+            let n = self.vram.read(sprite_attr_base_addr + 0x80 + 2 * idx + 1);
+
+            if y == 0xd0 {
+                break;
+            }
+
+            if y == 0xe0 {
+                continue;
+            }
+
+            if sprite_size == SpriteSize::Size8x8 {
+                let sprite_table_entry = self.get_sprite_generator_entry(n as u16);
+                let pattern_addr = sprite_table_entry * 32;
+                let pattern = self.fetch_pattern(pattern_addr, false, 1);
+
+                write_pattern_to_internal(&pattern, pixels, x, y);
+            } else {
+                let sprite_table_entry = self.get_sprite_generator_entry(n as u16 & 0xfe);
+                let pattern = self.fetch_pattern((sprite_table_entry | 0x00) * 32, false, 1);
+                write_pattern_to_internal(&pattern, pixels, x, y);
+                let pattern = self.fetch_pattern((sprite_table_entry | 0x01) * 32, false, 1);
+                write_pattern_to_internal(&pattern, pixels, x, y + 8);
             }
         }
     }
