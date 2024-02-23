@@ -15,13 +15,14 @@ This document currently reflects commit [d76a8e0](https://github.com/ioncodes/gg
 | **Title**                                                | **CRC32**  | **Status** |
 | -------------------------------------------------------- | :--------: | :--------: |
 | [BIOS] Sega Game Gear (USA) (Majesco)                    | `0ebea9d4` |     👌      |
+| Pac-Man (USA)                                            | `b318dd37` |     🐥      |
 | Sonic The Hedgehog 2 (U) [!]                             | `95a18ec7` |     🐣      |
 | Lucky Dime Caper Starring Donald Duck, The (USA, Europe) | `07a7815a` |     🐣      |
-| Pac-Man (USA)                                            | `b318dd37` |     🐣      |
 | Asterix and the Great Rescue (Europe) (En,Fr,De,Es,It)   | `328c5cc8` |     🐞      |
 | Shinobi (USA, Europe)                                    | `30f1c984` |     🐞      |
 
-* 👌: Playable
+* 👌: No known issues
+* 🐥: Playable with a few bugs
 * 🐣: In-Game, but not (properly) playable
 * 🐞: Bugged/Broken
 
