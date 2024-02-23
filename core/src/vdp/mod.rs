@@ -69,7 +69,7 @@ pub struct Vdp {
     pub cram: Memory<u16>,
     cram_latch: Option<u8>,
     pub(crate) vram_dirty: bool,
-    pub(crate) buffer: Vec<u8>,
+    pub(crate) data_buffer: u8,
     io_mode: IoMode,
     mode: Mode,
 }
@@ -87,7 +87,7 @@ impl Vdp {
             cram: Memory::new(64, 0x0000),
             cram_latch: None,
             vram_dirty: false,
-            buffer: Vec::new(),
+            data_buffer: 0,
             io_mode: IoMode::None,
             mode,
         }
@@ -460,7 +460,7 @@ impl Vdp {
                 self.registers.address %= 0x3fff; // ensure we wrap around
 
                 debug!("Setting address register to {:04x}", address);
-                self.buffer.push(value);
+                self.data_buffer = value;
 
                 self.io_mode = IoMode::VramRead;
             }
@@ -544,6 +544,16 @@ impl Controller for Vdp {
         match port {
             V_COUNTER_PORT => Ok(self.v),
             CONTROL_PORT => Ok(self.status()),
+            DATA_PORT => {
+                // todo: technically this should be buffer
+                // todo: reset control port flag
+                let data = self.vram.read(self.registers.address);
+                self.registers.address += 1;
+                self.registers.address %= 0x3fff; // ensure we wrap around
+                let current_data = self.data_buffer;
+                self.data_buffer = data;
+                Ok(current_data)
+            }
             _ => {
                 error!("Invalid port for VDP I/O controller (read): {:02x}", port);
                 Err(GgError::IoControllerInvalidPort)
