@@ -170,6 +170,7 @@ impl Cpu {
                     Opcode::JumpRelative(_, _, _) => handlers.jump_relative(&instruction),
                     Opcode::Call(_, _, _) => handlers.call(&instruction),
                     Opcode::Return(_, _) => handlers.return_(&instruction),
+                    Opcode::ReturnFromIrq(_) => handlers.return_from_irq(&instruction),
                     Opcode::OutIncrementRepeat(_) => handlers.out_indirect_repeat(&instruction),
                     Opcode::Or(_, _) => handlers.or(&instruction),
                     Opcode::Push(_, _) => handlers.push(&instruction),

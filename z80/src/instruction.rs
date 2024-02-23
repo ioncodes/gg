@@ -152,6 +152,7 @@ pub enum Opcode {
     ShiftLeftLogical(Operand, usize),
     ShiftRightLogical(Operand, usize),
     Negate(usize),
+    ReturnFromIrq(usize),
     Unknown(usize),
 }
 
@@ -285,6 +286,7 @@ impl fmt::Display for Opcode {
             Opcode::InDecrementRepeat(_) => write!(f, "indr"),
             Opcode::OutDecrementRepeat(_) => write!(f, "otdr"),
             Opcode::InIncrementRepeat(_) => write!(f, "inir"),
+            Opcode::ReturnFromIrq(_) => write!(f, "reti"),
             Opcode::InDecrement(_) => write!(f, "ind"),
         }
     }

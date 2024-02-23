@@ -380,6 +380,19 @@ impl<'a> Handlers<'a> {
         }
     }
 
+    pub(crate) fn return_from_irq(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::ReturnFromIrq(_) => {
+                let addr = self.cpu.pop_stack(self.bus)?;
+                self.cpu.set_register_u16(Reg16::PC, addr);
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
+    }
+
     pub(crate) fn out_indirect_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         let b = self.cpu.get_register_u8(Reg8::B);
         let hl = self.cpu.get_register_u16(Reg16::HL);
@@ -1377,6 +1390,14 @@ impl<'a> Handlers<'a> {
                 self.cpu.set_register_u16(lhs_reg, rhs);
                 Ok(())
             }
+            Opcode::Exchange(Operand::Register(Register::Reg16(lhs_reg), true), Operand::Register(Register::Reg16(rhs_reg), false), _) => {
+                let src = self.cpu.get_register_u16(lhs_reg);
+                let data1 = self.bus.read_word(src)?;
+                let data2 = self.cpu.get_register_u16(rhs_reg);
+                self.bus.write_word(src, data2)?;
+                self.cpu.set_register_u16(rhs_reg, data1);
+                Ok(())
+            }
             _ => Err(GgError::InvalidOpcodeImplementation {
                 instruction: instruction.opcode,
             }),
@@ -1463,6 +1484,26 @@ impl<'a> Handlers<'a> {
                 let dst = self.cpu.get_register_u8(dst_reg);
                 let carry = if self.cpu.registers.f.contains(Flags::CARRY) { 1 } else { 0 };
                 (src, dst, carry, dst_reg)
+            }
+            Opcode::AddCarry(Operand::Register(Register::Reg16(dst_reg), false), Operand::Register(Register::Reg16(src_reg), false), _) => {
+                let src = self.cpu.get_register_u16(src_reg);
+                let dst = self.cpu.get_register_u16(dst_reg);
+                let carry = if self.cpu.registers.f.contains(Flags::CARRY) { 1 } else { 0 };
+                let (result, carry) = self.add_and_detect_carry(dst, src, carry);
+                self.cpu.set_register_u16(dst_reg, result);
+
+                let hc = self.detect_half_carry_u16(dst, src, result);
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu
+                    .registers
+                    .f
+                    .set(Flags::PARITY_OR_OVERFLOW, self.is_underflow_u16(dst, src, result));
+                self.cpu.registers.f.set(Flags::SUBTRACT, false);
+                self.cpu.registers.f.set(Flags::HALF_CARRY, hc);
+                self.cpu.registers.f.set(Flags::CARRY, carry);
+
+                return Ok(());
             }
             _ => {
                 return Err(GgError::InvalidOpcodeImplementation {

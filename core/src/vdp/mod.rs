@@ -151,6 +151,11 @@ impl Vdp {
         for idx in 0..64 {
             let sprite_attr_base_addr = self.get_sprite_attribute_table_addr();
             let y = self.vram.read(sprite_attr_base_addr + idx) + 1;
+            //println!("y: {:02x} v: {:02x}", y, self.v);
+            // if OFFSET_Y as u8 + y != self.v {
+            //     continue;
+            // }
+
             let x = self.vram.read(sprite_attr_base_addr + 0x80 + 2 * idx);
             let n = self.vram.read(sprite_attr_base_addr + 0x80 + 2 * idx + 1);
 
@@ -545,7 +550,6 @@ impl Controller for Vdp {
             V_COUNTER_PORT => Ok(self.v),
             CONTROL_PORT => Ok(self.status()),
             DATA_PORT => {
-                // todo: technically this should be buffer
                 // todo: reset control port flag
                 let data = self.vram.read(self.registers.address);
                 self.registers.address += 1;
