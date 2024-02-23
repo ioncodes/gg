@@ -10,7 +10,7 @@ fn main() {
         viewport: ViewportBuilder::default()
             .with_inner_size([(VISIBLE_WIDTH * SCALE) as f32, (VISIBLE_HEIGHT * SCALE) as f32])
             .with_resizable(false),
-        vsync: true,
+        vsync: false,
         ..Default::default()
     };
 
