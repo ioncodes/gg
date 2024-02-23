@@ -78,6 +78,10 @@ impl LuaEngine {
     }
 
     pub(crate) fn hook_exists(&self, address: u16, current_instruction_state: HookType) -> bool {
+        if self.lua.is_none() {
+            return false;
+        }
+
         if let Some((_, hook_type)) = HOOKS.lock().unwrap().get(&address) {
             return *hook_type == current_instruction_state || *hook_type == HookType::Both;
         }

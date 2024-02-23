@@ -21,22 +21,22 @@ pub(crate) const SCALE: usize = 8;
 
 #[derive(Parser, Debug)]
 struct Args {
-    #[arg(short, long)]
+    #[arg(long)]
     bios: String,
 
-    #[arg(short, long)]
+    #[arg(long)]
     rom: String,
 
-    #[arg(short, long)]
+    #[arg(long)]
     lua: Option<String>,
 
-    #[arg(short, long, default_value_t = false)]
+    #[arg(long, default_value_t = false)]
     cpu_test: bool,
 
-    #[arg(short, long, default_value_t = String::from("info"))]
+    #[arg(long, default_value_t = String::from("info"))]
     log_level: String,
 
-    #[arg(short, long, default_value_t = false)]
+    #[arg(long, default_value_t = false)]
     log_to_file: bool,
 }
 

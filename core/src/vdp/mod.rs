@@ -135,12 +135,22 @@ impl Vdp {
                         continue;
                     }
 
-                    let y = y + p_y;
+                    let y = if let Some(result) = y.checked_add(p_y) {
+                        result
+                    } else {
+                        continue;
+                    };
+
                     if y as usize >= INTERNAL_HEIGHT {
                         continue;
                     }
 
-                    let x = x + p_x;
+                    let x = if let Some(result) = x.checked_add(p_x) {
+                        result
+                    } else {
+                        continue;
+                    };
+
                     if x as usize >= INTERNAL_WIDTH {
                         continue;
                     }
@@ -185,6 +195,7 @@ impl Vdp {
 
                 let pattern = self.fetch_pattern(sprite1_addr, false, 1);
                 write_pattern_to_internal(&pattern, pixels, x, y);
+
                 let pattern = self.fetch_pattern(sprite2_addr, false, 1);
                 write_pattern_to_internal(&pattern, pixels, x, y + 8);
             }
