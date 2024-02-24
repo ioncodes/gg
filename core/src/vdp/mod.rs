@@ -2,10 +2,12 @@ mod pattern;
 mod sprite;
 
 use std::collections::VecDeque;
+use std::rc::Rc;
 
 use crate::cpu::Cpu;
 use crate::error::GgError;
 use crate::io::Controller;
+use crate::lua_engine::{HookType, LuaEngine};
 use crate::memory::Memory;
 use crate::vdp::pattern::Pattern;
 use log::{debug, error, trace};
@@ -61,22 +63,23 @@ pub enum Mode {
 pub struct Vdp {
     pub v: u8,
     pub h: u8,
-    v_2nd_loop: bool,
-    h_2nd_loop: bool,
-    control_data: VecDeque<u8>,
     pub registers: Registers,
     pub vram: Memory<u16>,
     pub cram: Memory<u16>,
-    cram_latch: Option<u8>,
     pub(crate) data_buffer: u8,
+    v_2nd_loop: bool,
+    h_2nd_loop: bool,
+    control_data: VecDeque<u8>,
+    cram_latch: Option<u8>,
     io_mode: IoMode,
     mode: Mode,
     status: u8,
     vram_dirty: bool,
+    lua: Rc<LuaEngine>,
 }
 
 impl Vdp {
-    pub(crate) fn new(mode: Mode) -> Vdp {
+    pub(crate) fn new(mode: Mode, lua: Rc<LuaEngine>) -> Vdp {
         Vdp {
             v: 0,
             h: 0,
@@ -92,6 +95,7 @@ impl Vdp {
             mode,
             status: 0,
             vram_dirty: false,
+            lua,
         }
     }
 
@@ -546,6 +550,11 @@ impl Vdp {
     }
 
     fn vram_write(&mut self, value: u8) {
+        if self.lua.hook_exists(self.registers.address, HookType::VramWrite) {
+            self.lua.refresh_vdp(&self);
+            self.lua.execute_hook(self.registers.address, HookType::VramWrite);
+        }
+
         self.vram.write(self.registers.address, value);
 
         self.registers.address += 1;

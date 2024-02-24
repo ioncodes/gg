@@ -16,9 +16,9 @@ lazy_static! {
 
 #[derive(PartialEq)]
 pub(crate) enum HookType {
-    PreTick,
-    PostTick,
-    Both,
+    CpuExec = 0,
+    VramWrite = 1,
+    VramRead = 2,
 }
 
 pub(crate) struct LuaEngine {
@@ -50,9 +50,9 @@ impl LuaEngine {
                         "install_hook",
                         ctx.create_function(|_, (address, pre_tick_hook, function_name): (u16, u8, String)| {
                             match pre_tick_hook {
-                                0 => HOOKS.lock().unwrap().insert(address, (function_name, HookType::PreTick)),
-                                1 => HOOKS.lock().unwrap().insert(address, (function_name, HookType::PostTick)),
-                                2 => HOOKS.lock().unwrap().insert(address, (function_name, HookType::Both)),
+                                0 => HOOKS.lock().unwrap().insert(address, (function_name, HookType::CpuExec)),
+                                1 => HOOKS.lock().unwrap().insert(address, (function_name, HookType::VramWrite)),
+                                2 => HOOKS.lock().unwrap().insert(address, (function_name, HookType::VramRead)),
                                 _ => panic!("Invalid hook type in Lua script"),
                             };
                             Ok(())
@@ -62,9 +62,9 @@ impl LuaEngine {
                     .unwrap();
 
                 // Hook type constants
-                globals.set("PRE_TICK", 0).unwrap();
-                globals.set("POST_TICK", 1).unwrap();
-                globals.set("BOTH_TICK", 2).unwrap();
+                globals.set("CPU_EXEC", HookType::CpuExec as usize).unwrap();
+                globals.set("VRAM_WRITE", HookType::VramWrite as usize).unwrap();
+                globals.set("VRAM_READ", HookType::VramRead as usize).unwrap();
 
                 ctx.load(&script).exec().unwrap();
             });
@@ -83,7 +83,7 @@ impl LuaEngine {
         }
 
         if let Some((_, hook_type)) = HOOKS.lock().unwrap().get(&address) {
-            return *hook_type == current_instruction_state || *hook_type == HookType::Both;
+            return *hook_type == current_instruction_state;
         }
 
         false
@@ -92,7 +92,7 @@ impl LuaEngine {
     pub(crate) fn execute_hook(&self, address: u16, current_instruction_state: HookType) {
         if let Some(lua) = &self.lua {
             if let Some((function_name, hook_type)) = HOOKS.lock().unwrap().get(&address) {
-                if *hook_type != current_instruction_state || *hook_type == HookType::Both {
+                if *hook_type != current_instruction_state {
                     return;
                 }
 
@@ -109,40 +109,53 @@ impl LuaEngine {
         }
     }
 
-    pub(crate) fn create_tables(&self, cpu: &Cpu, vdp: &Vdp, bus: &Bus) {
+    pub(crate) fn create_tables(&self, vdp: &Vdp, bus: &Bus) {
         if let Some(lua) = &self.lua {
             lua.context(|ctx| {
-                self.create_cpu_table(cpu, ctx);
                 self.create_vdp_table(vdp, ctx);
                 self.create_memory_table(bus, ctx);
             });
         }
     }
 
+    pub(crate) fn refresh_cpu(&self, cpu: &Cpu) {
+        if let Some(lua) = &self.lua {
+            lua.context(|ctx| {
+                self.create_cpu_table(cpu, ctx);
+            });
+        }
+    }
+
+    pub(crate) fn refresh_vdp(&self, vdp: &Vdp) {
+        if let Some(lua) = &self.lua {
+            lua.context(|ctx| {
+                self.create_vdp_table(vdp, ctx);
+            });
+        }
+    }
+
     fn create_cpu_table(&self, cpu: &Cpu, ctx: Context<'_>) {
         let globals = ctx.globals();
-        let features = globals.get::<_, Vec<String>>("FEATURES").unwrap();
 
-        if features.contains(&"cpu".to_string()) {
-            let cpu_table = ctx.create_table().unwrap();
-            cpu_table.set("af", cpu.get_register_u16(Reg16::AF)).unwrap();
-            cpu_table.set("bc", cpu.get_register_u16(Reg16::BC)).unwrap();
-            cpu_table.set("de", cpu.get_register_u16(Reg16::DE)).unwrap();
-            cpu_table.set("hl", cpu.get_register_u16(Reg16::HL)).unwrap();
-            cpu_table.set("sp", cpu.get_register_u16(Reg16::SP)).unwrap();
-            cpu_table.set("pc", cpu.get_register_u16(Reg16::PC)).unwrap();
-            cpu_table.set("ix", cpu.get_register_u16(Reg16::IX(None))).unwrap();
-            cpu_table.set("iy", cpu.get_register_u16(Reg16::IY(None))).unwrap();
-            cpu_table.set("a", cpu.get_register_u8(Reg8::A)).unwrap();
-            cpu_table.set("b", cpu.get_register_u8(Reg8::B)).unwrap();
-            cpu_table.set("c", cpu.get_register_u8(Reg8::C)).unwrap();
-            cpu_table.set("d", cpu.get_register_u8(Reg8::D)).unwrap();
-            cpu_table.set("e", cpu.get_register_u8(Reg8::E)).unwrap();
-            cpu_table.set("h", cpu.get_register_u8(Reg8::H)).unwrap();
-            cpu_table.set("l", cpu.get_register_u8(Reg8::L)).unwrap();
-            cpu_table.set("f", cpu.get_register_u8(Reg8::F)).unwrap();
-            globals.set("cpu", cpu_table).unwrap();
-        }
+        let cpu_table = ctx.create_table().unwrap();
+        cpu_table.set("af", cpu.get_register_u16(Reg16::AF)).unwrap();
+        cpu_table.set("bc", cpu.get_register_u16(Reg16::BC)).unwrap();
+        cpu_table.set("de", cpu.get_register_u16(Reg16::DE)).unwrap();
+        cpu_table.set("hl", cpu.get_register_u16(Reg16::HL)).unwrap();
+        cpu_table.set("sp", cpu.get_register_u16(Reg16::SP)).unwrap();
+        cpu_table.set("pc", cpu.get_register_u16(Reg16::PC)).unwrap();
+        cpu_table.set("ix", cpu.get_register_u16(Reg16::IX(None))).unwrap();
+        cpu_table.set("iy", cpu.get_register_u16(Reg16::IY(None))).unwrap();
+        cpu_table.set("a", cpu.get_register_u8(Reg8::A)).unwrap();
+        cpu_table.set("b", cpu.get_register_u8(Reg8::B)).unwrap();
+        cpu_table.set("c", cpu.get_register_u8(Reg8::C)).unwrap();
+        cpu_table.set("d", cpu.get_register_u8(Reg8::D)).unwrap();
+        cpu_table.set("e", cpu.get_register_u8(Reg8::E)).unwrap();
+        cpu_table.set("h", cpu.get_register_u8(Reg8::H)).unwrap();
+        cpu_table.set("l", cpu.get_register_u8(Reg8::L)).unwrap();
+        cpu_table.set("f", cpu.get_register_u8(Reg8::F)).unwrap();
+
+        globals.set("cpu", cpu_table).unwrap();
     }
 
     fn create_vdp_table(&self, vdp: &Vdp, ctx: Context<'_>) {
