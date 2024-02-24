@@ -72,5 +72,5 @@ provided by [jsmoo](https://github.com/raddad772/jsmoo/tree/main/misc/tests/Gene
 ## JSON Tests
 `cargo test` in the workspace folder will launch all unit tests. The current implementation measures only registers and RAM content. Status at the time of writing:  
 ```
-test result: FAILED. 1359 passed; 248 failed; 3 ignored; 0 measured; 0 filtered out; finished in 64.65s
+test result: FAILED. 1375 passed; 232 failed; 3 ignored; 0 measured; 0 filtered out; finished in 32.60s
 ```
