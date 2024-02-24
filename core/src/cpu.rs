@@ -134,136 +134,140 @@ impl Cpu {
     }
 
     pub(crate) fn tick(&mut self, bus: &mut Bus, vdp: &mut Vdp, psg: &mut Psg) -> Result<Instruction, GgError> {
+        let mut instruction = match self.decode_at_pc(bus) {
+            Ok(instruction) => instruction,
+            Err(msg) => return Err(GgError::DecoderError { msg }),
+        };
+
         if self.irq_available {
-            self.trigger_irq(bus)?;
+            self.trigger_irq(bus, &instruction)?;
             self.irq_available = false;
+
+            instruction = match self.decode_at_pc(bus) {
+                Ok(instruction) => instruction,
+                Err(msg) => return Err(GgError::DecoderError { msg }),
+            };
         }
 
-        let instr = self.decode_at_pc(bus);
+        let prefix = if self.registers.pc < 0xc000 { "rom" } else { "ram" };
+        let real_pc_addr = match bus.translate_address_to_real(self.registers.pc) {
+            Ok(rom_addr) => rom_addr,
+            Err(_) => self.registers.pc as usize, // This can happen if we execute code in RAM (example: end of BIOS)
+        };
+        trace!(
+            "[{}:{:04x}->{:08x}] {:<20} [{:?}]",
+            prefix,
+            self.registers.pc,
+            real_pc_addr,
+            format!("{}", instruction.opcode),
+            self
+        );
 
-        match instr {
-            Ok(instruction) => {
-                let prefix = if self.registers.pc < 0xc000 { "rom" } else { "ram" };
-                let real_pc_addr = match bus.translate_address_to_real(self.registers.pc) {
-                    Ok(rom_addr) => rom_addr,
-                    Err(_) => self.registers.pc as usize, // This can happen if we execute code in RAM (example: end of BIOS)
-                };
-                trace!(
-                    "[{}:{:04x}->{:08x}] {:<20} [{:?}]",
-                    prefix,
-                    self.registers.pc,
-                    real_pc_addr,
-                    format!("{}", instruction.opcode),
-                    self
-                );
-
-                let mut handlers = Handlers::new(self, bus, vdp, psg);
-                let result = match instruction.opcode {
-                    Opcode::Jump(_, _, _) => handlers.jump(&instruction),
-                    Opcode::DisableInterrupts(_) => handlers.set_interrupt_state(false, &instruction),
-                    Opcode::EnableInterrupts(_) => handlers.set_interrupt_state(true, &instruction),
-                    Opcode::Load(_, _, _) => handlers.load(&instruction),
-                    Opcode::LoadIncrementRepeat(_) => handlers.load_indirect_repeat(&instruction),
-                    Opcode::Out(_, _, _) => handlers.out(&instruction),
-                    Opcode::In(_, _, _) => handlers.in_(&instruction),
-                    Opcode::Compare(_, _) => handlers.compare(&instruction),
-                    Opcode::JumpRelative(_, _, _) => handlers.jump_relative(&instruction),
-                    Opcode::Call(_, _, _) => handlers.call(&instruction),
-                    Opcode::Return(_, _) => handlers.return_(&instruction),
-                    Opcode::ReturnFromIrq(_) => handlers.return_from_irq(&instruction),
-                    Opcode::OutIncrementRepeat(_) => handlers.out_indirect_repeat(&instruction),
-                    Opcode::Or(_, _) => handlers.or(&instruction),
-                    Opcode::Push(_, _) => handlers.push(&instruction),
-                    Opcode::Pop(_, _) => handlers.pop(&instruction),
-                    Opcode::Increment(_, _) => handlers.increment(&instruction),
-                    Opcode::Decrement(_, _) => handlers.decrement(&instruction),
-                    Opcode::ResetBit(_, _, _) => handlers.reset_bit(&instruction),
-                    Opcode::DecrementAndJumpRelative(_, _) => handlers.decrement_and_jump_relative(&instruction),
-                    Opcode::Xor(_, _) => handlers.xor(&instruction),
-                    Opcode::OutIncrement(_) => handlers.outi(&instruction),
-                    Opcode::OutDecrement(_) => handlers.outd(&instruction),
-                    Opcode::Restart(_, _) => handlers.restart(&instruction),
-                    Opcode::SetInterruptMode(_, _) => handlers.set_interrupt_mode(&instruction),
-                    Opcode::Subtract(_, _) => handlers.subtract(&instruction),
-                    Opcode::Add(_, _, _) => handlers.add(&instruction),
-                    Opcode::And(_, _) => handlers.and(&instruction),
-                    Opcode::SubtractCarry(_, _, _) => handlers.subtract_carry(&instruction),
-                    Opcode::RotateRightCarryAccumulator(_) => handlers.rotate_right_carry_accumulator(&instruction),
-                    Opcode::RotateRightAccumulator(_) => handlers.rotate_right_accumulator(&instruction),
-                    Opcode::RotateLeftCarryAccumulator(_) => handlers.rotate_left_carry_accumulator(&instruction),
-                    Opcode::RotateLeftAccumulator(_) => handlers.rotate_left_accumulator(&instruction),
-                    Opcode::RotateRightCarry(_, _) => handlers.rotate_right_carry(&instruction),
-                    Opcode::RotateRight(_, _) => handlers.rotate_right(&instruction),
-                    Opcode::RotateLeftCarry(_, _) => handlers.rotate_left_carry(&instruction),
-                    Opcode::RotateLeft(_, _) => handlers.rotate_left(&instruction),
-                    Opcode::RotateLeftCarryStore(_, _, _) => handlers.rotate_left_carry_store(&instruction),
-                    Opcode::RotateRightCarryStore(_, _, _) => handlers.rotate_right_carry_store(&instruction),
-                    Opcode::RotateLeftStore(_, _, _) => handlers.rotate_left_store(&instruction),
-                    Opcode::RotateRightStore(_, _, _) => handlers.rotate_right_store(&instruction),
-                    Opcode::ShiftRightArithmeticStore(_, _, _) => handlers.shift_right_arithmetic_store(&instruction),
-                    Opcode::ShiftRightLogicalStore(_, _, _) => handlers.shift_right_logical_store(&instruction),
-                    Opcode::ShiftLeftArithmeticStore(_, _, _) => handlers.shift_left_arithmetic_store(&instruction),
-                    Opcode::ShiftLeftLogicalStore(_, _, _) => handlers.shift_left_logical_store(&instruction),
-                    Opcode::SetBitStore(_, _, _, _) => handlers.set_bit_store(&instruction),
-                    Opcode::ResetBitStore(_, _, _, _) => handlers.reset_bit_store(&instruction),
-                    Opcode::Complement(_) => handlers.complement(&instruction),
-                    Opcode::SetBit(_, _, _) => handlers.set_bit(&instruction),
-                    Opcode::Halt(_) => return Err(GgError::CpuHalted),
-                    Opcode::Exchange(_, _, _) => handlers.exchange(&instruction),
-                    Opcode::ExchangeAll(_) => handlers.exchange_all(&instruction),
-                    Opcode::TestBit(_, _, _) => handlers.test_bit(&instruction),
-                    Opcode::LoadDecrementRepeat(_) => handlers.load_decrement_repeat(&instruction),
-                    Opcode::LoadDecrement(_) => handlers.load_decrement(&instruction),
-                    Opcode::InvertCarry(_) => handlers.invert_carry(&instruction),
-                    Opcode::AddCarry(_, _, _) => handlers.add_carry(&instruction),
-                    Opcode::SetCarryFlag(_) => handlers.set_carry_flag(&instruction),
-                    Opcode::DecimalAdjustAccumulator(_) => handlers.decimal_adjust_accumulator(&instruction),
-                    Opcode::ShiftRightArithmetic(_, _) => handlers.shift_right_arithmetic(&instruction),
-                    Opcode::ShiftRightLogical(_, _) => handlers.shift_right_logical(&instruction),
-                    Opcode::ShiftLeftArithmetic(_, _) => handlers.shift_left_arithmetic(&instruction),
-                    Opcode::ShiftLeftLogical(_, _) => handlers.shift_left_logical(&instruction),
-                    Opcode::Negate(_) => handlers.negate(&instruction),
-                    Opcode::LoadIncrement(_) => handlers.load_increment(&instruction),
-                    Opcode::NoOperation(_) => Ok(()),
-                    _ => {
-                        error!("Handler missing for instruction: {}\n{}", instruction.opcode, self);
-                        return Err(GgError::OpcodeNotImplemented {
-                            opcode: instruction.opcode,
-                        });
-                    }
-                };
-
-                match result {
-                    Err(GgError::BusRequestOutOfBounds { address }) => {
-                        error!("Bus request out of bounds: {:04x}\n{}", address, self);
-                        return Err(GgError::BusRequestOutOfBounds { address });
-                    }
-                    _ => (),
-                }
-
-                let skip = match instruction.opcode {
-                    Opcode::Call(_, _, _) => result.is_ok(),
-                    Opcode::Jump(_, _, _) => result.is_ok(),
-                    Opcode::Return(_, _) => result.is_ok(),
-                    Opcode::Restart(_, _) => result.is_ok(),
-                    // Do NOT increase PC if the repeat instruction's condition is not met
-                    Opcode::LoadDecrementRepeat(_) => result.is_err(),
-                    Opcode::LoadIncrementRepeat(_) => result.is_err(),
-                    Opcode::OutIncrementRepeat(_) => result.is_err(),
-                    _ => false,
-                };
-
-                if !skip {
-                    self.registers.pc = self.registers.pc.wrapping_add(instruction.length as u16);
-                }
-
-                if result.is_ok() {
-                    Ok(instruction)
-                } else {
-                    Err(result.unwrap_err())
-                }
+        let mut handlers = Handlers::new(self, bus, vdp, psg);
+        let result = match instruction.opcode {
+            Opcode::Jump(_, _, _) => handlers.jump(&instruction),
+            Opcode::DisableInterrupts(_) => handlers.set_interrupt_state(false, &instruction),
+            Opcode::EnableInterrupts(_) => handlers.set_interrupt_state(true, &instruction),
+            Opcode::Load(_, _, _) => handlers.load(&instruction),
+            Opcode::LoadIncrementRepeat(_) => handlers.load_increment_repeat(&instruction),
+            Opcode::Out(_, _, _) => handlers.out(&instruction),
+            Opcode::In(_, _, _) => handlers.in_(&instruction),
+            Opcode::Compare(_, _) => handlers.compare(&instruction),
+            Opcode::JumpRelative(_, _, _) => handlers.jump_relative(&instruction),
+            Opcode::Call(_, _, _) => handlers.call(&instruction),
+            Opcode::Return(_, _) => handlers.return_(&instruction),
+            Opcode::ReturnFromIrq(_) => handlers.return_from_irq(&instruction),
+            Opcode::OutIncrementRepeat(_) => handlers.out_increment_repeat(&instruction),
+            Opcode::Or(_, _) => handlers.or(&instruction),
+            Opcode::Push(_, _) => handlers.push(&instruction),
+            Opcode::Pop(_, _) => handlers.pop(&instruction),
+            Opcode::Increment(_, _) => handlers.increment(&instruction),
+            Opcode::Decrement(_, _) => handlers.decrement(&instruction),
+            Opcode::ResetBit(_, _, _) => handlers.reset_bit(&instruction),
+            Opcode::DecrementAndJumpRelative(_, _) => handlers.decrement_and_jump_relative(&instruction),
+            Opcode::Xor(_, _) => handlers.xor(&instruction),
+            Opcode::OutIncrement(_) => handlers.outi(&instruction),
+            Opcode::OutDecrement(_) => handlers.outd(&instruction),
+            Opcode::Restart(_, _) => handlers.restart(&instruction),
+            Opcode::SetInterruptMode(_, _) => handlers.set_interrupt_mode(&instruction),
+            Opcode::Subtract(_, _) => handlers.subtract(&instruction),
+            Opcode::Add(_, _, _) => handlers.add(&instruction),
+            Opcode::And(_, _) => handlers.and(&instruction),
+            Opcode::SubtractCarry(_, _, _) => handlers.subtract_carry(&instruction),
+            Opcode::RotateRightCarryAccumulator(_) => handlers.rotate_right_carry_accumulator(&instruction),
+            Opcode::RotateRightAccumulator(_) => handlers.rotate_right_accumulator(&instruction),
+            Opcode::RotateLeftCarryAccumulator(_) => handlers.rotate_left_carry_accumulator(&instruction),
+            Opcode::RotateLeftAccumulator(_) => handlers.rotate_left_accumulator(&instruction),
+            Opcode::RotateRightCarry(_, _) => handlers.rotate_right_carry(&instruction),
+            Opcode::RotateRight(_, _) => handlers.rotate_right(&instruction),
+            Opcode::RotateLeftCarry(_, _) => handlers.rotate_left_carry(&instruction),
+            Opcode::RotateLeft(_, _) => handlers.rotate_left(&instruction),
+            Opcode::RotateLeftCarryStore(_, _, _) => handlers.rotate_left_carry_store(&instruction),
+            Opcode::RotateRightCarryStore(_, _, _) => handlers.rotate_right_carry_store(&instruction),
+            Opcode::RotateLeftStore(_, _, _) => handlers.rotate_left_store(&instruction),
+            Opcode::RotateRightStore(_, _, _) => handlers.rotate_right_store(&instruction),
+            Opcode::ShiftRightArithmeticStore(_, _, _) => handlers.shift_right_arithmetic_store(&instruction),
+            Opcode::ShiftRightLogicalStore(_, _, _) => handlers.shift_right_logical_store(&instruction),
+            Opcode::ShiftLeftArithmeticStore(_, _, _) => handlers.shift_left_arithmetic_store(&instruction),
+            Opcode::ShiftLeftLogicalStore(_, _, _) => handlers.shift_left_logical_store(&instruction),
+            Opcode::SetBitStore(_, _, _, _) => handlers.set_bit_store(&instruction),
+            Opcode::ResetBitStore(_, _, _, _) => handlers.reset_bit_store(&instruction),
+            Opcode::Complement(_) => handlers.complement(&instruction),
+            Opcode::SetBit(_, _, _) => handlers.set_bit(&instruction),
+            Opcode::Halt(_) => return Err(GgError::CpuHalted),
+            Opcode::Exchange(_, _, _) => handlers.exchange(&instruction),
+            Opcode::ExchangeAll(_) => handlers.exchange_all(&instruction),
+            Opcode::TestBit(_, _, _) => handlers.test_bit(&instruction),
+            Opcode::LoadDecrementRepeat(_) => handlers.load_decrement_repeat(&instruction),
+            Opcode::LoadDecrement(_) => handlers.load_decrement(&instruction),
+            Opcode::InvertCarry(_) => handlers.invert_carry(&instruction),
+            Opcode::AddCarry(_, _, _) => handlers.add_carry(&instruction),
+            Opcode::SetCarryFlag(_) => handlers.set_carry_flag(&instruction),
+            Opcode::DecimalAdjustAccumulator(_) => handlers.decimal_adjust_accumulator(&instruction),
+            Opcode::ShiftRightArithmetic(_, _) => handlers.shift_right_arithmetic(&instruction),
+            Opcode::ShiftRightLogical(_, _) => handlers.shift_right_logical(&instruction),
+            Opcode::ShiftLeftArithmetic(_, _) => handlers.shift_left_arithmetic(&instruction),
+            Opcode::ShiftLeftLogical(_, _) => handlers.shift_left_logical(&instruction),
+            Opcode::Negate(_) => handlers.negate(&instruction),
+            Opcode::LoadIncrement(_) => handlers.load_increment(&instruction),
+            Opcode::CompareIncrementRepeat(_) => handlers.compare_increment_repeat(&instruction),
+            Opcode::NoOperation(_) => Ok(()),
+            _ => {
+                error!("Handler missing for instruction: {}\n{}", instruction.opcode, self);
+                return Err(GgError::OpcodeNotImplemented {
+                    opcode: instruction.opcode,
+                });
             }
-            Err(msg) => Err(GgError::DecoderError { msg }),
+        };
+
+        match result {
+            Err(GgError::BusRequestOutOfBounds { address }) => {
+                error!("Bus request out of bounds: {:04x}\n{}", address, self);
+                return Err(GgError::BusRequestOutOfBounds { address });
+            }
+            _ => (),
+        }
+
+        let skip = match instruction.opcode {
+            Opcode::Call(_, _, _) => result.is_ok(),
+            Opcode::Jump(_, _, _) => result.is_ok(),
+            Opcode::Return(_, _) => result.is_ok(),
+            Opcode::Restart(_, _) => result.is_ok(),
+            // Do NOT increase PC if the repeat instruction's condition is not met
+            Opcode::LoadDecrementRepeat(_) => result.is_err(),
+            Opcode::LoadIncrementRepeat(_) => result.is_err(),
+            Opcode::OutIncrementRepeat(_) => result.is_err(),
+            _ => false,
+        };
+
+        if !skip {
+            self.registers.pc = self.registers.pc.wrapping_add(instruction.length as u16);
+        }
+
+        if result.is_ok() {
+            Ok(instruction)
+        } else {
+            Err(result.unwrap_err())
         }
     }
 
@@ -273,7 +277,7 @@ impl Cpu {
         self.irq_available = true;
     }
 
-    pub(crate) fn trigger_irq(&mut self, bus: &mut Bus) -> Result<(), GgError> {
+    pub(crate) fn trigger_irq(&mut self, bus: &mut Bus, current_instruction: &Instruction) -> Result<(), GgError> {
         /*
             Interrupt mode 0
 
@@ -299,7 +303,7 @@ impl Cpu {
         */
 
         if self.interrupts_enabled {
-            let instr_length = self.decode_at_pc(bus).unwrap().length as u16;
+            let instr_length = current_instruction.length as u16;
             let vector = match self.interrupt_mode {
                 InterruptMode::IM0 => 0x0038,
                 InterruptMode::IM1 => 0x0038,

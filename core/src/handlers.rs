@@ -143,7 +143,7 @@ impl<'a> Handlers<'a> {
         Ok(())
     }
 
-    pub(crate) fn load_indirect_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+    pub(crate) fn load_increment_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         let src = {
             let hl = self.cpu.get_register_u16(Reg16::HL);
             self.bus.read(hl)?
@@ -154,11 +154,15 @@ impl<'a> Handlers<'a> {
 
         let hl = self.cpu.get_register_u16(Reg16::HL);
         let de = self.cpu.get_register_u16(Reg16::DE);
-        self.cpu.set_register_u16(Reg16::HL, hl + 1);
-        self.cpu.set_register_u16(Reg16::DE, de + 1);
+        self.cpu.set_register_u16(Reg16::HL, hl.wrapping_add(1));
+        self.cpu.set_register_u16(Reg16::DE, de.wrapping_add(1));
 
         let bc = self.cpu.get_register_u16(Reg16::BC);
-        self.cpu.set_register_u16(Reg16::BC, bc - 1);
+        self.cpu.set_register_u16(Reg16::BC, bc.wrapping_sub(1));
+
+        self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+        self.cpu.registers.f.set(Flags::SUBTRACT, false);
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, bc.wrapping_sub(1) > 0);
 
         if self.cpu.get_register_u16(Reg16::BC) == 0 {
             Ok(())
@@ -178,13 +182,13 @@ impl<'a> Handlers<'a> {
         let hl = self.cpu.get_register_u16(Reg16::HL);
         let de = self.cpu.get_register_u16(Reg16::DE);
         let bc = self.cpu.get_register_u16(Reg16::BC);
-        self.cpu.set_register_u16(Reg16::HL, hl - 1);
-        self.cpu.set_register_u16(Reg16::DE, de - 1);
-        self.cpu.set_register_u16(Reg16::BC, bc - 1);
+        self.cpu.set_register_u16(Reg16::HL, hl.wrapping_sub(1));
+        self.cpu.set_register_u16(Reg16::DE, de.wrapping_sub(1));
+        self.cpu.set_register_u16(Reg16::BC, bc.wrapping_sub(1));
 
         self.cpu.registers.f.set(Flags::HALF_CARRY, false);
         self.cpu.registers.f.set(Flags::SUBTRACT, false);
-        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, false);
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, bc.wrapping_sub(1) > 0);
 
         if self.cpu.get_register_u16(Reg16::BC) == 0 {
             Ok(())
@@ -204,13 +208,13 @@ impl<'a> Handlers<'a> {
         let hl = self.cpu.get_register_u16(Reg16::HL);
         let de = self.cpu.get_register_u16(Reg16::DE);
         let bc = self.cpu.get_register_u16(Reg16::BC);
-        self.cpu.set_register_u16(Reg16::HL, hl - 1);
-        self.cpu.set_register_u16(Reg16::DE, de - 1);
-        self.cpu.set_register_u16(Reg16::BC, bc - 1);
+        self.cpu.set_register_u16(Reg16::HL, hl.wrapping_sub(1));
+        self.cpu.set_register_u16(Reg16::DE, de.wrapping_sub(1));
+        self.cpu.set_register_u16(Reg16::BC, bc.wrapping_sub(1));
 
         self.cpu.registers.f.set(Flags::HALF_CARRY, false);
         self.cpu.registers.f.set(Flags::SUBTRACT, false);
-        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, bc - 1 > 0);
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, bc.wrapping_sub(1) > 0);
 
         Ok(())
     }
@@ -226,13 +230,13 @@ impl<'a> Handlers<'a> {
         let hl = self.cpu.get_register_u16(Reg16::HL);
         let de = self.cpu.get_register_u16(Reg16::DE);
         let bc = self.cpu.get_register_u16(Reg16::BC);
-        self.cpu.set_register_u16(Reg16::HL, hl + 1);
-        self.cpu.set_register_u16(Reg16::DE, de + 1);
-        self.cpu.set_register_u16(Reg16::BC, bc - 1);
+        self.cpu.set_register_u16(Reg16::HL, hl.wrapping_add(1));
+        self.cpu.set_register_u16(Reg16::DE, de.wrapping_add(1));
+        self.cpu.set_register_u16(Reg16::BC, bc.wrapping_sub(1));
 
         self.cpu.registers.f.set(Flags::HALF_CARRY, false);
         self.cpu.registers.f.set(Flags::SUBTRACT, false);
-        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, bc - 1 > 0);
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, bc.wrapping_sub(1) > 0);
 
         Ok(())
     }
@@ -242,11 +246,15 @@ impl<'a> Handlers<'a> {
         let result = a.wrapping_neg();
         self.cpu.set_register_u8(Reg8::A, result);
 
+        self.cpu.registers.f.set(Flags::CARRY, result > 0);
         self.cpu.registers.f.set(Flags::ZERO, result == 0);
         self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
         self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, result == 128);
         self.cpu.registers.f.set(Flags::SUBTRACT, true);
-        self.cpu.registers.f.set(Flags::HALF_CARRY, result & 0b0000_1111 == 0);
+        self.cpu
+            .registers
+            .f
+            .set(Flags::HALF_CARRY, self.detect_half_carry_u8(0, a, result));
 
         Ok(())
     }
@@ -393,7 +401,7 @@ impl<'a> Handlers<'a> {
         }
     }
 
-    pub(crate) fn out_indirect_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+    pub(crate) fn out_increment_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         let b = self.cpu.get_register_u8(Reg8::B);
         let hl = self.cpu.get_register_u16(Reg16::HL);
 
@@ -405,6 +413,42 @@ impl<'a> Handlers<'a> {
         self.cpu.set_register_u8(Reg8::B, b.wrapping_sub(1));
 
         if self.cpu.get_register_u8(Reg8::B) == 0 {
+            Ok(())
+        } else {
+            Err(GgError::RepeatNotFulfilled)
+        }
+    }
+
+    pub(crate) fn compare_increment_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let src = {
+            let hl = self.cpu.get_register_u16(Reg16::HL);
+            self.bus.read(hl)?
+        };
+        let a = self.cpu.get_register_u8(Reg8::A);
+        let result = a.wrapping_sub(src);
+
+        self.cpu.set_register_u8(Reg8::A, result);
+
+        let hl = self.cpu.get_register_u16(Reg16::HL);
+        self.cpu.set_register_u16(Reg16::HL, hl.wrapping_add(1));
+
+        let bc = self.cpu.get_register_u16(Reg16::BC);
+        self.cpu.set_register_u16(Reg16::BC, bc.wrapping_sub(1));
+
+        self.cpu
+            .registers
+            .f
+            .set(Flags::HALF_CARRY, self.detect_half_carry_u8(a, src, result));
+        self.cpu.registers.f.set(Flags::SUBTRACT, true);
+        self.cpu.registers.f.set(Flags::CARRY, result > a);
+        self.cpu.registers.f.set(Flags::ZERO, result == 0);
+        self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+        self.cpu
+            .registers
+            .f
+            .set(Flags::PARITY_OR_OVERFLOW, self.cpu.get_register_u16(Reg16::BC) != 0);
+
+        if self.cpu.get_register_u16(Reg16::BC) == 0 && self.cpu.registers.f.contains(Flags::ZERO) {
             Ok(())
         } else {
             Err(GgError::RepeatNotFulfilled)
@@ -866,7 +910,7 @@ impl<'a> Handlers<'a> {
                 self.cpu.registers.f.set(Flags::HALF_CARRY, hc);
                 self.cpu.registers.f.set(Flags::SUBTRACT, true);
                 self.cpu.registers.f.set(Flags::ZERO, result == 0);
-                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000_0000_0000 != 0);
                 self.cpu
                     .registers
                     .f
@@ -1517,11 +1561,11 @@ impl<'a> Handlers<'a> {
 
                 let hc = self.detect_half_carry_u16(dst, src, result);
                 self.cpu.registers.f.set(Flags::ZERO, result == 0);
-                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000_0000_0000 != 0);
                 self.cpu
                     .registers
                     .f
-                    .set(Flags::PARITY_OR_OVERFLOW, self.is_underflow_u16(dst, src, result));
+                    .set(Flags::PARITY_OR_OVERFLOW, self.is_overflow_u16(dst, src, result));
                 self.cpu.registers.f.set(Flags::SUBTRACT, false);
                 self.cpu.registers.f.set(Flags::HALF_CARRY, hc);
                 self.cpu.registers.f.set(Flags::CARRY, carry);
@@ -1884,6 +1928,10 @@ impl<'a> Handlers<'a> {
 
     fn is_overflow(&self, lhs: u8, rhs: u8, result: u8) -> bool {
         ((lhs < 128 && rhs < 128) && result >= 128) || ((lhs > 127 && rhs > 127) && result <= 127)
+    }
+
+    fn is_overflow_u16(&self, lhs: u16, rhs: u16, result: u16) -> bool {
+        ((lhs < 32768 && rhs < 32768) && result >= 32768) || ((lhs > 32767 && rhs > 32767) && result <= 32767)
     }
 
     fn is_underflow(&self, lhs: u8, rhs: u8, result: u8) -> bool {
