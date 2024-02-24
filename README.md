@@ -5,9 +5,9 @@ the hardware and software myself or by using the excellent docs found on [smspow
 <details>
   <summary>Demos</summary>
 
-  | Sonic The Hedgehog 2 Demo                                                                         | Lucky Dime Caper Starring Donald Duck Demo                                                        |
-  | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-  | <video src="https://github.com/ioncodes/gg/assets/18533297/610fd9c9-1562-457e-b787-7230bc7c39c1"> | <video src="https://github.com/ioncodes/gg/assets/18533297/d52ea86e-b962-4d86-a3f9-3881b5cc44f7"> |
+  | Sonic The Hedgehog 2 Demo                                                                         | Lucky Dime Caper Starring Donald Duck Demo                                                        | Pac-Man Demo                                                                                      |
+  | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+  | <video src="https://github.com/ioncodes/gg/assets/18533297/707c1d23-8182-4dd6-8960-2e86f79d7ee6"> | <video src="https://github.com/ioncodes/gg/assets/18533297/a9638e21-5365-4515-a29d-4701d761c3a2"> | <video src="https://github.com/ioncodes/gg/assets/18533297/1549887c-45f5-4eec-9201-9e4de168b32e"> |
 </details>
 
 ## Compatibility List
