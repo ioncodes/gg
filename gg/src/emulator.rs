@@ -126,7 +126,8 @@ impl Emulator {
         let _ = file.read_to_end(&mut bios).unwrap();
 
         let mut system = System::new(lua, is_sms);
-        system.set_abort_on_io_operation_behavior(false);
+        system.set_abort_on_io_operation_behavior(false); // Let's only log invalid ports
+        system.bus.set_rom_write_protection(false); // Pac-Man writes to ROM for some reason
 
         if args.cpu_test {
             system.load_cartridge(cartridge.as_ref());

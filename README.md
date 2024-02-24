@@ -15,7 +15,7 @@ This document currently reflects commit [d76a8e0](https://github.com/ioncodes/gg
 | **Title**                                                | **CRC32**  | **Status** |
 | -------------------------------------------------------- | :--------: | :--------: |
 | [BIOS] Sega Game Gear (USA) (Majesco)                    | `0ebea9d4` |     👌      |
-| Pac-Man (USA)                                            | `b318dd37` |     🐥      |
+| Pac-Man (USA)                                            | `b318dd37` |     👌      |
 | Sonic The Hedgehog 2 (U) [!]                             | `95a18ec7` |     🐣      |
 | Sonic The Hedgehog (U) (V1.0) [!]                        | `3e31cb8c` |     🐣      |
 | Batman Returns (World)                                   | `7ac4a3ca` |     🐣      |
