@@ -1235,6 +1235,7 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 4,
             ),
+            (Some(0xed), Some(0x67), _, _) => Opcode::RotateRightDigit(2),
             (Some(0xed), Some(0x69), _, _) => Opcode::Out(
                 Operand::Register(Register::Reg8(Reg8::C), true),
                 Operand::Register(Register::Reg8(Reg8::L), false),
@@ -1250,6 +1251,7 @@ impl<'a> Disassembler<'a> {
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
                 4,
             ),
+            (Some(0xed), Some(0x6f), _, _) => Opcode::RotateLeftDigit(2),
             (Some(0xed), Some(0x72), _, _) => Opcode::SubtractCarry(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 Operand::Register(Register::Reg16(Reg16::SP), false),
@@ -1259,6 +1261,11 @@ impl<'a> Disassembler<'a> {
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
                 Operand::Register(Register::Reg16(Reg16::SP), false),
                 4,
+            ),
+            (Some(0xed), Some(0x78), _, _) => Opcode::In(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::C), true),
+                2,
             ),
             (Some(0xed), Some(0x79), _, _) => Opcode::Out(
                 Operand::Register(Register::Reg8(Reg8::C), true),
@@ -5332,6 +5339,8 @@ impl<'a> Disassembler<'a> {
             Opcode::OutDecrementRepeat(length) => length,
             Opcode::Negate(length) => length,
             Opcode::ReturnFromIrq(length) => length,
+            Opcode::RotateLeftDigit(length) => length,
+            Opcode::RotateRightDigit(length) => length,
             Opcode::Unknown(length) => length,
         }
     }

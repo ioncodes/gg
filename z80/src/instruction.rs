@@ -124,6 +124,8 @@ pub enum Opcode {
     RotateLeftAccumulator(usize),
     RotateRightCarry(Operand, usize),
     RotateRight(Operand, usize),
+    RotateLeftDigit(usize),
+    RotateRightDigit(usize),
     Complement(usize),
     Halt(usize),
     Exchange(Operand, Operand, usize),
@@ -200,6 +202,8 @@ impl fmt::Display for Opcode {
             Opcode::AddCarry(op1, op2, _) => write!(f, "adc {}, {}", op1, op2),
             Opcode::SetCarryFlag(_) => write!(f, "scf"),
             Opcode::DecimalAdjustAccumulator(_) => write!(f, "daa"),
+            Opcode::RotateLeftDigit(_) => write!(f, "rld"),
+            Opcode::RotateRightDigit(_) => write!(f, "rrd"),
             Opcode::JumpRelative(op1, op2, _) => {
                 write!(f, "jr")?;
                 if *op1 != Condition::None {

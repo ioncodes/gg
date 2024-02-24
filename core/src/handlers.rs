@@ -293,6 +293,12 @@ impl<'a> Handlers<'a> {
                 self.cpu.set_register_u8(dst_reg, imm);
                 Ok(())
             }
+            Opcode::In(Operand::Register(Register::Reg8(dst_reg), false), Operand::Register(Register::Reg8(src_reg), true), _) => {
+                let src = self.cpu.get_register_u8(src_reg);
+                let imm = self.cpu.read_io(src, self.vdp, self.bus, self.psg)?;
+                self.cpu.set_register_u8(dst_reg, imm);
+                Ok(())
+            }
             _ => Err(GgError::InvalidOpcodeImplementation {
                 instruction: instruction.opcode,
             }),
@@ -1008,6 +1014,44 @@ impl<'a> Handlers<'a> {
                     .registers
                     .f
                     .set(Flags::PARITY_OR_OVERFLOW, self.is_underflow(dst, src, result));
+
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
+    }
+
+    pub(crate) fn rotate_left_digit(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::RotateLeftDigit(_) => {
+                let a = self.cpu.get_register_u8(Reg8::A);
+                let hl = self.cpu.get_register_u16(Reg16::HL);
+                let value = self.bus.read(hl)?;
+                let result = (a & 0b0000_1111) | (value << 4);
+                self.cpu.set_register_u8(Reg8::A, result);
+                let result = (value >> 4) | ((a & 0b0000_1111) << 4);
+                self.bus.write(hl, result)?;
+
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
+    }
+
+    pub(crate) fn rotate_right_digit(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::RotateRightDigit(_) => {
+                let a = self.cpu.get_register_u8(Reg8::A);
+                let hl = self.cpu.get_register_u16(Reg16::HL);
+                let value = self.bus.read(hl)?;
+                let result = (a & 0b1111_0000) | (value & 0b0000_1111);
+                self.cpu.set_register_u8(Reg8::A, result);
+                let result = (value >> 4) | ((a & 0b1111_0000) << 4);
+                self.bus.write(hl, result)?;
 
                 Ok(())
             }

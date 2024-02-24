@@ -234,6 +234,8 @@ impl Cpu {
             Opcode::LoadIncrement(_) => handlers.load_increment(&instruction),
             Opcode::CompareIncrementRepeat(_) => handlers.compare_increment_repeat(&instruction),
             Opcode::InIncrement(_) => handlers.ini(&instruction),
+            Opcode::RotateLeftDigit(_) => handlers.rotate_left_digit(&instruction),
+            Opcode::RotateRightDigit(_) => handlers.rotate_right_digit(&instruction),
             Opcode::NoOperation(_) => Ok(()),
             _ => {
                 error!("Handler missing for instruction: {}\n{}", instruction.opcode, self);
