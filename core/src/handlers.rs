@@ -1034,6 +1034,10 @@ impl<'a> Handlers<'a> {
                 let result = (value >> 4) | ((a & 0b0000_1111) << 4);
                 self.bus.write(hl, result)?;
 
+                self.cpu.registers.f.set(Flags::SUBTRACT, false);
+                self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+
                 Ok(())
             }
             _ => Err(GgError::InvalidOpcodeImplementation {
@@ -1052,6 +1056,10 @@ impl<'a> Handlers<'a> {
                 self.cpu.set_register_u8(Reg8::A, result);
                 let result = (value >> 4) | ((a & 0b1111_0000) << 4);
                 self.bus.write(hl, result)?;
+
+                self.cpu.registers.f.set(Flags::SUBTRACT, false);
+                self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
 
                 Ok(())
             }

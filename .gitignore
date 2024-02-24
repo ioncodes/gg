@@ -8,3 +8,4 @@ target/
 *.til
 *_trace.txt
 *trace.log
+*test.log
