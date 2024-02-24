@@ -6,7 +6,7 @@ use crate::psg::Psg;
 use crate::vdp::{self, Vdp};
 use crate::{joystick, sdsc};
 use bitflags::bitflags;
-use log::{error, trace};
+use log::{debug, error, trace};
 use std::fmt;
 use z80::disassembler::Disassembler;
 use z80::instruction::{Instruction, Opcode, Reg16, Reg8, Register};
@@ -140,6 +140,8 @@ impl Cpu {
         };
 
         if self.irq_available {
+            debug!("IRQ available");
+
             self.trigger_irq(bus, &instruction)?;
             self.irq_available = false;
 
@@ -253,6 +255,8 @@ impl Cpu {
             Opcode::Call(_, _, _) => result.is_ok(),
             Opcode::Jump(_, _, _) => result.is_ok(),
             Opcode::Return(_, _) => result.is_ok(),
+            Opcode::ReturnFromIrq(_) => result.is_ok(),
+            Opcode::ReturnFromNmi(_) => result.is_ok(), // todo: sure?
             Opcode::Restart(_, _) => result.is_ok(),
             // Do NOT increase PC if the repeat instruction's condition is not met
             Opcode::LoadDecrementRepeat(_) => result.is_err(),
@@ -304,6 +308,8 @@ impl Cpu {
         */
 
         if self.interrupts_enabled {
+            debug!("Interrupt triggered");
+
             let instr_length = current_instruction.length as u16;
             let vector = match self.interrupt_mode {
                 InterruptMode::IM0 => 0x0038,

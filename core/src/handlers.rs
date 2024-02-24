@@ -104,6 +104,11 @@ impl<'a> Handlers<'a> {
                 self.cpu.set_register_u16(dst_reg, src);
                 Ok(())
             }
+            Opcode::Load(Operand::Register(Register::Reg16(dst_reg), true), Operand::Register(Register::Reg16(src_reg), false), _) => {
+                let src = self.cpu.get_register_u16(src_reg);
+                self.bus.write_word(self.cpu.get_register_u16(dst_reg), src)?;
+                Ok(())
+            }
             _ => Err(GgError::InvalidOpcodeImplementation {
                 instruction: instruction.opcode,
             }),
