@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use log::error;
 use z80::instruction::Instruction;
 
@@ -15,7 +17,7 @@ pub struct System {
     pub bus: Bus,
     pub vdp: Vdp,
     pub psg: Psg,
-    lua: LuaEngine,
+    lua: Rc<LuaEngine>,
     abort_invalid_io_op: bool,
 }
 
@@ -25,12 +27,14 @@ impl System {
         let mapper = SegaMapper::new(0);
         let mode = if emulate_sms { Mode::SegaMasterSystem } else { Mode::GameGear };
 
+        let lua = Rc::new(LuaEngine::new(lua_script));
+
         System {
             cpu: Cpu::new(),
             bus: Bus::new(mapper),
-            vdp: Vdp::new(mode),
+            vdp: Vdp::new(mode, Rc::clone(&lua)),
             psg: Psg::new(),
-            lua: LuaEngine::new(lua_script),
+            lua,
             abort_invalid_io_op: true,
         }
     }
@@ -71,11 +75,12 @@ impl System {
     }
 
     pub fn tick(&mut self) -> Result<bool, GgError> {
-        // Execute pre-tick Lua script
+        self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
+
+        // Execute Lua script
         let current_pc_before_tick = self.cpu.registers.pc;
-        if self.lua.hook_exists(current_pc_before_tick, HookType::PreTick) {
-            self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
-            self.lua.execute_hook(current_pc_before_tick, HookType::PreTick);
+        if self.lua.hook_exists(current_pc_before_tick, HookType::CpuExec) {
+            self.lua.execute_hook(current_pc_before_tick, HookType::CpuExec);
         }
 
         // Process tick for all components
@@ -109,20 +114,14 @@ impl System {
             }
             _ => (),
         };
-        self.vdp.tick(&mut self.cpu);
+        let frame_generated = self.vdp.tick(&mut self.cpu);
 
-        // Execute post-tick Lua script
-        if self.lua.hook_exists(current_pc_before_tick, HookType::PostTick) {
-            self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
-            self.lua.execute_hook(current_pc_before_tick, HookType::PostTick);
-        }
-
-        // Let the caller know if VRAM is dirty and if we reached VBlank to cause a redraw
-        Ok(self.ready_to_redraw())
+        // Let the caller know if we reached VBlank to cause a redraw
+        Ok(frame_generated)
     }
 
     pub fn render(&mut self) -> (Color, Vec<Color>) {
-        self.vdp.render_background()
+        self.vdp.render()
     }
 
     pub(crate) fn load_rom(&mut self, rom: Passthrough, data: &[u8]) {
@@ -133,10 +132,6 @@ impl System {
 
     pub fn set_abort_on_io_operation_behavior(&mut self, value: bool) {
         self.abort_invalid_io_op = value;
-    }
-
-    fn ready_to_redraw(&self) -> bool {
-        self.vdp.vram_dirty && self.vdp.is_hblank()
     }
 }
 

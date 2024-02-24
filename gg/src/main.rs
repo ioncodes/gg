@@ -1,6 +1,6 @@
 mod emulator;
 
-use core::vdp::{INTERNAL_HEIGHT, INTERNAL_WIDTH};
+use core::vdp::{VISIBLE_HEIGHT, VISIBLE_WIDTH};
 use eframe::egui::{FontFamily, FontId, Style, TextStyle, ViewportBuilder, Visuals};
 use eframe::NativeOptions;
 use emulator::{Emulator, SCALE};
@@ -8,9 +8,9 @@ use emulator::{Emulator, SCALE};
 fn main() {
     let native_options = NativeOptions {
         viewport: ViewportBuilder::default()
-            .with_inner_size([(INTERNAL_WIDTH * SCALE) as f32, (INTERNAL_HEIGHT * SCALE) as f32])
+            .with_inner_size([(VISIBLE_WIDTH * SCALE) as f32, (VISIBLE_HEIGHT * SCALE) as f32])
             .with_resizable(false),
-        vsync: true,
+        vsync: false,
         ..Default::default()
     };
 

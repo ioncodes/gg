@@ -1152,6 +1152,7 @@ impl<'a> Disassembler<'a> {
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
                 4,
             ),
+            (Some(0xed), Some(0x4d), _, _) => Opcode::ReturnFromIrq(2),
             (Some(0xed), Some(0x4f), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg8(Reg8::R), false),
                 Operand::Register(Register::Reg8(Reg8::A), false),
@@ -1229,6 +1230,16 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 4,
             ),
+            (Some(0xed), Some(0x69), _, _) => Opcode::Out(
+                Operand::Register(Register::Reg8(Reg8::C), true),
+                Operand::Register(Register::Reg8(Reg8::L), false),
+                2,
+            ),
+            (Some(0xed), Some(0x6a), _, _) => Opcode::AddCarry(
+                Operand::Register(Register::Reg16(Reg16::HL), false),
+                Operand::Register(Register::Reg16(Reg16::HL), false),
+                2,
+            ),
             (Some(0xed), Some(0x6b), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
@@ -1247,6 +1258,11 @@ impl<'a> Disassembler<'a> {
             (Some(0xed), Some(0x79), _, _) => Opcode::Out(
                 Operand::Register(Register::Reg8(Reg8::C), true),
                 Operand::Register(Register::Reg8(Reg8::A), false),
+                2,
+            ),
+            (Some(0xed), Some(0x7a), _, _) => Opcode::AddCarry(
+                Operand::Register(Register::Reg16(Reg16::HL), false),
+                Operand::Register(Register::Reg16(Reg16::SP), false),
                 2,
             ),
             (Some(0xed), Some(0x7b), _, _) => Opcode::Load(
@@ -5310,6 +5326,7 @@ impl<'a> Disassembler<'a> {
             Opcode::InDecrementRepeat(length) => length,
             Opcode::OutDecrementRepeat(length) => length,
             Opcode::Negate(length) => length,
+            Opcode::ReturnFromIrq(length) => length,
             Opcode::Unknown(length) => length,
         }
     }

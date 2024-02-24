@@ -9,7 +9,7 @@ bitflags = "2.4.1"
 snafu = "0.7.5"
 log = "0.4.20"
 env_logger = "0.10.1"
-rlua = "0.19.7"
+mlua = { version = "0.9.1", features = ["lua54", "vendored"] }
 lazy_static = "1.4.0"
 num-traits = "0.2.18"
 

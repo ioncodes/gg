@@ -12,7 +12,7 @@ mod tests {
         // ignore all i/o port tests
 
         path.ends_with("76.json") || path.ends_with("27.json") || path.ends_with("db.json")
-        // !path.ends_with("dd 22.json")
+        // !path.ends_with("ed a3.json")
     }
 
     #[datatest::files("../external/jsmoo/misc/tests/GeneratedTests/z80/v1", {
@@ -43,6 +43,8 @@ mod tests {
             system.cpu.registers.e = initial.get("e").unwrap().as_u64().unwrap() as u8;
             system.cpu.registers.h = initial.get("h").unwrap().as_u64().unwrap() as u8;
             system.cpu.registers.l = initial.get("l").unwrap().as_u64().unwrap() as u8;
+            system.cpu.registers.i = initial.get("i").unwrap().as_u64().unwrap() as u8;
+            system.cpu.registers.r = initial.get("r").unwrap().as_u64().unwrap() as u8;
             system.cpu.registers.f = Flags::from_bits(initial.get("f").unwrap().as_u64().unwrap() as u8).unwrap();
             system
                 .cpu
