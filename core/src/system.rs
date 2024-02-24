@@ -75,12 +75,11 @@ impl System {
     }
 
     pub fn tick(&mut self) -> Result<bool, GgError> {
-        self.lua.refresh_cpu(&self.cpu);
+        self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
 
         // Execute Lua script
         let current_pc_before_tick = self.cpu.registers.pc;
         if self.lua.hook_exists(current_pc_before_tick, HookType::CpuExec) {
-            self.lua.create_tables(&self.vdp, &self.bus);
             self.lua.execute_hook(current_pc_before_tick, HookType::CpuExec);
         }
 

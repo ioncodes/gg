@@ -1,4 +1,5 @@
 FEATURES = {
+    "cpu"
     -- "vdp",
     -- "memory"
 }

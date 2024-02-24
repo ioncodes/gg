@@ -543,7 +543,7 @@ impl Vdp {
         }
 
         self.registers.address += 1;
-        self.registers.address %= 0x3f;
+        self.registers.address %= 0x40;
 
         // Force a rerender
         self.vram_dirty = true;
@@ -551,14 +551,13 @@ impl Vdp {
 
     fn vram_write(&mut self, value: u8) {
         if self.lua.hook_exists(self.registers.address, HookType::VramWrite) {
-            self.lua.refresh_vdp(&self);
             self.lua.execute_hook(self.registers.address, HookType::VramWrite);
         }
 
         self.vram.write(self.registers.address, value);
 
         self.registers.address += 1;
-        self.registers.address %= 0x3fff; // ensure we wrap around
+        self.registers.address %= 0x4000; // ensure we wrap around
 
         // Force a rerender
         self.vram_dirty = true;
