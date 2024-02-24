@@ -900,6 +900,29 @@ impl<'a> Handlers<'a> {
             }
             Opcode::SubtractCarry(
                 Operand::Register(Register::Reg8(dst_reg), false),
+                Operand::Immediate(Immediate::U8(src_imm), false),
+                _,
+            ) => {
+                let dst = self.cpu.get_register_u8(dst_reg);
+                let carry = if self.cpu.registers.f.contains(Flags::CARRY) { 1 } else { 0 };
+                let (result, carry) = self.sub_and_detect_carry(dst, src_imm, carry);
+                self.cpu.set_register_u8(dst_reg, result);
+
+                let hc = self.detect_half_carry_u8(src_imm, dst, result);
+                self.cpu.registers.f.set(Flags::CARRY, carry);
+                self.cpu.registers.f.set(Flags::HALF_CARRY, hc);
+                self.cpu.registers.f.set(Flags::SUBTRACT, true);
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu
+                    .registers
+                    .f
+                    .set(Flags::PARITY_OR_OVERFLOW, self.is_underflow(dst, src_imm, result));
+
+                Ok(())
+            }
+            Opcode::SubtractCarry(
+                Operand::Register(Register::Reg8(dst_reg), false),
                 Operand::Register(Register::Reg16(src_reg), true),
                 _,
             ) => {

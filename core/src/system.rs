@@ -109,7 +109,7 @@ impl System {
             }
             _ => (),
         };
-        self.vdp.tick(&mut self.cpu);
+        let frame_generated = self.vdp.tick(&mut self.cpu);
 
         // Execute post-tick Lua script
         if self.lua.hook_exists(current_pc_before_tick, HookType::PostTick) {
@@ -117,8 +117,8 @@ impl System {
             self.lua.execute_hook(current_pc_before_tick, HookType::PostTick);
         }
 
-        // Let the caller know if VRAM is dirty and if we reached VBlank to cause a redraw
-        Ok(self.ready_to_redraw())
+        // Let the caller know if we reached VBlank to cause a redraw
+        Ok(frame_generated)
     }
 
     pub fn render(&mut self) -> (Color, Vec<Color>) {
@@ -133,10 +133,6 @@ impl System {
 
     pub fn set_abort_on_io_operation_behavior(&mut self, value: bool) {
         self.abort_invalid_io_op = value;
-    }
-
-    fn ready_to_redraw(&self) -> bool {
-        self.vdp.vram_dirty && self.vdp.is_hblank()
     }
 }
 

@@ -68,10 +68,11 @@ pub struct Vdp {
     pub vram: Memory<u16>,
     pub cram: Memory<u16>,
     cram_latch: Option<u8>,
-    pub(crate) vram_dirty: bool,
     pub(crate) data_buffer: u8,
     io_mode: IoMode,
     mode: Mode,
+    status: u8,
+    vram_dirty: bool,
 }
 
 impl Vdp {
@@ -86,20 +87,27 @@ impl Vdp {
             vram: Memory::new(16 * 1024, 0x0000),
             cram: Memory::new(64, 0x0000),
             cram_latch: None,
-            vram_dirty: false,
             data_buffer: 0,
             io_mode: IoMode::None,
             mode,
+            status: 0,
+            vram_dirty: false,
         }
     }
 
-    pub(crate) fn tick(&mut self, cpu: &mut Cpu) {
+    pub(crate) fn tick(&mut self, cpu: &mut Cpu) -> bool {
         self.handle_counters();
 
         // todo: we should probably handle different types of interrupts here...
-        if self.v == 0 && self.h == 0 {
-            cpu.queue_irq();
+        if self.is_vblank() && self.is_hblank() {
+            self.status |= 0b1000_0000;
+
+            if self.registers.r1 & 0b0010_0000 > 0 {
+                cpu.queue_irq();
+            }
         }
+
+        self.v_2nd_loop && self.v > INTERNAL_HEIGHT as u8 && self.vram_dirty
     }
 
     pub(crate) fn is_vblank(&self) -> bool {
@@ -530,11 +538,11 @@ impl Vdp {
             }
         }
 
-        // Force a rerender
-        self.vram_dirty = true; // todo: lol
-
         self.registers.address += 1;
         self.registers.address %= 0x3f;
+
+        // Force a rerender
+        self.vram_dirty = true;
     }
 
     fn vram_write(&mut self, value: u8) {
@@ -547,7 +555,7 @@ impl Vdp {
         self.vram_dirty = true;
     }
 
-    fn status(&self) -> u8 {
+    fn status(&mut self) -> u8 {
         // The VBlank flag is set when a VBlank interrupt has just occurred.
         //   An interrupt handler can use this to tell the difference between VBlank interrupts and line interrupts.
         // The sprite overflow flag is set when sprite overflow has occurred.
@@ -555,10 +563,8 @@ impl Vdp {
         // The "fifth sprite" field contains undefined data unless the VDP is in a TMS9918a mode, and sprite overflow has occurred,
         //   in which case it contains the number of the first sprite that could not be displayed due to overflow.
 
-        let mut status = 0;
-        if self.is_vblank() {
-            status |= 0b1000_0000;
-        }
+        let status = self.status;
+        self.status &= 0b0111_1111; // clear VBlank flag
         status
     }
 }
