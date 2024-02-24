@@ -76,6 +76,8 @@ pub struct Vdp {
     status: u8,
     vram_dirty: bool,
     lua: Rc<LuaEngine>,
+    last_frame: Vec<Color>,
+    priority_list: Vec<usize>,
 }
 
 impl Vdp {
@@ -96,6 +98,8 @@ impl Vdp {
             status: 0,
             vram_dirty: false,
             lua,
+            last_frame: vec![(0, 0, 0, 0); INTERNAL_WIDTH * INTERNAL_HEIGHT],
+            priority_list: vec![],
         }
     }
 
@@ -122,19 +126,21 @@ impl Vdp {
         self.h == 0
     }
 
-    pub fn render(&mut self) -> (Color, Vec<Color>) {
+    pub fn render(&mut self) -> (Color, &Vec<Color>) {
         let background_color = self.read_palette_entry(0, 0);
 
-        let mut pixels = vec![(0, 0, 0, 0); INTERNAL_WIDTH * INTERNAL_HEIGHT];
-        let priority_list = self.render_background(&mut pixels);
-        self.render_sprites(&mut pixels, &priority_list);
+        // Using binary search makes it roughly 6x faster
+        self.priority_list.clear();
+        self.render_background();
+        self.priority_list.sort_unstable();
+        self.render_sprites();
 
         self.vram_dirty = false;
 
-        (background_color, pixels)
+        (background_color, &self.last_frame)
     }
 
-    pub fn render_sprites(&mut self, pixels: &mut Vec<Color>, priority_list: &Vec<usize>) {
+    pub fn render_sprites(&mut self) {
         let write_pattern_to_internal = |pattern: &Pattern, pixels: &mut Vec<Color>, x: u8, y: u8| {
             for p_y in 0..8 {
                 for p_x in 0..8 {
@@ -166,7 +172,7 @@ impl Vdp {
                     }
 
                     let idx = (y as usize * INTERNAL_WIDTH) + x as usize;
-                    if !priority_list.contains(&idx) {
+                    if self.priority_list.binary_search(&idx).is_err() {
                         pixels[idx] = color;
                     }
                 }
@@ -199,26 +205,25 @@ impl Vdp {
                 let pattern_addr = sprite_table_entry * 32;
                 let pattern = self.fetch_pattern(pattern_addr, false, 1);
 
-                write_pattern_to_internal(&pattern, pixels, x, y);
+                write_pattern_to_internal(&pattern, &mut self.last_frame, x, y);
             } else {
                 let sprite_table_entry = self.get_sprite_generator_entry(n as u16 & 0b1111_1110);
                 let sprite1_addr = sprite_table_entry * 32;
                 let sprite2_addr = (sprite_table_entry + 1) * 32;
 
                 let pattern = self.fetch_pattern(sprite1_addr, false, 1);
-                write_pattern_to_internal(&pattern, pixels, x, y);
+                write_pattern_to_internal(&pattern, &mut self.last_frame, x, y);
 
                 let pattern = self.fetch_pattern(sprite2_addr, false, 1);
-                write_pattern_to_internal(&pattern, pixels, x, y + 8);
+                write_pattern_to_internal(&pattern, &mut self.last_frame, x, y + 8);
             }
         }
     }
 
-    pub fn render_background(&mut self, pixels: &mut Vec<Color>) -> Vec<usize> {
+    pub fn render_background(&mut self) {
         let h_scroll = self.registers.r8 as usize;
         let v_scroll = self.registers.r9 as usize;
 
-        let mut priority_list = vec![];
         let background_color = self.read_palette_entry(0, 0);
 
         for row in 0..28 {
@@ -264,19 +269,17 @@ impl Vdp {
                     for x in 0..8 {
                         let color = pattern.get_pixel(x, y);
                         let idx = (screen_y + y as usize) * INTERNAL_WIDTH + (screen_x + x as usize);
-                        if idx < pixels.len() {
-                            pixels[idx] = color;
+                        if idx < self.last_frame.len() {
+                            self.last_frame[idx] = color;
 
                             if priority && color != background_color {
-                                priority_list.push(idx);
+                                self.priority_list.push(idx);
                             }
                         }
                     }
                 }
             }
         }
-
-        priority_list
     }
 
     fn fetch_pattern(&self, pattern_addr: u16, use_background: bool, palette_row: u8) -> Pattern {

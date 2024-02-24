@@ -122,7 +122,7 @@ impl System {
         Ok(frame_generated)
     }
 
-    pub fn render(&mut self) -> (Color, Vec<Color>) {
+    pub fn render(&mut self) -> (Color, &Vec<Color>) {
         self.vdp.render()
     }
 
