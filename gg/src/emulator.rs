@@ -72,7 +72,7 @@ impl eframe::App for Emulator {
             }
             self.stepping = false;
         } else if !self.paused && !self.stepping {
-            if self.run(100000) {
+            if self.run(50000) {
                 self.render();
             }
         }

@@ -19,6 +19,7 @@ pub struct System {
     pub psg: Psg,
     lua: Rc<LuaEngine>,
     abort_invalid_io_op: bool,
+    master_clock: usize,
 }
 
 impl System {
@@ -38,6 +39,7 @@ impl System {
             psg: Psg::new(),
             lua,
             abort_invalid_io_op: true,
+            master_clock: 0,
         }
     }
 
@@ -86,37 +88,45 @@ impl System {
         }
 
         // Process tick for all components
-        let result = self.cpu.tick(&mut self.bus, &mut self.vdp, &mut self.psg);
-        match result {
-            Err(GgError::IoRequestNotFulfilled) => (),
-            Err(GgError::JumpNotTaken) => (),
-            Err(GgError::CpuHalted) => (),
-            Err(GgError::RepeatNotFulfilled) => (),
-            Err(GgError::IoControllerInvalidPort) | Err(GgError::VdpInvalidIoMode) => {
-                if self.abort_invalid_io_op {
-                    error!("Identified I/O error at address: {:04x}", self.cpu.registers.pc);
+        if self.master_clock % 3 == 0 {
+            let result = self.cpu.tick(&mut self.bus, &mut self.vdp, &mut self.psg);
+            match result {
+                Err(GgError::IoRequestNotFulfilled) => (),
+                Err(GgError::JumpNotTaken) => (),
+                Err(GgError::CpuHalted) => (),
+                Err(GgError::RepeatNotFulfilled) => (),
+                Err(GgError::IoControllerInvalidPort) | Err(GgError::VdpInvalidIoMode) => {
+                    if self.abort_invalid_io_op {
+                        error!("Identified I/O error at address: {:04x}", self.cpu.registers.pc);
+                        if self.cpu.registers.pc < 0xc000 {
+                            error!(
+                                "Real address in ROM: {:08x}",
+                                self.bus.translate_address_to_real(self.cpu.registers.pc).unwrap()
+                            );
+                        }
+                        return Err(result.err().unwrap());
+                    }
+                }
+                Err(e) => {
+                    error!("Identified error at address: {:04x}", self.cpu.registers.pc);
                     if self.cpu.registers.pc < 0xc000 {
                         error!(
                             "Real address in ROM: {:08x}",
                             self.bus.translate_address_to_real(self.cpu.registers.pc).unwrap()
                         );
                     }
-                    return Err(result.err().unwrap());
+                    return Err(e);
                 }
-            }
-            Err(e) => {
-                error!("Identified error at address: {:04x}", self.cpu.registers.pc);
-                if self.cpu.registers.pc < 0xc000 {
-                    error!(
-                        "Real address in ROM: {:08x}",
-                        self.bus.translate_address_to_real(self.cpu.registers.pc).unwrap()
-                    );
-                }
-                return Err(e);
-            }
-            _ => (),
+                _ => (),
+            };
+        }
+        let frame_generated = if self.master_clock % 2 == 0 {
+            self.vdp.tick(&mut self.cpu)
+        } else {
+            false
         };
-        let frame_generated = self.vdp.tick(&mut self.cpu);
+
+        self.master_clock += 1;
 
         // Let the caller know if we reached VBlank to cause a redraw
         Ok(frame_generated)
