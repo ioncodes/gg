@@ -126,15 +126,15 @@ impl Vdp {
         let background_color = self.read_palette_entry(0, 0);
 
         let mut pixels = vec![(0, 0, 0, 0); INTERNAL_WIDTH * INTERNAL_HEIGHT];
-        self.render_background(&mut pixels);
-        self.render_sprites(&mut pixels);
+        let priority_list = self.render_background(&mut pixels);
+        self.render_sprites(&mut pixels, &priority_list);
 
         self.vram_dirty = false;
 
         (background_color, pixels)
     }
 
-    pub fn render_sprites(&mut self, pixels: &mut Vec<Color>) {
+    pub fn render_sprites(&mut self, pixels: &mut Vec<Color>, priority_list: &Vec<usize>) {
         let write_pattern_to_internal = |pattern: &Pattern, pixels: &mut Vec<Color>, x: u8, y: u8| {
             for p_y in 0..8 {
                 for p_x in 0..8 {
@@ -166,7 +166,9 @@ impl Vdp {
                     }
 
                     let idx = (y as usize * INTERNAL_WIDTH) + x as usize;
-                    pixels[idx] = color;
+                    if !priority_list.contains(&idx) {
+                        pixels[idx] = color;
+                    }
                 }
             }
         };
@@ -212,9 +214,12 @@ impl Vdp {
         }
     }
 
-    pub fn render_background(&mut self, pixels: &mut Vec<Color>) {
+    pub fn render_background(&mut self, pixels: &mut Vec<Color>) -> Vec<usize> {
         let h_scroll = self.registers.r8 as usize;
         let v_scroll = self.registers.r9 as usize;
+
+        let mut priority_list = vec![];
+        let background_color = self.read_palette_entry(0, 0);
 
         for row in 0..28 {
             for column in 0..32 {
@@ -228,6 +233,7 @@ impl Vdp {
                 let v_flip = (pattern_information & 0b0000_0100_0000_0000) > 0;
                 let h_flip = (pattern_information & 0b0000_0010_0000_0000) > 0;
                 let palette_row = if (pattern_information & 0b0000_1000_0000_0000) > 0 { 1 } else { 0 };
+                let priority = (pattern_information & 0b0001_0000_0000_0000) > 0;
 
                 let pattern_base_addr = pattern_information & 0b0000_0001_1111_1111;
                 let pattern_addr = pattern_base_addr * 32;
@@ -260,11 +266,17 @@ impl Vdp {
                         let idx = (screen_y + y as usize) * INTERNAL_WIDTH + (screen_x + x as usize);
                         if idx < pixels.len() {
                             pixels[idx] = color;
+
+                            if priority && color != background_color {
+                                priority_list.push(idx);
+                            }
                         }
                     }
                 }
             }
         }
+
+        priority_list
     }
 
     fn fetch_pattern(&self, pattern_addr: u16, use_background: bool, palette_row: u8) -> Pattern {
