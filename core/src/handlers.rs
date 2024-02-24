@@ -294,6 +294,22 @@ impl<'a> Handlers<'a> {
         }
     }
 
+    pub(crate) fn ini(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let c = self.cpu.get_register_u8(Reg8::C);
+        let hl = self.cpu.get_register_u16(Reg16::HL);
+        let imm = self.cpu.read_io(c, self.vdp, self.bus, self.psg)?;
+        self.bus.write(hl, imm)?;
+
+        self.cpu.set_register_u16(Reg16::HL, hl.wrapping_add(1));
+        let b = self.cpu.get_register_u8(Reg8::B);
+        self.cpu.set_register_u8(Reg8::B, b.wrapping_sub(1));
+
+        self.cpu.registers.f.set(Flags::ZERO, b.wrapping_sub(1) == 0);
+        self.cpu.registers.f.set(Flags::SUBTRACT, true);
+
+        Ok(())
+    }
+
     pub(crate) fn compare(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         let (lhs, rhs, result) = match instruction.opcode {
             Opcode::Compare(Operand::Immediate(Immediate::U8(imm), false), _) => {

@@ -231,6 +231,7 @@ impl Cpu {
             Opcode::Negate(_) => handlers.negate(&instruction),
             Opcode::LoadIncrement(_) => handlers.load_increment(&instruction),
             Opcode::CompareIncrementRepeat(_) => handlers.compare_increment_repeat(&instruction),
+            Opcode::InIncrement(_) => handlers.ini(&instruction),
             Opcode::NoOperation(_) => Ok(()),
             _ => {
                 error!("Handler missing for instruction: {}\n{}", instruction.opcode, self);
