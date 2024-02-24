@@ -135,8 +135,6 @@ impl Vdp {
     }
 
     pub fn render_sprites(&mut self, pixels: &mut Vec<Color>) {
-        debug!("Rendering sprites");
-
         let write_pattern_to_internal = |pattern: &Pattern, pixels: &mut Vec<Color>, x: u8, y: u8| {
             for p_y in 0..8 {
                 for p_x in 0..8 {
@@ -215,8 +213,6 @@ impl Vdp {
     }
 
     pub fn render_background(&mut self, pixels: &mut Vec<Color>) {
-        debug!("Rendering background");
-
         let h_scroll = self.registers.r8 as usize;
         let v_scroll = self.registers.r9 as usize;
 

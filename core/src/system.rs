@@ -25,13 +25,15 @@ impl System {
     pub fn new(lua_script: Option<String>, emulate_sms: bool) -> System {
         // todo: figure out mapper
         let mapper = SegaMapper::new(0);
+        let mut bus = Bus::new(mapper);
         let mode = if emulate_sms { Mode::SegaMasterSystem } else { Mode::GameGear };
-
         let lua = Rc::new(LuaEngine::new(lua_script));
+
+        bus.powerup_reset_banks().unwrap();
 
         System {
             cpu: Cpu::new(),
-            bus: Bus::new(mapper),
+            bus,
             vdp: Vdp::new(mode, Rc::clone(&lua)),
             psg: Psg::new(),
             lua,

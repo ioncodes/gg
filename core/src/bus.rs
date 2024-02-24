@@ -207,23 +207,16 @@ impl Bus {
 
         (match bank {
             BankSelect::Bank0 => self.read(MEMORY_REGISTER_CR_BANK_SELECT_0).unwrap(),
-            BankSelect::Bank1 => {
-                let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_1).unwrap();
-                if bank == 0 {
-                    1
-                } else {
-                    bank
-                }
-            }
-            BankSelect::Bank2 => {
-                let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2).unwrap();
-                if bank == 0 {
-                    2
-                } else {
-                    bank
-                }
-            }
+            BankSelect::Bank1 => self.read(MEMORY_REGISTER_CR_BANK_SELECT_1).unwrap(),
+            BankSelect::Bank2 => self.read(MEMORY_REGISTER_CR_BANK_SELECT_2).unwrap(),
         }) as usize
+    }
+
+    pub(crate) fn powerup_reset_banks(&mut self) -> Result<(), GgError> {
+        self.write(MEMORY_REGISTER_CR_BANK_SELECT_0, 0)?;
+        self.write(MEMORY_REGISTER_CR_BANK_SELECT_1, 1)?;
+        self.write(MEMORY_REGISTER_CR_BANK_SELECT_2, 2)?;
+        Ok(())
     }
 
     pub fn set_rom_write_protection(&mut self, value: bool) {
