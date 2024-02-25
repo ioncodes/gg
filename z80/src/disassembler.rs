@@ -3861,7 +3861,7 @@ impl<'a> Disassembler<'a> {
             (Some(0xfd), Some(0xe1), _, _) => Opcode::Pop(Register::Reg16(Reg16::IY(None)), 2),
             (Some(0xfd), Some(0xe3), _, _) => Opcode::Exchange(
                 Operand::Register(Register::Reg16(Reg16::SP), true),
-                Operand::Register(Register::Reg16(Reg16::IY(None)), true),
+                Operand::Register(Register::Reg16(Reg16::IY(None)), false),
                 2,
             ),
             (Some(0xfd), Some(0xe5), _, _) => Opcode::Push(Register::Reg16(Reg16::IY(None)), 2),

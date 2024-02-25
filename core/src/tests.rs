@@ -77,9 +77,16 @@ mod tests {
             }
 
             let decoded = system.decode_instr_at_pc().unwrap().opcode;
-            match system.tick() {
-                Ok(_) => {}
-                Err(e) => panic!("{}", e),
+
+            loop {
+                match system.tick() {
+                    Ok(state) => {
+                        if !state.repeat_not_fulfilled {
+                            break;
+                        }
+                    }
+                    Err(e) => panic!("{}", e),
+                }
             }
 
             assert_eq!(

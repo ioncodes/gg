@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use core::bus::{MEMORY_REGISTER_CR_BANK_SELECT_0, MEMORY_REGISTER_CR_BANK_SELECT_1, MEMORY_REGISTER_CR_BANK_SELECT_2};
-use core::system::System;
+use core::system::{System, SystemState};
 use core::vdp::{Color, INTERNAL_HEIGHT, INTERNAL_WIDTH, OFFSET_X, OFFSET_Y, VISIBLE_HEIGHT, VISIBLE_WIDTH};
 use eframe::egui::scroll_area::ScrollBarVisibility;
 use eframe::egui::{
@@ -424,11 +424,11 @@ impl Emulator {
             }
 
             match self.system.tick() {
-                Ok(true) => {
+                Ok(SystemState { frame_ready: true, .. }) => {
                     new_frame_available = true;
                     break;
                 }
-                Ok(false) => (),
+                Ok(SystemState { frame_ready: false, .. }) => (),
                 Err(e) => {
                     error!("{}", e);
                     self.paused = true;

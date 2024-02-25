@@ -12,6 +12,11 @@ use crate::mapper::SegaMapper;
 use crate::psg::Psg;
 use crate::vdp::{Color, Mode, Vdp};
 
+pub struct SystemState {
+    pub frame_ready: bool,
+    pub repeat_not_fulfilled: bool,
+}
+
 pub struct System {
     pub cpu: Cpu,
     pub bus: Bus,
@@ -80,7 +85,7 @@ impl System {
         self.cpu.decode_at_pc(&mut self.bus)
     }
 
-    pub fn tick(&mut self) -> Result<bool, GgError> {
+    pub fn tick(&mut self) -> Result<SystemState, GgError> {
         self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
 
         // Execute Lua script
@@ -94,13 +99,15 @@ impl System {
         }
 
         // Process tick for all components
+        let mut repeat_not_fulfilled = false;
+
         if self.clocks < 262 {
             let result = self.cpu.tick(&mut self.bus, &mut self.vdp, &mut self.psg);
             match result {
                 Err(GgError::IoRequestNotFulfilled) => (),
                 Err(GgError::JumpNotTaken) => (),
                 Err(GgError::CpuHalted) => (),
-                Err(GgError::RepeatNotFulfilled) => (),
+                Err(GgError::RepeatNotFulfilled) => repeat_not_fulfilled = true,
                 Err(GgError::IoControllerInvalidPort) | Err(GgError::VdpInvalidIoMode) => {
                     if self.abort_invalid_io_op {
                         error!("Identified I/O error at address: {:04x}", self.cpu.registers.pc);
@@ -134,7 +141,10 @@ impl System {
         self.master_clock += 1;
 
         // Let the caller know if we reached VBlank to cause a redraw
-        Ok(frame_generated)
+        Ok(SystemState {
+            frame_ready: frame_generated,
+            repeat_not_fulfilled,
+        })
     }
 
     pub fn render(&mut self) -> (Color, &Vec<Color>) {

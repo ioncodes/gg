@@ -483,7 +483,6 @@ impl<'a> Handlers<'a> {
             .f
             .set(Flags::HALF_CARRY, self.detect_half_carry_u8(a, src, result));
         self.cpu.registers.f.set(Flags::SUBTRACT, true);
-        self.cpu.registers.f.set(Flags::CARRY, result > a);
         self.cpu.registers.f.set(Flags::ZERO, result == 0);
         self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
         self.cpu
@@ -513,7 +512,6 @@ impl<'a> Handlers<'a> {
             .f
             .set(Flags::HALF_CARRY, self.detect_half_carry_u8(a, src, result));
         self.cpu.registers.f.set(Flags::SUBTRACT, true);
-        self.cpu.registers.f.set(Flags::CARRY, result > a);
         self.cpu.registers.f.set(Flags::ZERO, result == 0);
         self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
         self.cpu
@@ -547,7 +545,6 @@ impl<'a> Handlers<'a> {
             .f
             .set(Flags::HALF_CARRY, self.detect_half_carry_u8(a, src, result));
         self.cpu.registers.f.set(Flags::SUBTRACT, true);
-        self.cpu.registers.f.set(Flags::CARRY, result > a);
         self.cpu.registers.f.set(Flags::ZERO, result == 0);
         self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
         self.cpu
