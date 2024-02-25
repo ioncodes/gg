@@ -234,6 +234,8 @@ impl Cpu {
             Opcode::Negate(_) => handlers.negate(&instruction),
             Opcode::LoadIncrement(_) => handlers.load_increment(&instruction),
             Opcode::CompareIncrementRepeat(_) => handlers.compare_increment_repeat(&instruction),
+            Opcode::CompareDecrementRepeat(_) => handlers.compare_decrement_repeat(&instruction),
+            Opcode::CompareIncrement(_) => handlers.compare_increment(&instruction),
             Opcode::InIncrement(_) => handlers.ini(&instruction),
             Opcode::RotateLeftDigit(_) => handlers.rotate_left_digit(&instruction),
             Opcode::RotateRightDigit(_) => handlers.rotate_right_digit(&instruction),

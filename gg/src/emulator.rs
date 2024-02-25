@@ -1,9 +1,5 @@
 use std::collections::VecDeque;
-use std::fs::File;
-use std::io::{self, Read};
-use std::{env, panic};
 
-use clap::Parser;
 use core::bus::{MEMORY_REGISTER_CR_BANK_SELECT_0, MEMORY_REGISTER_CR_BANK_SELECT_1, MEMORY_REGISTER_CR_BANK_SELECT_2};
 use core::system::System;
 use core::vdp::{Color, INTERNAL_HEIGHT, INTERNAL_WIDTH, OFFSET_X, OFFSET_Y, VISIBLE_HEIGHT, VISIBLE_WIDTH};
@@ -13,34 +9,13 @@ use eframe::egui::{
     Window,
 };
 use eframe::CreationContext;
-use env_logger::{Builder, Target};
-use log::{error, info, Level};
+use log::error;
 use z80::disassembler::Disassembler;
 use z80::instruction::{Instruction, Opcode};
-use zip::ZipArchive;
+
+use crate::EmulatorSettings;
 
 pub(crate) const SCALE: usize = 8;
-
-#[derive(Parser, Debug)]
-struct Args {
-    #[arg(long)]
-    bios: String,
-
-    #[arg(long)]
-    rom: String,
-
-    #[arg(long)]
-    lua: Option<String>,
-
-    #[arg(long, default_value_t = false)]
-    cpu_test: bool,
-
-    #[arg(long, default_value_t = String::from("info"))]
-    log_level: String,
-
-    #[arg(long, default_value_t = false)]
-    log_to_file: bool,
-}
 
 #[derive(PartialEq, Debug)]
 enum MemoryView {
@@ -96,68 +71,16 @@ impl eframe::App for Emulator {
 }
 
 impl Emulator {
-    pub(crate) fn new(cc: &CreationContext) -> Emulator {
-        let args = Args::parse();
-
-        match args.log_level {
-            level if level == "trace" => Emulator::setup_logging(true, false, args.log_to_file),
-            level if level == "debug" => Emulator::setup_logging(false, true, args.log_to_file),
-            _ => Emulator::setup_logging(false, false, args.log_to_file),
-        }
-
-        let (is_sms, cartridge) = if args.cpu_test {
-            (true, Vec::from(include_bytes!("../../external/test_roms/zexdoc.sms")))
-        } else {
-            let (mut file, path) = if args.rom.ends_with(".zip") {
-                let file = File::open(&args.rom).unwrap();
-                let mut archive = ZipArchive::new(file).unwrap();
-                let mut rom = archive.by_index(0).unwrap();
-
-                let filepath = match rom.enclosed_name() {
-                    Some(name) => name.to_owned(),
-                    None => panic!("No file found in zip archive"),
-                };
-                let tempfolder = env::temp_dir();
-                let filepath = tempfolder.join(&filepath);
-
-                let filename = filepath.to_str().unwrap().to_owned();
-                info!("Unpacking {} to {}", args.rom, &filename);
-
-                let mut unpacked_file = File::create(&filepath).unwrap();
-                io::copy(&mut rom, &mut unpacked_file).unwrap();
-                (File::open(filepath).unwrap(), filename)
-            } else {
-                (File::open(&args.rom).unwrap(), args.rom.clone())
-            };
-
-            let mut buffer: Vec<u8> = Vec::new();
-            let _ = file.read_to_end(&mut buffer).unwrap();
-            let emulate_sms = path.ends_with(".sms") || args.rom.contains("[S]");
-            (emulate_sms, buffer)
-        };
-
-        let lua = if let Some(lua) = args.lua {
-            let mut file = File::open(lua).unwrap();
-            let mut script = String::new();
-            let _ = file.read_to_string(&mut script).unwrap();
-            Some(script)
-        } else {
-            None
-        };
-        let mut file = File::open(&args.bios).unwrap();
-        let mut bios: Vec<u8> = Vec::new();
-        let _ = file.read_to_end(&mut bios).unwrap();
-
-        let mut system = System::new(lua, is_sms);
+    pub(crate) fn new(cc: &CreationContext, emulator_settings: EmulatorSettings) -> Emulator {
+        let mut system = System::new(emulator_settings.lua, emulator_settings.emulate_sms);
         system.set_abort_on_io_operation_behavior(false); // Let's only log invalid ports
-        system.bus.set_rom_write_protection(true); // Pac-Man writes to ROM for some reason
 
-        if args.cpu_test {
-            system.load_cartridge(cartridge.as_ref());
+        if emulator_settings.cpu_test {
+            system.load_cartridge(emulator_settings.cartridge.as_ref());
             system.disable_bios();
         } else {
-            system.load_bios(&bios);
-            system.load_cartridge(cartridge.as_ref());
+            system.load_bios(&emulator_settings.bios);
+            system.load_cartridge(emulator_settings.cartridge.as_ref());
         }
 
         let internal_texture = cc.egui_ctx.load_texture(
@@ -566,30 +489,5 @@ impl Emulator {
         self.visible_texture.set(image, TextureOptions::NEAREST);
 
         self.background_color = background_color;
-    }
-
-    fn setup_logging(enable_trace: bool, enable_debug: bool, enable_log_to_file: bool) {
-        let mut default_log_level = Level::Info.to_level_filter();
-
-        let mut target = Target::Stderr;
-
-        if enable_trace {
-            default_log_level = Level::Trace.to_level_filter();
-        }
-
-        if enable_debug {
-            default_log_level = Level::Debug.to_level_filter();
-        }
-
-        if enable_log_to_file {
-            target = Target::Pipe(Box::new(File::create("trace.log").expect("Can't create file")));
-        }
-
-        Builder::new()
-            .filter(Some("core"), default_log_level)
-            .filter(Some("gg"), default_log_level)
-            .target(target)
-            .format_timestamp(None)
-            .init();
     }
 }

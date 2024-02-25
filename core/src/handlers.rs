@@ -464,6 +464,38 @@ impl<'a> Handlers<'a> {
         }
     }
 
+    pub(crate) fn compare_increment(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let src = {
+            let hl = self.cpu.get_register_u16(Reg16::HL);
+            self.bus.read(hl)?
+        };
+        let a = self.cpu.get_register_u8(Reg8::A);
+        let result = a.wrapping_sub(src);
+
+        self.cpu.set_register_u8(Reg8::A, result);
+
+        let hl = self.cpu.get_register_u16(Reg16::HL);
+        self.cpu.set_register_u16(Reg16::HL, hl.wrapping_add(1));
+
+        let bc = self.cpu.get_register_u16(Reg16::BC);
+        self.cpu.set_register_u16(Reg16::BC, bc.wrapping_sub(1));
+
+        self.cpu
+            .registers
+            .f
+            .set(Flags::HALF_CARRY, self.detect_half_carry_u8(a, src, result));
+        self.cpu.registers.f.set(Flags::SUBTRACT, true);
+        self.cpu.registers.f.set(Flags::CARRY, result > a);
+        self.cpu.registers.f.set(Flags::ZERO, result == 0);
+        self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+        self.cpu
+            .registers
+            .f
+            .set(Flags::PARITY_OR_OVERFLOW, self.cpu.get_register_u16(Reg16::BC) != 0);
+
+        Ok(())
+    }
+
     pub(crate) fn compare_increment_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         let src = {
             let hl = self.cpu.get_register_u16(Reg16::HL);
@@ -476,6 +508,42 @@ impl<'a> Handlers<'a> {
 
         let hl = self.cpu.get_register_u16(Reg16::HL);
         self.cpu.set_register_u16(Reg16::HL, hl.wrapping_add(1));
+
+        let bc = self.cpu.get_register_u16(Reg16::BC);
+        self.cpu.set_register_u16(Reg16::BC, bc.wrapping_sub(1));
+
+        self.cpu
+            .registers
+            .f
+            .set(Flags::HALF_CARRY, self.detect_half_carry_u8(a, src, result));
+        self.cpu.registers.f.set(Flags::SUBTRACT, true);
+        self.cpu.registers.f.set(Flags::CARRY, result > a);
+        self.cpu.registers.f.set(Flags::ZERO, result == 0);
+        self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+        self.cpu
+            .registers
+            .f
+            .set(Flags::PARITY_OR_OVERFLOW, self.cpu.get_register_u16(Reg16::BC) != 0);
+
+        if self.cpu.get_register_u16(Reg16::BC) == 0 && self.cpu.registers.f.contains(Flags::ZERO) {
+            Ok(())
+        } else {
+            Err(GgError::RepeatNotFulfilled)
+        }
+    }
+
+    pub(crate) fn compare_decrement_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let src = {
+            let hl = self.cpu.get_register_u16(Reg16::HL);
+            self.bus.read(hl)?
+        };
+        let a = self.cpu.get_register_u8(Reg8::A);
+        let result = a.wrapping_sub(src);
+
+        self.cpu.set_register_u8(Reg8::A, result);
+
+        let hl = self.cpu.get_register_u16(Reg16::HL);
+        self.cpu.set_register_u16(Reg16::HL, hl.wrapping_sub(1));
 
         let bc = self.cpu.get_register_u16(Reg16::BC);
         self.cpu.set_register_u16(Reg16::BC, bc.wrapping_sub(1));

@@ -1,3 +1,5 @@
+use log::warn;
+
 use crate::error::GgError;
 use crate::io::Controller;
 use crate::joystick::{self, Joystick, JoystickPort};
@@ -24,6 +26,13 @@ enum BankSelect {
     Bank2,
 }
 
+#[derive(PartialEq)]
+pub enum RomWriteProtection {
+    Abort,
+    Warn,
+    Allow,
+}
+
 pub struct Bus {
     pub rom: Box<dyn Mapper>,       // 0x0000 - 0xbfff
     pub ram: Memory<u16>,           // 0xc000 - 0xffff
@@ -34,8 +43,8 @@ pub struct Bus {
     pub joysticks: [Joystick; 2],
     joysticks_enabled: bool,
     pub sdsc_console: DebugConsole,
-    rom_write_protection: bool,  // Useful for unit tests that are not SMS/GG specific
-    disable_bank_behavior: bool, // Useful for unit tests that are not SMS/GG specific
+    rom_write_protection: RomWriteProtection, // Useful for unit tests that are not SMS/GG specific
+    disable_bank_behavior: bool,              // Useful for unit tests that are not SMS/GG specific
 }
 
 impl Bus {
@@ -50,7 +59,7 @@ impl Bus {
             joysticks: [Joystick::new(JoystickPort::Player1), Joystick::new(JoystickPort::Player2)],
             joysticks_enabled: true,
             sdsc_console: DebugConsole::new(),
-            rom_write_protection: true,
+            rom_write_protection: RomWriteProtection::Warn,
             disable_bank_behavior: false,
         }
     }
@@ -97,29 +106,41 @@ impl Bus {
     #[allow(unused_comparisons)]
     pub fn write(&mut self, address: u16, value: u8) -> Result<(), GgError> {
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
-            if self.rom_write_protection {
+            if self.rom_write_protection == RomWriteProtection::Abort {
                 return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
+            } else if self.rom_write_protection == RomWriteProtection::Warn {
+                warn!("Ignored write to ROM at address {:04x}", address);
+            } else {
+                self.bios_rom.write(address, value);
             }
 
-            return Ok(self.bios_rom.write(address, value));
+            return Ok(());
         }
 
         if address >= 0x0000 && address < 0x4000 {
-            if self.rom_write_protection {
+            if self.rom_write_protection == RomWriteProtection::Abort {
                 return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
+            } else if self.rom_write_protection == RomWriteProtection::Warn {
+                warn!("Ignored write to ROM at address {:04x}", address);
+            } else {
+                let bank = if address < 0x400 { 0 } else { self.fetch_bank(BankSelect::Bank0) };
+                self.rom.write_to_bank(bank, address, value);
             }
 
-            let bank = if address < 0x400 { 0 } else { self.fetch_bank(BankSelect::Bank0) };
-            return Ok(self.rom.write_to_bank(bank, address, value));
+            return Ok(());
         }
 
         if address >= 0x4000 && address < 0x8000 {
-            if self.rom_write_protection {
+            if self.rom_write_protection == RomWriteProtection::Abort {
                 return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
+            } else if self.rom_write_protection == RomWriteProtection::Warn {
+                warn!("Ignored write to ROM at address {:04x}", address);
+            } else {
+                let bank = self.fetch_bank(BankSelect::Bank1);
+                self.rom.write_to_bank(bank, address - 0x4000, value);
             }
 
-            let bank = self.fetch_bank(BankSelect::Bank1);
-            return Ok(self.rom.write_to_bank(bank, address - 0x4000, value));
+            return Ok(());
         }
 
         if address >= 0x8000 && address < 0xc000 {
@@ -127,12 +148,16 @@ impl Bus {
                 return Ok(self.sram.write(address - 0x8000, value));
             }
 
-            if self.rom_write_protection {
+            if self.rom_write_protection == RomWriteProtection::Abort {
                 return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
+            } else if self.rom_write_protection == RomWriteProtection::Warn {
+                warn!("Ignored write to ROM at address {:04x}", address);
+            } else {
+                let bank = self.fetch_bank(BankSelect::Bank2);
+                self.rom.write_to_bank(bank, address - 0x8000, value);
             }
 
-            let bank = self.fetch_bank(BankSelect::Bank2);
-            return Ok(self.rom.write_to_bank(bank, address - 0x8000, value));
+            return Ok(());
         }
 
         if address >= 0xc000 && address <= 0xffff {
@@ -219,7 +244,7 @@ impl Bus {
         Ok(())
     }
 
-    pub fn set_rom_write_protection(&mut self, value: bool) {
+    pub fn set_rom_write_protection(&mut self, value: RomWriteProtection) {
         self.rom_write_protection = value;
     }
 

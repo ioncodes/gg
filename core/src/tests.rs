@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::bus::Passthrough;
+    use crate::bus::{Passthrough, RomWriteProtection};
     use crate::cpu::Flags;
     use crate::system::System;
     use serde_json::Value;
@@ -29,7 +29,7 @@ mod tests {
             system.disable_bios();
             system.set_abort_on_io_operation_behavior(false);
             system.bus.rom.resize(0xffff);
-            system.bus.set_rom_write_protection(false);
+            system.bus.set_rom_write_protection(RomWriteProtection::Allow);
             system.bus.disable_bank_behavior(true);
 
             system.cpu.registers.a = initial.get("a").unwrap().as_u64().unwrap() as u8;
