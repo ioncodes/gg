@@ -1136,10 +1136,12 @@ impl<'a> Handlers<'a> {
                 let a = self.cpu.get_register_u8(Reg8::A);
                 let hl = self.cpu.get_register_u16(Reg16::HL);
                 let value = self.bus.read(hl)?;
-                let result = (a & 0b1111_0000) | (value & 0b0000_1111);
-                self.cpu.set_register_u8(Reg8::A, result);
-                let result = (value >> 4) | ((a & 0b1111_0000) << 4);
+
+                let result = (a << 4) | (value >> 4);
                 self.bus.write(hl, result)?;
+
+                let result = (value & 0b0000_1111) | (a & 0b1111_0000);
+                self.cpu.set_register_u8(Reg8::A, result);
 
                 self.cpu.registers.f.set(Flags::SUBTRACT, false);
                 self.cpu.registers.f.set(Flags::HALF_CARRY, false);
