@@ -180,6 +180,7 @@ impl Cpu {
             Opcode::Return(_, _) => handlers.return_(&instruction),
             Opcode::ReturnFromIrq(_) => handlers.return_from_irq(&instruction),
             Opcode::OutIncrementRepeat(_) => handlers.out_increment_repeat(&instruction),
+            Opcode::OutDecrementRepeat(_) => handlers.out_decrement_repeat(&instruction),
             Opcode::Or(_, _) => handlers.or(&instruction),
             Opcode::Push(_, _) => handlers.push(&instruction),
             Opcode::Pop(_, _) => handlers.pop(&instruction),

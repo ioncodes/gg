@@ -796,6 +796,7 @@ impl<'a> Disassembler<'a> {
             (Some(0xe5), _, _, _) => Opcode::Push(Register::Reg16(Reg16::HL), 1),
             (Some(0xe6), _, _, _) => Opcode::And(Operand::Immediate(Immediate::U8(self.data[offset + 1]), false), 2),
             (Some(0xe7), _, _, _) => Opcode::Restart(Immediate::U8(0x20), 1),
+            (Some(0xe8), _, _, _) => Opcode::Return(Condition::ParityOrOverflow, 1),
             (Some(0xe9), _, _, _) => Opcode::Jump(Condition::None, Operand::Register(Register::Reg16(Reg16::HL), true), 1),
             (Some(0xea), _, _, _) => Opcode::Jump(
                 Condition::ParityOrOverflow,

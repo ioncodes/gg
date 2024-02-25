@@ -88,7 +88,7 @@ impl System {
         }
 
         // Process tick for all components
-        if self.master_clock % 3 == 0 {
+        if self.master_clock % 1 == 0 {
             let result = self.cpu.tick(&mut self.bus, &mut self.vdp, &mut self.psg);
             match result {
                 Err(GgError::IoRequestNotFulfilled) => (),
@@ -120,13 +120,18 @@ impl System {
                 _ => (),
             };
         }
-        let frame_generated = if self.master_clock % 2 == 0 {
+
+        let frame_generated = if self.master_clock % 1 == 0 {
             self.vdp.tick(&mut self.cpu)
         } else {
             false
         };
 
-        self.master_clock += 1;
+        if self.master_clock % 8 == 0 {
+            self.psg.tick();
+        }
+
+        self.master_clock = self.master_clock.wrapping_add(1);
 
         // Let the caller know if we reached VBlank to cause a redraw
         Ok(frame_generated)

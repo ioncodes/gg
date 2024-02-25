@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::fs::File;
-use std::io::Read;
+use std::io::{self, Read};
+use std::{env, panic};
 
 use clap::Parser;
 use core::bus::{MEMORY_REGISTER_CR_BANK_SELECT_0, MEMORY_REGISTER_CR_BANK_SELECT_1, MEMORY_REGISTER_CR_BANK_SELECT_2};
@@ -13,9 +14,10 @@ use eframe::egui::{
 };
 use eframe::CreationContext;
 use env_logger::{Builder, Target};
-use log::{error, Level};
+use log::{error, info, Level};
 use z80::disassembler::Disassembler;
 use z80::instruction::{Instruction, Opcode};
+use zip::ZipArchive;
 
 pub(crate) const SCALE: usize = 8;
 
@@ -106,10 +108,32 @@ impl Emulator {
         let (is_sms, cartridge) = if args.cpu_test {
             (true, Vec::from(include_bytes!("../../external/test_roms/zexdoc.sms")))
         } else {
-            let mut file = File::open(&args.rom).unwrap();
+            let (mut file, path) = if args.rom.ends_with(".zip") {
+                let file = File::open(&args.rom).unwrap();
+                let mut archive = ZipArchive::new(file).unwrap();
+                let mut rom = archive.by_index(0).unwrap();
+
+                let filepath = match rom.enclosed_name() {
+                    Some(name) => name.to_owned(),
+                    None => panic!("No file found in zip archive"),
+                };
+                let tempfolder = env::temp_dir();
+                let filepath = tempfolder.join(&filepath);
+
+                let filename = filepath.to_str().unwrap().to_owned();
+                info!("Unpacking {} to {}", args.rom, &filename);
+
+                let mut unpacked_file = File::create(&filepath).unwrap();
+                io::copy(&mut rom, &mut unpacked_file).unwrap();
+                (File::open(filepath).unwrap(), filename)
+            } else {
+                (File::open(&args.rom).unwrap(), args.rom.clone())
+            };
+
             let mut buffer: Vec<u8> = Vec::new();
             let _ = file.read_to_end(&mut buffer).unwrap();
-            (false, buffer)
+            let emulate_sms = path.ends_with(".sms") || args.rom.contains("[S]");
+            (emulate_sms, buffer)
         };
 
         let lua = if let Some(lua) = args.lua {

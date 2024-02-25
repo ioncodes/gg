@@ -13,6 +13,8 @@ struct Latch {
 struct Channel {
     volume: u8,
     tone_or_noise: u16,
+    output: bool,
+    counter: u16,
 }
 
 pub struct Psg {
@@ -26,8 +28,20 @@ impl Psg {
             channels: [Channel {
                 volume: 0,
                 tone_or_noise: 0,
+                output: false,
+                counter: 0,
             }; 4],
             latch: None,
+        }
+    }
+
+    pub(crate) fn tick(&mut self) {
+        for channel in self.channels.iter_mut() {
+            if channel.counter == 0 {
+                let _frequency = 3579545.0 / (32 * channel.tone_or_noise) as f32;
+            } else {
+                channel.counter -= 1;
+            }
         }
     }
 }
@@ -54,6 +68,8 @@ impl Controller for Psg {
                     self.channels[latch.channel as usize].volume |= (data & 0b0000_0000_0000_1111) as u8;
                 } else {
                     self.channels[latch.channel as usize].tone_or_noise |= data & 0b0000_0000_0000_1111;
+                    self.channels[latch.channel as usize].counter = self.channels[latch.channel as usize].tone_or_noise;
+                    self.channels[latch.channel as usize].output = !self.channels[latch.channel as usize].output;
                 }
 
                 self.latch = Some(latch);
@@ -67,6 +83,8 @@ impl Controller for Psg {
                         self.channels[latch.channel as usize].volume = (data & 0b1111_1111) as u8;
                     } else {
                         self.channels[latch.channel as usize].tone_or_noise |= data;
+                        self.channels[latch.channel as usize].counter = self.channels[latch.channel as usize].tone_or_noise;
+                        self.channels[latch.channel as usize].output = !self.channels[latch.channel as usize].output;
                     }
 
                     self.latch = None;
