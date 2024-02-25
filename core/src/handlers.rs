@@ -1695,24 +1695,28 @@ impl<'a> Handlers<'a> {
     }
 
     pub(crate) fn decimal_adjust_accumulator(&mut self, instruction: &Instruction) -> Result<(), GgError> {
-        // Straight up stolen from: https://github.com/JDRobotter/rgg/blob/master/src/cpu/z80.rs#L1480
-
         let mut a = self.cpu.get_register_u8(Reg8::A);
-
-        if ((a & 0x0f) > 9) || self.cpu.registers.f.contains(Flags::HALF_CARRY) {
-            a += 0x06;
-        }
-
-        if ((a & 0xf0) > 0x90) || self.cpu.registers.f.contains(Flags::CARRY) {
-            a += 0x60;
+        if self.cpu.registers.f.contains(Flags::CARRY) || a > 0x99 {
+            let value = a.wrapping_add_signed(if self.cpu.registers.f.contains(Flags::SUBTRACT) {
+                -0x60
+            } else {
+                0x60
+            });
+            self.cpu.set_register_u8(Reg8::A, value);
             self.cpu.registers.f.set(Flags::CARRY, true);
         }
 
-        self.cpu.set_register_u8(Reg8::A, a);
+        a = self.cpu.get_register_u8(Reg8::A);
+        if self.cpu.registers.f.contains(Flags::HALF_CARRY) || ((a & 0x0f) > 0x09) {
+            let value = a.wrapping_add_signed(if self.cpu.registers.f.contains(Flags::SUBTRACT) { -6 } else { 6 });
+            self.cpu.set_register_u8(Reg8::A, value);
+        }
 
-        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(a));
-        self.cpu.registers.f.set(Flags::ZERO, a == 0);
-        self.cpu.registers.f.set(Flags::SIGN, a & 0b1000_0000 != 0);
+        let result = self.cpu.get_register_u8(Reg8::A);
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+        self.cpu.registers.f.set(Flags::ZERO, result == 0);
+        self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+        self.cpu.registers.f.set(Flags::HALF_CARRY, (result ^ a) & 0x10 > 0);
 
         Ok(())
     }

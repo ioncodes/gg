@@ -6,13 +6,9 @@ mod tests {
     use serde_json::Value;
     use z80::instruction::Reg16;
 
-    fn is_ignore(path: &std::path::Path) -> bool {
-        // we dont wanna test interrupts
-        // i also dont wanna bother with daa just now
-        // ignore all i/o port tests
-
-        path.ends_with("76.json") || path.ends_with("27.json") || path.ends_with("db.json")
-        // !path.ends_with("ed a3.json")
+    fn is_ignore(_path: &std::path::Path) -> bool {
+        // !_path.ends_with("27.json")
+        false
     }
 
     #[datatest::files("../external/jsmoo/misc/tests/GeneratedTests/z80/v1", {

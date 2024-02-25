@@ -262,9 +262,14 @@ impl Cpu {
             Opcode::ReturnFromNmi(_) => result.is_ok(), // todo: sure?
             Opcode::Restart(_, _) => result.is_ok(),
             // Do NOT increase PC if the repeat instruction's condition is not met
-            Opcode::LoadDecrementRepeat(_) => result.is_err(),
             Opcode::LoadIncrementRepeat(_) => result.is_err(),
+            Opcode::LoadDecrementRepeat(_) => result.is_err(),
             Opcode::OutIncrementRepeat(_) => result.is_err(),
+            Opcode::OutDecrementRepeat(_) => result.is_err(),
+            Opcode::CompareIncrementRepeat(_) => result.is_err(),
+            Opcode::CompareDecrementRepeat(_) => result.is_err(),
+            Opcode::InIncrementRepeat(_) => result.is_err(),
+            Opcode::InDecrementRepeat(_) => result.is_err(),
             _ => false,
         };
 
