@@ -143,7 +143,8 @@ impl Cpu {
             Err(msg) => return Err(GgError::DecoderError { msg }),
         };
 
-        if self.irq_available && self.registers.iff1 {
+        if self.irq_available {
+            // TODO: IFF1?
             debug!("IRQ available");
 
             self.trigger_irq(bus, &instruction)?;
