@@ -431,6 +431,7 @@ impl<'a> Handlers<'a> {
             Opcode::ReturnFromIrq(_) => {
                 let addr = self.cpu.pop_stack(self.bus)?;
                 self.cpu.set_register_u16(Reg16::PC, addr);
+                self.cpu.registers.iff1 = self.cpu.registers.iff2;
                 Ok(())
             }
             _ => Err(GgError::InvalidOpcodeImplementation {

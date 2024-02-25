@@ -143,11 +143,13 @@ impl Cpu {
             Err(msg) => return Err(GgError::DecoderError { msg }),
         };
 
-        if self.irq_available {
+        if self.irq_available && self.registers.iff1 {
             debug!("IRQ available");
 
             self.trigger_irq(bus, &instruction)?;
             self.irq_available = false;
+            self.registers.iff1 = false;
+            self.registers.iff2 = false;
 
             instruction = match self.decode_at_pc(bus) {
                 Ok(instruction) => instruction,
