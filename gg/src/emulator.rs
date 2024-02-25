@@ -10,6 +10,7 @@ use eframe::egui::{
 };
 use eframe::CreationContext;
 use log::error;
+use std::time::{Duration, Instant};
 use z80::disassembler::Disassembler;
 use z80::instruction::{Instruction, Opcode};
 
@@ -39,19 +40,25 @@ pub(crate) struct Emulator {
     internal_texture: TextureHandle,
     visible_texture: TextureHandle,
     memory_view: MemoryView,
+    frame_time_cap: Duration,
+    frame_time: Instant,
 }
 
 impl eframe::App for Emulator {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        if self.paused && self.stepping {
-            if self.run(1) {
-                self.render();
+        if self.frame_time.elapsed() > self.frame_time_cap {
+            if self.paused && self.stepping {
+                if self.run(1) {
+                    self.render();
+                }
+                self.stepping = false;
+            } else if !self.paused && !self.stepping {
+                if self.run(50000) {
+                    self.render();
+                }
             }
-            self.stepping = false;
-        } else if !self.paused && !self.stepping {
-            if self.run(50000) {
-                self.render();
-            }
+
+            self.frame_time = Instant::now();
         }
 
         CentralPanel::default().show(ctx, |ui| {
@@ -107,6 +114,8 @@ impl Emulator {
             internal_texture,
             visible_texture,
             memory_view: MemoryView::Rom,
+            frame_time_cap: Duration::from_micros(16667 / 15),
+            frame_time: Instant::now(),
         }
     }
 

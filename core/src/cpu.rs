@@ -237,8 +237,8 @@ impl Cpu {
             Opcode::CompareDecrementRepeat(_) => handlers.compare_decrement_repeat(&instruction),
             Opcode::CompareIncrement(_) => handlers.compare_increment(&instruction),
             Opcode::InIncrement(_) => handlers.ini(&instruction),
-            Opcode::RotateLeftDigit(_) => handlers.rotate_left_digit(&instruction),
-            Opcode::RotateRightDigit(_) => handlers.rotate_right_digit(&instruction),
+            Opcode::RotateLeftDecimal(_) => handlers.rotate_left_decimal(&instruction),
+            Opcode::RotateRightDecimal(_) => handlers.rotate_right_decimal(&instruction),
             Opcode::NoOperation(_) => Ok(()),
             _ => {
                 error!("Handler missing for instruction: {}\n{}", instruction.opcode, self);
@@ -276,6 +276,7 @@ impl Cpu {
         };
 
         if !skip {
+            self.increment_r();
             self.registers.pc = self.registers.pc.wrapping_add(instruction.length as u16);
         }
 
@@ -284,6 +285,10 @@ impl Cpu {
         } else {
             Err(result.unwrap_err())
         }
+    }
+
+    pub(crate) fn increment_r(&mut self) {
+        self.registers.r = self.registers.r & 0b1000_0000 | (((self.registers.r & 0b0111_1111) + 1) & 0b0111_1111);
     }
 
     pub(crate) fn queue_irq(&mut self) {

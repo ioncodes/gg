@@ -94,7 +94,7 @@ impl System {
         }
 
         // Process tick for all components
-        if self.clocks < 266 {
+        if self.clocks < 262 {
             let result = self.cpu.tick(&mut self.bus, &mut self.vdp, &mut self.psg);
             match result {
                 Err(GgError::IoRequestNotFulfilled) => (),

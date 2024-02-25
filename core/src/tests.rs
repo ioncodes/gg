@@ -7,7 +7,7 @@ mod tests {
     use z80::instruction::Reg16;
 
     fn is_ignore(_path: &std::path::Path) -> bool {
-        // !_path.ends_with("27.json")
+        // !_path.ends_with("ed 6f.json")
         false
     }
 

@@ -1236,7 +1236,7 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 4,
             ),
-            (Some(0xed), Some(0x67), _, _) => Opcode::RotateRightDigit(2),
+            (Some(0xed), Some(0x67), _, _) => Opcode::RotateRightDecimal(2),
             (Some(0xed), Some(0x69), _, _) => Opcode::Out(
                 Operand::Register(Register::Reg8(Reg8::C), true),
                 Operand::Register(Register::Reg8(Reg8::L), false),
@@ -1252,7 +1252,7 @@ impl<'a> Disassembler<'a> {
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
                 4,
             ),
-            (Some(0xed), Some(0x6f), _, _) => Opcode::RotateLeftDigit(2),
+            (Some(0xed), Some(0x6f), _, _) => Opcode::RotateLeftDecimal(2),
             (Some(0xed), Some(0x72), _, _) => Opcode::SubtractCarry(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 Operand::Register(Register::Reg16(Reg16::SP), false),
@@ -3867,8 +3867,8 @@ impl<'a> Disassembler<'a> {
             (Some(0xfd), Some(0xe5), _, _) => Opcode::Push(Register::Reg16(Reg16::IY(None)), 2),
             (Some(0xfd), Some(0xe9), _, _) => Opcode::Jump(Condition::None, Operand::Register(Register::Reg16(Reg16::IY(None)), true), 2),
             (Some(0xfd), Some(0xf9), _, _) => Opcode::Load(
-                Operand::Register(Register::Reg16(Reg16::SP), true),
-                Operand::Register(Register::Reg16(Reg16::IY(None)), true),
+                Operand::Register(Register::Reg16(Reg16::SP), false),
+                Operand::Register(Register::Reg16(Reg16::IY(None)), false),
                 2,
             ),
 
@@ -5340,8 +5340,8 @@ impl<'a> Disassembler<'a> {
             Opcode::OutDecrementRepeat(length) => length,
             Opcode::Negate(length) => length,
             Opcode::ReturnFromIrq(length) => length,
-            Opcode::RotateLeftDigit(length) => length,
-            Opcode::RotateRightDigit(length) => length,
+            Opcode::RotateLeftDecimal(length) => length,
+            Opcode::RotateRightDecimal(length) => length,
             Opcode::Unknown(length) => length,
         }
     }

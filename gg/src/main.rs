@@ -56,7 +56,7 @@ fn main() {
     let native_options = NativeOptions {
         viewport: ViewportBuilder::default()
             .with_inner_size([(VISIBLE_WIDTH * SCALE) as f32, (VISIBLE_HEIGHT * SCALE) as f32])
-            .with_resizable(false),
+            .with_resizable(true),
         vsync: false,
         ..Default::default()
     };

@@ -472,8 +472,6 @@ impl<'a> Handlers<'a> {
         let a = self.cpu.get_register_u8(Reg8::A);
         let result = a.wrapping_sub(src);
 
-        self.cpu.set_register_u8(Reg8::A, result);
-
         let hl = self.cpu.get_register_u16(Reg16::HL);
         self.cpu.set_register_u16(Reg16::HL, hl.wrapping_add(1));
 
@@ -504,8 +502,6 @@ impl<'a> Handlers<'a> {
         let a = self.cpu.get_register_u8(Reg8::A);
         let result = a.wrapping_sub(src);
 
-        self.cpu.set_register_u8(Reg8::A, result);
-
         let hl = self.cpu.get_register_u16(Reg16::HL);
         self.cpu.set_register_u16(Reg16::HL, hl.wrapping_add(1));
 
@@ -525,7 +521,7 @@ impl<'a> Handlers<'a> {
             .f
             .set(Flags::PARITY_OR_OVERFLOW, self.cpu.get_register_u16(Reg16::BC) != 0);
 
-        if self.cpu.get_register_u16(Reg16::BC) == 0 && self.cpu.registers.f.contains(Flags::ZERO) {
+        if self.cpu.get_register_u16(Reg16::BC) == 0 || self.cpu.registers.f.contains(Flags::ZERO) {
             Ok(())
         } else {
             Err(GgError::RepeatNotFulfilled)
@@ -539,8 +535,6 @@ impl<'a> Handlers<'a> {
         };
         let a = self.cpu.get_register_u8(Reg8::A);
         let result = a.wrapping_sub(src);
-
-        self.cpu.set_register_u8(Reg8::A, result);
 
         let hl = self.cpu.get_register_u16(Reg16::HL);
         self.cpu.set_register_u16(Reg16::HL, hl.wrapping_sub(1));
@@ -561,7 +555,7 @@ impl<'a> Handlers<'a> {
             .f
             .set(Flags::PARITY_OR_OVERFLOW, self.cpu.get_register_u16(Reg16::BC) != 0);
 
-        if self.cpu.get_register_u16(Reg16::BC) == 0 && self.cpu.registers.f.contains(Flags::ZERO) {
+        if self.cpu.get_register_u16(Reg16::BC) == 0 || self.cpu.registers.f.contains(Flags::ZERO) {
             Ok(())
         } else {
             Err(GgError::RepeatNotFulfilled)
@@ -1109,20 +1103,24 @@ impl<'a> Handlers<'a> {
         }
     }
 
-    pub(crate) fn rotate_left_digit(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+    pub(crate) fn rotate_left_decimal(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
-            Opcode::RotateLeftDigit(_) => {
+            Opcode::RotateLeftDecimal(_) => {
                 let a = self.cpu.get_register_u8(Reg8::A);
                 let hl = self.cpu.get_register_u16(Reg16::HL);
                 let value = self.bus.read(hl)?;
+
                 let result = (a & 0b0000_1111) | (value << 4);
-                self.cpu.set_register_u8(Reg8::A, result);
-                let result = (value >> 4) | ((a & 0b0000_1111) << 4);
                 self.bus.write(hl, result)?;
+
+                let result = (value >> 4) | (a & 0b1111_0000);
+                self.cpu.set_register_u8(Reg8::A, result);
 
                 self.cpu.registers.f.set(Flags::SUBTRACT, false);
                 self.cpu.registers.f.set(Flags::HALF_CARRY, false);
                 self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
 
                 Ok(())
             }
@@ -1132,9 +1130,9 @@ impl<'a> Handlers<'a> {
         }
     }
 
-    pub(crate) fn rotate_right_digit(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+    pub(crate) fn rotate_right_decimal(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
-            Opcode::RotateRightDigit(_) => {
+            Opcode::RotateRightDecimal(_) => {
                 let a = self.cpu.get_register_u8(Reg8::A);
                 let hl = self.cpu.get_register_u16(Reg16::HL);
                 let value = self.bus.read(hl)?;
@@ -1146,6 +1144,8 @@ impl<'a> Handlers<'a> {
                 self.cpu.registers.f.set(Flags::SUBTRACT, false);
                 self.cpu.registers.f.set(Flags::HALF_CARRY, false);
                 self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
 
                 Ok(())
             }
