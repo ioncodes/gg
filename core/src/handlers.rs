@@ -97,6 +97,15 @@ impl<'a> Handlers<'a> {
             Opcode::Load(Operand::Register(Register::Reg8(dst_reg), false), Operand::Register(Register::Reg8(src_reg), false), _) => {
                 let src = self.cpu.get_register_u8(src_reg);
                 self.cpu.set_register_u8(dst_reg, src);
+
+                if dst_reg == Reg8::A && (src_reg == Reg8::R || src_reg == Reg8::I) {
+                    self.cpu.registers.f.set(Flags::ZERO, src == 0);
+                    self.cpu.registers.f.set(Flags::SIGN, src & 0b1000_0000 != 0);
+                    self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.cpu.registers.iff2);
+                    self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+                    self.cpu.registers.f.set(Flags::SUBTRACT, false);
+                }
+
                 Ok(())
             }
             Opcode::Load(Operand::Register(Register::Reg16(dst_reg), false), Operand::Register(Register::Reg16(src_reg), false), _) => {
@@ -145,6 +154,8 @@ impl<'a> Handlers<'a> {
 
     pub(crate) fn set_interrupt_state(&mut self, enabled: bool, instruction: &Instruction) -> Result<(), GgError> {
         self.cpu.interrupts_enabled = enabled;
+        self.cpu.registers.iff1 = enabled;
+        self.cpu.registers.iff2 = enabled;
         Ok(())
     }
 

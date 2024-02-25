@@ -7,7 +7,7 @@ mod tests {
     use z80::instruction::Reg16;
 
     fn is_ignore(_path: &std::path::Path) -> bool {
-        // !_path.ends_with("ed 6f.json")
+        // _path.ends_with("ed b1.json")
         false
     }
 
@@ -64,6 +64,9 @@ mod tests {
             system.cpu.registers.pc = initial.get("pc").unwrap().as_u64().unwrap() as u16;
             system.cpu.registers.sp = initial.get("sp").unwrap().as_u64().unwrap() as u16;
 
+            system.cpu.registers.iff1 = initial.get("iff1").unwrap().as_u64().unwrap() != 0;
+            system.cpu.registers.iff2 = initial.get("iff2").unwrap().as_u64().unwrap() != 0;
+
             let ram = initial.get("ram").unwrap().as_array().unwrap();
             for value in ram {
                 let addr = value.as_array().unwrap()[0].as_u64().unwrap() as usize;
@@ -78,15 +81,9 @@ mod tests {
 
             let decoded = system.decode_instr_at_pc().unwrap().opcode;
 
-            loop {
-                match system.tick() {
-                    Ok(state) => {
-                        if !state.repeat_not_fulfilled {
-                            break;
-                        }
-                    }
-                    Err(e) => panic!("{}", e),
-                }
+            match system.tick() {
+                Ok(_) => (),
+                Err(e) => panic!("{}", e),
             }
 
             assert_eq!(
@@ -196,6 +193,22 @@ mod tests {
             assert_eq!(
                 system.cpu.registers.sp,
                 final_.get("sp").unwrap().as_u64().unwrap() as u16,
+                "Testcase {} ({})",
+                name,
+                decoded
+            );
+
+            assert_eq!(
+                system.cpu.registers.iff1,
+                final_.get("iff1").unwrap().as_u64().unwrap() != 0,
+                "Testcase {} ({})",
+                name,
+                decoded
+            );
+
+            assert_eq!(
+                system.cpu.registers.iff2,
+                final_.get("iff2").unwrap().as_u64().unwrap() != 0,
                 "Testcase {} ({})",
                 name,
                 decoded

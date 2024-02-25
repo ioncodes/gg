@@ -35,6 +35,8 @@ pub struct Registers {
     pub iy: u16,
     pub pc: u16,
     pub sp: u16,
+    pub iff1: bool,
+    pub iff2: bool,
 }
 
 bitflags! {
@@ -109,6 +111,8 @@ impl Cpu {
                 iy: 0,
                 pc: 0,
                 sp: 0,
+                iff1: false,
+                iff2: false,
             },
             interrupts_enabled: true,
             interrupt_mode: InterruptMode::IM0,
