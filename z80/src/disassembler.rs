@@ -1892,7 +1892,7 @@ impl<'a> Disassembler<'a> {
             (Some(0xdd), Some(0xe5), _, _) => Opcode::Push(Register::Reg16(Reg16::IX(None)), 2),
             (Some(0xdd), Some(0xe9), _, _) => Opcode::Jump(Condition::None, Operand::Register(Register::Reg16(Reg16::IX(None)), true), 2),
             (Some(0xdd), Some(0xf9), _, _) => Opcode::Load(
-                Operand::Register(Register::Reg16(Reg16::SP), true),
+                Operand::Register(Register::Reg16(Reg16::SP), false),
                 Operand::Register(Register::Reg16(Reg16::IX(None)), false),
                 2,
             ),

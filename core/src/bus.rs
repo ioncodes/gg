@@ -62,7 +62,7 @@ impl Bus {
         }
 
         if address >= 0x0000 && address < 0x4000 {
-            let bank = self.fetch_bank(BankSelect::Bank0);
+            let bank = if address < 0x400 { 0 } else { self.fetch_bank(BankSelect::Bank0) };
             return Ok(self.rom.read_from_bank(bank, address));
         }
 
@@ -109,7 +109,7 @@ impl Bus {
                 return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
             }
 
-            let bank = self.fetch_bank(BankSelect::Bank0);
+            let bank = if address < 0x400 { 0 } else { self.fetch_bank(BankSelect::Bank0) };
             return Ok(self.rom.write_to_bank(bank, address, value));
         }
 
@@ -166,7 +166,7 @@ impl Bus {
         let address = address as usize;
 
         if address >= 0x0000 && address < 0x4000 {
-            let bank = self.fetch_bank(BankSelect::Bank0);
+            let bank = if address < 0x400 { 0 } else { self.fetch_bank(BankSelect::Bank0) };
             return Ok(bank * 0x4000 + address);
         }
 
