@@ -144,7 +144,6 @@ impl Emulator {
         } else {
             None
         };
-
         let mut file = File::open(&args.bios).unwrap();
         let mut bios: Vec<u8> = Vec::new();
         let _ = file.read_to_end(&mut bios).unwrap();
@@ -199,45 +198,45 @@ impl Emulator {
         }
 
         ctx.input(|i| {
-            if i.key_pressed(Key::Enter) {
+            if i.key_down(Key::Enter) {
                 self.system.bus.joysticks[0].set_start(true);
-            } else if i.key_released(Key::Enter) {
+            } else {
                 self.system.bus.joysticks[0].set_start(false);
             }
 
-            if i.key_pressed(Key::A) {
+            if i.key_down(Key::A) {
                 self.system.bus.joysticks[0].set_input_button1(true);
-            } else if i.key_released(Key::A) {
+            } else {
                 self.system.bus.joysticks[0].set_input_button1(false);
             }
 
-            if i.key_pressed(Key::S) {
+            if i.key_down(Key::S) {
                 self.system.bus.joysticks[0].set_input_button2(true);
-            } else if i.key_released(Key::S) {
+            } else {
                 self.system.bus.joysticks[0].set_input_button2(false);
             }
 
-            if i.key_pressed(Key::ArrowUp) {
+            if i.key_down(Key::ArrowUp) {
                 self.system.bus.joysticks[0].set_input_up(true);
-            } else if i.key_released(Key::ArrowUp) {
+            } else {
                 self.system.bus.joysticks[0].set_input_up(false);
             }
 
-            if i.key_pressed(Key::ArrowDown) {
+            if i.key_down(Key::ArrowDown) {
                 self.system.bus.joysticks[0].set_input_down(true);
-            } else if i.key_released(Key::ArrowDown) {
+            } else {
                 self.system.bus.joysticks[0].set_input_down(false);
             }
 
-            if i.key_pressed(Key::ArrowLeft) {
+            if i.key_down(Key::ArrowLeft) {
                 self.system.bus.joysticks[0].set_input_left(true);
-            } else if i.key_released(Key::ArrowLeft) {
+            } else {
                 self.system.bus.joysticks[0].set_input_left(false);
             }
 
-            if i.key_pressed(Key::ArrowRight) {
+            if i.key_down(Key::ArrowRight) {
                 self.system.bus.joysticks[0].set_input_right(true);
-            } else if i.key_released(Key::ArrowRight) {
+            } else {
                 self.system.bus.joysticks[0].set_input_right(false);
             }
         });

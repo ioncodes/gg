@@ -1556,6 +1556,16 @@ impl<'a> Handlers<'a> {
                 self.cpu.set_register_u16(rhs_reg, data1);
                 Ok(())
             }
+            Opcode::Exchange(Operand::Register(Register::Reg16(lhs_reg), true), Operand::Register(Register::Reg16(rhs_reg), true), _) => {
+                let src = self.cpu.get_register_u16(lhs_reg);
+                let data1 = self.bus.read_word(src)?;
+                let src = self.cpu.get_register_u16(rhs_reg);
+                let data2 = self.bus.read_word(src)?;
+                self.bus.write_word(src, data1)?;
+                let src = self.cpu.get_register_u16(lhs_reg);
+                self.bus.write_word(src, data2)?;
+                Ok(())
+            }
             _ => Err(GgError::InvalidOpcodeImplementation {
                 instruction: instruction.opcode,
             }),
