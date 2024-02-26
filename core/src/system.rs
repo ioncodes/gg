@@ -132,12 +132,13 @@ impl System {
                 }
                 _ => (),
             };
+
+            self.clocks += 1;
         }
 
         let frame_generated = self.vdp.tick(&mut self.cpu);
         self.psg.tick();
 
-        self.clocks += 1;
         self.master_clock += 1;
 
         // Let the caller know if we reached VBlank to cause a redraw

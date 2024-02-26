@@ -14,13 +14,10 @@ use log::{debug, error, trace};
 
 use self::sprite::SpriteSize;
 
-// todo: ????
-//const H_COUNTER_COUNT: u8 = 171;
-//const NTSC_SCANLINE_COUNT: u16 = 262; // 60 frames
-pub(crate) const V_COUNTER_PORT: u8 = 0x7e;
-pub(crate) const CONTROL_PORT: u8 = 0xbf;
-pub(crate) const DATA_PORT: u8 = 0xbe;
-// const PAL_SCANLINE_COUNT: u8 = 312;
+// $40-7F = Even locations are V counter/PSG, odd locations are H counter/PSG
+// $80-BF = Even locations are data port, odd locations are control port.
+pub(crate) const IO_DATA_CONTROL_START: u8 = 0x80;
+pub(crate) const IO_DATA_CONTROL_END: u8 = 0xbf;
 
 pub const INTERNAL_WIDTH: usize = 256;
 pub const INTERNAL_HEIGHT: usize = 224;
@@ -591,16 +588,27 @@ impl Vdp {
 impl Controller for Vdp {
     fn read_io(&mut self, port: u8) -> Result<u8, GgError> {
         match port {
-            V_COUNTER_PORT => Ok(self.v),
-            CONTROL_PORT => Ok(self.status()),
-            DATA_PORT => {
-                // todo: reset control port flag
-                let data = self.vram.read(self.registers.address);
-                self.registers.address += 1;
-                self.registers.address %= 0x3fff; // ensure we wrap around
-                let current_data = self.data_buffer;
-                self.data_buffer = data;
-                Ok(current_data)
+            0x40..=0x7f => {
+                if port % 2 == 0 {
+                    Ok(self.v)
+                } else {
+                    Ok(self.h)
+                }
+            }
+            IO_DATA_CONTROL_START..=IO_DATA_CONTROL_END => {
+                if port % 2 == 0 {
+                    // data port
+                    // todo: reset control port flag
+                    let data = self.vram.read(self.registers.address);
+                    self.registers.address += 1;
+                    self.registers.address %= 0x3fff; // ensure we wrap around
+                    let current_data = self.data_buffer;
+                    self.data_buffer = data;
+                    Ok(current_data)
+                } else {
+                    // control port
+                    Ok(self.status())
+                }
             }
             _ => {
                 error!("Invalid port for VDP I/O controller (read): {:02x}", port);
@@ -611,25 +619,26 @@ impl Controller for Vdp {
 
     fn write_io(&mut self, port: u8, value: u8) -> Result<(), GgError> {
         match port {
-            CONTROL_PORT => {
-                self.control_data.push_back(value);
-                if self.control_data.len() >= 2 {
-                    trace!("VDP control type: {:08b}", self.control_data[1]);
-                    self.process_control_data();
-                }
-
-                Ok(())
-            }
-            DATA_PORT => {
-                match self.io_mode {
-                    IoMode::VramWrite => self.vram_write(value),
-                    IoMode::CramWrite => self.cram_write(value),
-                    _ => {
-                        error!(
-                            "Received byte on data port ({:02x}) without being in a specific mode: {:02x}",
-                            DATA_PORT, value
-                        );
-                        return Err(GgError::VdpInvalidIoMode);
+            IO_DATA_CONTROL_START..=IO_DATA_CONTROL_END => {
+                if port % 2 == 0 {
+                    // data port
+                    match self.io_mode {
+                        IoMode::VramWrite => self.vram_write(value),
+                        IoMode::CramWrite => self.cram_write(value),
+                        _ => {
+                            error!(
+                                "Received byte on data port ({:02x}) without being in a specific mode: {:02x}",
+                                port, value
+                            );
+                            return Err(GgError::VdpInvalidIoMode);
+                        }
+                    }
+                } else {
+                    // control port
+                    self.control_data.push_back(value);
+                    if self.control_data.len() >= 2 {
+                        trace!("VDP control type: {:08b}", self.control_data[1]);
+                        self.process_control_data();
                     }
                 }
 

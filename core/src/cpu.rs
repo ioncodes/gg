@@ -144,10 +144,10 @@ impl Cpu {
         };
 
         if self.irq_available {
-            // TODO: IFF1?
             debug!("IRQ available");
 
             self.trigger_irq(bus, &instruction)?;
+
             self.irq_available = false;
             self.registers.iff1 = false;
             self.registers.iff2 = false;
@@ -164,12 +164,14 @@ impl Cpu {
             Err(_) => self.registers.pc as usize, // This can happen if we execute code in RAM (example: end of BIOS)
         };
         trace!(
-            "[{}:{:04x}->{:08x}] {:<20} [{:?}]",
+            "[{}:{:04x}->{:08x}] {:<20} [{:?}  V: {}  H: {}]",
             prefix,
             self.registers.pc,
             real_pc_addr,
             format!("{}", instruction.opcode),
-            self
+            self,
+            vdp.v,
+            vdp.h
         );
 
         let mut handlers = Handlers::new(self, bus, vdp, psg);
@@ -348,10 +350,10 @@ impl Cpu {
     pub(crate) fn write_io(&mut self, port: u8, value: u8, vdp: &mut Vdp, bus: &mut Bus, psg: &mut Psg) -> Result<(), GgError> {
         match port {
             0x00..=0x06 => bus.write_io(port, value)?,
-            vdp::CONTROL_PORT | vdp::DATA_PORT => vdp.write_io(port, value)?,
+            vdp::IO_DATA_CONTROL_START..=vdp::IO_DATA_CONTROL_END => vdp.write_io(port, value)?,
             sdsc::CONTROL_PORT | sdsc::DATA_PORT => bus.write_io(port, value)?,
             bus::MEMORY_CONTROL_PORT => bus.write_io(port, value)?,
-            0x7f => psg.write_io(port, value)?,
+            0x40..=0x7f => psg.write_io(port, value)?,
             _ => {
                 error!("Unassigned port (write): {:02x}", port);
                 return Err(GgError::IoControllerInvalidPort);
@@ -364,7 +366,8 @@ impl Cpu {
     pub(crate) fn read_io(&self, port: u8, vdp: &mut Vdp, bus: &mut Bus, _psg: &mut Psg) -> Result<u8, GgError> {
         match port {
             0x00..=0x06 => bus.read_io(port),
-            vdp::CONTROL_PORT | vdp::DATA_PORT | vdp::V_COUNTER_PORT => vdp.read_io(port),
+            vdp::IO_DATA_CONTROL_START..=vdp::IO_DATA_CONTROL_END => vdp.read_io(port),
+            0x40..=0x7f => vdp.read_io(port),
             joystick::JOYSTICK_AB_PORT | joystick::JOYSTICK_B_MISC_PORT => bus.read_io(port),
             _ => {
                 error!("Unassigned port (read): {:02x}", port);
@@ -550,7 +553,7 @@ impl fmt::Debug for Cpu {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "AF: {:04x}  BC: {:04x}  DE: {:04x}  HL: {:04x}  AF': {:04x}  BC': {:04x}  DE': {:04x}  HL': {:04x}  PC: {:04x}  SP: {:04x}  Flags: {:08b} ({})",
+            "AF: {:04x}  BC: {:04x}  DE: {:04x}  HL: {:04x}  AF': {:04x}  BC': {:04x}  DE': {:04x}  HL': {:04x}  IX: {:04x}  IY: {:04x}  PC: {:04x}  SP: {:04x}  R: {:02x}  I: {:02x}  Flags: {:08b} ({})",
             self.get_register_u16(Reg16::AF),
             self.get_register_u16(Reg16::BC),
             self.get_register_u16(Reg16::DE),
@@ -559,8 +562,12 @@ impl fmt::Debug for Cpu {
             self.get_register_u16(Reg16::BCShadow),
             self.get_register_u16(Reg16::DEShadow),
             self.get_register_u16(Reg16::HLShadow),
+            self.get_register_u16(Reg16::IX(None)),
+            self.get_register_u16(Reg16::IY(None)),
             self.registers.pc,
             self.registers.sp,
+            self.registers.r,
+            self.registers.i,
             self.registers.f.bits(),
             self.registers.f
         )
