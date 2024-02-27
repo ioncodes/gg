@@ -499,9 +499,7 @@ impl Vdp {
                 let control_byte2 = self.control_data.pop_front().unwrap();
                 let address = (((control_byte2 & 0b0011_1111) as u16) << 8) | (control_byte1 as u16);
                 let value = self.vram.read(address);
-
-                self.registers.address += 1;
-                self.registers.address %= 0x3fff; // ensure we wrap around
+                self.increment_address_register(0x4000);
 
                 debug!("Setting address register to {:04x}", address);
                 self.data_buffer = value;
@@ -550,8 +548,7 @@ impl Vdp {
             }
         }
 
-        self.registers.address += 1;
-        self.registers.address %= 0x40;
+        self.increment_address_register(0x40);
 
         // Force a rerender
         self.vram_dirty = true;
@@ -564,11 +561,15 @@ impl Vdp {
 
         self.vram.write(self.registers.address, value);
 
-        self.registers.address += 1;
-        self.registers.address %= 0x4000; // ensure we wrap around
+        self.increment_address_register(0x4000);
 
         // Force a rerender
         self.vram_dirty = true;
+    }
+
+    fn increment_address_register(&mut self, boundary: u16) {
+        self.registers.address += 1;
+        self.registers.address %= boundary; // ensure we wrap around
     }
 
     fn status(&mut self) -> u8 {
@@ -600,8 +601,8 @@ impl Controller for Vdp {
                     // data port
                     // todo: reset control port flag
                     let data = self.vram.read(self.registers.address);
-                    self.registers.address += 1;
-                    self.registers.address %= 0x3fff; // ensure we wrap around
+                    self.increment_address_register(0x4000);
+
                     let current_data = self.data_buffer;
                     self.data_buffer = data;
                     Ok(current_data)

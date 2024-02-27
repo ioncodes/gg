@@ -341,9 +341,7 @@ impl Cpu {
             };
 
             match current_instruction.opcode {
-                Opcode::Halt(length) => {
-                    self.push_stack(bus, self.registers.pc + length as u16)?;
-                }
+                Opcode::Halt(length) => self.push_stack(bus, self.registers.pc + length as u16)?,
                 _ => self.push_stack(bus, self.registers.pc)?,
             }
 

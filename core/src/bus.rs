@@ -124,7 +124,9 @@ impl Bus {
         if address >= 0x0000 && address < 0x4000 {
             if self.rom_write_protection == RomWriteProtection::Abort {
                 return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
-            } else if self.rom_write_protection == RomWriteProtection::Warn {
+            }
+
+            if self.rom_write_protection == RomWriteProtection::Warn {
                 warn!("Ignored write to ROM at address {:04x}", address);
             } else {
                 let bank = if address < 0x400 { 0 } else { self.fetch_bank(BankSelect::Bank0) };
