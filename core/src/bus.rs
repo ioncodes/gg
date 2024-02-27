@@ -20,7 +20,7 @@ pub enum Passthrough {
     Ram,
 }
 
-enum BankSelect {
+pub enum BankSelect {
     Bank0,
     Bank1,
     Bank2,
@@ -52,7 +52,7 @@ impl Bus {
         Bus {
             rom: Box::new(rom),
             ram: Memory::new(0x1024 * 16, 0x0000), /* changed from 0xc000 */
-            sram: Memory::new(0x4000, 0x0000),
+            sram: Memory::new(0xffff, 0x0000),     // todo: lol
             bios_rom: Memory::new(0x400, 0x0000),
             bios_enabled: true,
             gear_to_gear_cache: None,
@@ -81,11 +81,13 @@ impl Bus {
         }
 
         if address >= 0x8000 && address < 0xc000 {
+            let bank = self.fetch_bank(BankSelect::Bank2);
+
             if self.is_sram_bank_active() {
-                return Ok(self.sram.read(address - 0x8000));
+                let addr = ((bank * 0x4000) + (address - 0x8000) as usize) as u16;
+                return Ok(self.sram.read(addr));
             }
 
-            let bank = self.fetch_bank(BankSelect::Bank2);
             return Ok(self.rom.read_from_bank(bank, address - 0x8000));
         }
 
@@ -108,7 +110,9 @@ impl Bus {
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
             if self.rom_write_protection == RomWriteProtection::Abort {
                 return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
-            } else if self.rom_write_protection == RomWriteProtection::Warn {
+            }
+
+            if self.rom_write_protection == RomWriteProtection::Warn {
                 warn!("Ignored write to ROM at address {:04x}", address);
             } else {
                 self.bios_rom.write(address, value);
@@ -133,7 +137,9 @@ impl Bus {
         if address >= 0x4000 && address < 0x8000 {
             if self.rom_write_protection == RomWriteProtection::Abort {
                 return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
-            } else if self.rom_write_protection == RomWriteProtection::Warn {
+            }
+
+            if self.rom_write_protection == RomWriteProtection::Warn {
                 warn!("Ignored write to ROM at address {:04x}", address);
             } else {
                 let bank = self.fetch_bank(BankSelect::Bank1);
@@ -145,12 +151,16 @@ impl Bus {
 
         if address >= 0x8000 && address < 0xc000 {
             if self.is_sram_bank_active() {
-                return Ok(self.sram.write(address - 0x8000, value));
+                let bank = self.fetch_bank(BankSelect::Bank2);
+                let addr = ((bank * 0x4000) + (address - 0x8000) as usize) as u16;
+                return Ok(self.sram.write(addr, value));
             }
 
             if self.rom_write_protection == RomWriteProtection::Abort {
                 return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
-            } else if self.rom_write_protection == RomWriteProtection::Warn {
+            }
+
+            if self.rom_write_protection == RomWriteProtection::Warn {
                 warn!("Ignored write to ROM at address {:04x}", address);
             } else {
                 let bank = self.fetch_bank(BankSelect::Bank2);
@@ -221,7 +231,7 @@ impl Bus {
         ram_mapping & 0b0000_1000 > 0
     }
 
-    fn fetch_bank(&self, bank: BankSelect) -> usize {
+    pub fn fetch_bank(&self, bank: BankSelect) -> usize {
         if self.disable_bank_behavior {
             return match bank {
                 BankSelect::Bank0 => 0,
@@ -233,7 +243,18 @@ impl Bus {
         (match bank {
             BankSelect::Bank0 => self.read(MEMORY_REGISTER_CR_BANK_SELECT_0).unwrap(),
             BankSelect::Bank1 => self.read(MEMORY_REGISTER_CR_BANK_SELECT_1).unwrap(),
-            BankSelect::Bank2 => self.read(MEMORY_REGISTER_CR_BANK_SELECT_2).unwrap(),
+            BankSelect::Bank2 => {
+                if self.is_sram_bank_active() {
+                    let ram_mapping = self.read(MEMORY_REGISTER_RAM_MAPPING).unwrap();
+                    if ram_mapping & 0b0000_0100 == 0 {
+                        0
+                    } else {
+                        1
+                    }
+                } else {
+                    self.read(MEMORY_REGISTER_CR_BANK_SELECT_2).unwrap()
+                }
+            }
         }) as usize
     }
 

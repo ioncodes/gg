@@ -1,6 +1,8 @@
 use std::collections::VecDeque;
 
-use core::bus::{MEMORY_REGISTER_CR_BANK_SELECT_0, MEMORY_REGISTER_CR_BANK_SELECT_1, MEMORY_REGISTER_CR_BANK_SELECT_2};
+use core::bus::{
+    BankSelect, RomWriteProtection, MEMORY_REGISTER_CR_BANK_SELECT_0, MEMORY_REGISTER_CR_BANK_SELECT_1, MEMORY_REGISTER_CR_BANK_SELECT_2,
+};
 use core::system::{System, SystemState};
 use core::vdp::{Color, INTERNAL_HEIGHT, INTERNAL_WIDTH, OFFSET_X, OFFSET_Y, VISIBLE_HEIGHT, VISIBLE_WIDTH};
 use eframe::egui::scroll_area::ScrollBarVisibility;
@@ -81,6 +83,7 @@ impl Emulator {
     pub(crate) fn new(cc: &CreationContext, emulator_settings: EmulatorSettings) -> Emulator {
         let mut system = System::new(emulator_settings.lua, emulator_settings.emulate_sms);
         system.set_abort_on_io_operation_behavior(false); // Let's only log invalid ports
+        system.bus.set_rom_write_protection(RomWriteProtection::Abort);
 
         if emulator_settings.cpu_test {
             system.load_cartridge(emulator_settings.cartridge.as_ref());
@@ -303,23 +306,29 @@ impl Emulator {
             let rom1_bank = self.system.bus.read(MEMORY_REGISTER_CR_BANK_SELECT_1);
             let rom2_bank = self.system.bus.read(MEMORY_REGISTER_CR_BANK_SELECT_2);
             let sram_active = self.system.bus.is_sram_bank_active();
+            let sram_bank = self.system.bus.fetch_bank(BankSelect::Bank2);
 
+            ui.label(format!(
+                "SRAM Bank #{:02x}: {:08x} [{}]",
+                sram_bank,
+                self.system.bus.translate_address_to_real(0x8000).unwrap_or(0x69),
+                if sram_active { "Active" } else { "Inactive" }
+            ));
             ui.label(format!(
                 "ROM Bank #{:02x}: {:08x}",
                 rom0_bank.unwrap_or(0),
-                self.system.bus.translate_address_to_real(0x0000).unwrap_or(0)
+                self.system.bus.translate_address_to_real(0x0000).unwrap_or(0x69)
             ));
             ui.label(format!(
                 "ROM Bank #{:02x}: {:08x}",
                 rom1_bank.unwrap_or(0),
-                self.system.bus.translate_address_to_real(0x4000).unwrap_or(0)
+                self.system.bus.translate_address_to_real(0x4000).unwrap_or(0x69)
             ));
             ui.label(format!(
                 "ROM Bank #{:02x}: {:08x}",
                 rom2_bank.unwrap_or(0),
-                self.system.bus.translate_address_to_real(0x8000).unwrap_or(0)
+                self.system.bus.translate_address_to_real(0x8000).unwrap_or(0x69)
             ));
-            ui.label(format!("SRAM Bank: {}", if sram_active { "Active" } else { "Inactive" }));
         });
 
         Window::new("Memory").resizable(false).min_width(500.0).show(ctx, |ui| {
@@ -339,7 +348,7 @@ impl Emulator {
             let range = match self.memory_view {
                 MemoryView::Rom => (0x0000..0xc000).into_iter(),
                 MemoryView::Ram => (0xc000..0xffff).into_iter(),
-                MemoryView::Sram => (0x0000..0x4000).into_iter(),
+                MemoryView::Sram => (0x0000..0x8000).into_iter(),
                 MemoryView::Vram => (0x0000..0x4000).into_iter(),
                 MemoryView::Cram => (0x0000..0x40).into_iter(),
             };
