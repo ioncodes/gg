@@ -146,7 +146,7 @@ impl Cpu {
         if self.irq_available {
             debug!("IRQ available");
 
-            self.trigger_irq(bus)?;
+            self.trigger_irq(bus, &instruction)?;
 
             self.irq_available = false;
             self.registers.iff1 = false;
@@ -306,7 +306,7 @@ impl Cpu {
         self.irq_available = true;
     }
 
-    pub(crate) fn trigger_irq(&mut self, bus: &mut Bus) -> Result<(), GgError> {
+    pub(crate) fn trigger_irq(&mut self, bus: &mut Bus, current_instruction: &Instruction) -> Result<(), GgError> {
         /*
             Interrupt mode 0
 
@@ -339,7 +339,14 @@ impl Cpu {
                 InterruptMode::IM1 => 0x0038,
                 InterruptMode::IM2 => 0x0038,
             };
-            self.push_stack(bus, self.registers.pc)?;
+
+            match current_instruction.opcode {
+                Opcode::Halt(length) => {
+                    self.push_stack(bus, self.registers.pc + length as u16)?;
+                }
+                _ => self.push_stack(bus, self.registers.pc)?,
+            }
+
             self.registers.pc = vector;
         }
 

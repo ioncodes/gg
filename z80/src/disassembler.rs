@@ -1668,6 +1668,7 @@ impl<'a> Disassembler<'a> {
                 Operand::Register(Register::Reg8(Reg8::L), false),
                 3,
             ),
+            (Some(0xdd), Some(0x76), _, _) => Opcode::Halt(2),
             (Some(0xdd), Some(0x77), _, _) => Opcode::Load(
                 Operand::Register(Register::Reg16(Reg16::IX(Some(self.data[offset + 2] as i8))), true),
                 Operand::Register(Register::Reg8(Reg8::A), false),
