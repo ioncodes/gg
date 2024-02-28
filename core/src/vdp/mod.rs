@@ -1,7 +1,7 @@
 mod pattern;
 mod sprite;
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 
 use crate::error::GgError;
@@ -74,6 +74,8 @@ pub struct Vdp {
     lua: Rc<LuaEngine>,
     last_frame: Vec<Color>,
     priority_list: Vec<usize>,
+    scanline_counter: u8,
+    scanline_irq_available: bool,
 }
 
 impl Vdp {
@@ -96,13 +98,24 @@ impl Vdp {
             lua,
             last_frame: vec![(0, 0, 0, 0); INTERNAL_WIDTH * INTERNAL_HEIGHT],
             priority_list: vec![],
+            scanline_counter: 0,
+            scanline_irq_available: false,
         }
     }
 
     pub(crate) fn tick(&mut self) -> bool {
         self.handle_counters();
 
-        // todo: we should probably handle different types of interrupts here...
+        // Line IRQ
+        if self.v <= 192 {
+            self.scanline_counter = self.scanline_counter.wrapping_sub(1);
+            if self.scanline_counter == 0 {
+                self.scanline_irq_available = true;
+                self.scanline_counter = self.registers.r10;
+            }
+        }
+
+        // Frame IRQ (VBlank)
         if self.is_vblank() && self.is_hblank() {
             self.status |= 0b1000_0000;
         }
@@ -113,6 +126,14 @@ impl Vdp {
     pub fn vblank_irq_pending(&self) -> bool {
         if self.registers.r1 & 0b0010_0000 > 0 {
             return self.status & 0b1000_0000 > 0;
+        }
+
+        false
+    }
+
+    pub fn scanline_irq_pending(&self) -> bool {
+        if self.registers.r0 & 0b0001_0000 > 0 {
+            return self.scanline_irq_available;
         }
 
         false
@@ -180,6 +201,8 @@ impl Vdp {
         };
 
         let sprite_size = self.sprite_size();
+        // let mut overflow_lookup_table: HashMap<u8, usize> = HashMap::new();
+        // let mut collision_lookup_table: Vec<(u8, u8)> = Vec::new();
 
         for idx in 0..64 {
             let sprite_attr_base_addr = self.get_sprite_attribute_table_addr();
@@ -200,6 +223,25 @@ impl Vdp {
                 continue;
             }
 
+            // // Process OVR
+            // if !overflow_lookup_table.contains_key(&y) {
+            //     overflow_lookup_table.insert(y, 0);
+            // } else {
+            //     let count = overflow_lookup_table.get_mut(&y).unwrap();
+            //     *count += 1;
+            //     if *count > 8 {
+            //         self.status |= 0b0100_0000;
+            //     }
+            // }
+
+            // // Process COL
+            // if collision_lookup_table.contains(&(x, y)) {
+            //     self.status |= 0b0010_0000;
+            // } else {
+            //     collision_lookup_table.push((x, y));
+            // }
+
+            // Render sprites for 8x8 and 8x16
             if sprite_size == SpriteSize::Size8x8 {
                 let sprite_table_entry = self.get_sprite_generator_entry(n as u16);
                 let pattern_addr = sprite_table_entry * 32;
@@ -584,7 +626,8 @@ impl Vdp {
         //   in which case it contains the number of the first sprite that could not be displayed due to overflow.
 
         let status = self.status;
-        self.status &= 0b0111_1111; // clear VBlank flag
+        self.status &= 0b0001_1111; // clear VBlank, Sprite Overflow and Sprite Collision flags
+        self.scanline_irq_available = false; // clear scanline IRQ flag
         status
     }
 }

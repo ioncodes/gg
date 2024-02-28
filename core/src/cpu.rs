@@ -148,7 +148,7 @@ impl Cpu {
             Err(msg) => return Err(GgError::DecoderError { msg }),
         };
 
-        if vdp.vblank_irq_pending() {
+        if vdp.vblank_irq_pending() || vdp.scanline_irq_pending() {
             if self.registers.iff1 && !self.ignore_next_irq {
                 self.trigger_irq(bus, &instruction)?;
 

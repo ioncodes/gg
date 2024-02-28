@@ -83,7 +83,7 @@ impl Emulator {
     pub(crate) fn new(cc: &CreationContext, emulator_settings: EmulatorSettings) -> Emulator {
         let mut system = System::new(emulator_settings.lua, emulator_settings.emulate_sms);
         system.set_abort_on_io_operation_behavior(false); // Let's only log invalid ports
-        system.bus.set_rom_write_protection(RomWriteProtection::Abort);
+        system.bus.set_rom_write_protection(RomWriteProtection::Warn);
 
         if emulator_settings.cpu_test {
             system.load_cartridge(emulator_settings.cartridge.as_ref());
@@ -117,7 +117,7 @@ impl Emulator {
             internal_texture,
             visible_texture,
             memory_view: MemoryView::Rom,
-            frame_time_cap: Duration::from_micros(16667 / 30),
+            frame_time_cap: Duration::from_micros(200),
             frame_time: Instant::now(),
         }
     }
