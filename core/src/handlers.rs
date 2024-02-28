@@ -153,9 +153,10 @@ impl<'a> Handlers<'a> {
     }
 
     pub(crate) fn set_interrupt_state(&mut self, enabled: bool, instruction: &Instruction) -> Result<(), GgError> {
-        self.cpu.interrupts_enabled = enabled;
+        self.cpu.ignore_next_irq = enabled;
         self.cpu.registers.iff1 = enabled;
         self.cpu.registers.iff2 = enabled;
+
         Ok(())
     }
 

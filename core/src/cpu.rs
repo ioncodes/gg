@@ -80,9 +80,15 @@ impl InterruptMode {
 
 pub struct Cpu {
     pub registers: Registers,
-    pub interrupts_enabled: bool,
     pub interrupt_mode: InterruptMode,
-    irq_available: bool,
+    // Note a fact about EI: a maskable interrupt isn’t accepted directly after it, so the next op-
+    // portunity for an interrupt is after the RETI. This is very useful; if the INT line is still low, an
+    // interrupt is accepted again. If this happens a lot and the interrupt is generated before the RETI,
+    // the stack could overflow (since the routine would be called again and again). But this property of
+    // EI prevents this.
+    // Directly after an EI or DI instruction, interrupts aren’t accepted. They’re accepted again after
+    // the instruction after the EI (RET in the following example).
+    pub ignore_next_irq: bool,
 }
 
 impl Cpu {
@@ -114,9 +120,8 @@ impl Cpu {
                 iff1: false,
                 iff2: false,
             },
-            interrupts_enabled: true,
             interrupt_mode: InterruptMode::IM0,
-            irq_available: false,
+            ignore_next_irq: false,
         }
     }
 
@@ -143,19 +148,21 @@ impl Cpu {
             Err(msg) => return Err(GgError::DecoderError { msg }),
         };
 
-        if self.irq_available {
-            debug!("IRQ available");
+        if vdp.vblank_irq_pending() {
+            if self.registers.iff1 && !self.ignore_next_irq {
+                self.trigger_irq(bus, &instruction)?;
 
-            self.trigger_irq(bus, &instruction)?;
+                instruction = match self.decode_at_pc(bus) {
+                    Ok(instruction) => instruction,
+                    Err(msg) => return Err(GgError::DecoderError { msg }),
+                };
+            }
+        }
 
-            self.irq_available = false;
-            self.registers.iff1 = false;
-            self.registers.iff2 = false;
-
-            instruction = match self.decode_at_pc(bus) {
-                Ok(instruction) => instruction,
-                Err(msg) => return Err(GgError::DecoderError { msg }),
-            };
+        // Directly after an EI or DI instruction, interrupts aren’t accepted. They’re accepted again after
+        // the instruction after the EI (RET in the following example).
+        if self.ignore_next_irq {
+            self.ignore_next_irq = false;
         }
 
         let prefix = if self.registers.pc < 0xc000 { "rom" } else { "ram" };
@@ -164,14 +171,15 @@ impl Cpu {
             Err(_) => self.registers.pc as usize, // This can happen if we execute code in RAM (example: end of BIOS)
         };
         trace!(
-            "[{}:{:04x}->{:08x}] {:<20} [{:?}  V: {}  H: {}]",
+            "[{}:{:04x}->{:08x}] {:<20} [{:?}  V: {}  H: {}  VBlank: {}]",
             prefix,
             self.registers.pc,
             real_pc_addr,
             format!("{}", instruction.opcode),
             self,
             vdp.v,
-            vdp.h
+            vdp.h,
+            vdp.vblank_irq_pending()
         );
 
         let mut handlers = Handlers::new(self, bus, vdp, psg);
@@ -300,53 +308,24 @@ impl Cpu {
         self.registers.r = self.registers.r & 0b1000_0000 | (((self.registers.r & 0b0111_1111) + 1) & 0b0111_1111);
     }
 
-    pub(crate) fn queue_irq(&mut self) {
-        // todo: i think we might even just execute the handler right away...
-        // perhaps just execute trigger_irq directly instead of waiting for a new tick?
-        self.irq_available = true;
-    }
-
     pub(crate) fn trigger_irq(&mut self, bus: &mut Bus, current_instruction: &Instruction) -> Result<(), GgError> {
-        /*
-            Interrupt mode 0
+        debug!("IRQ triggered");
 
-            The interrupting device can place a single or multi-byte opcode on the
-            data bus for the Z80 to fetch and execute when an interrupt occurs.
+        let vector = match self.interrupt_mode {
+            InterruptMode::IM0 => 0x0038,
+            InterruptMode::IM1 => 0x0038,
+            InterruptMode::IM2 => 0x0038,
+        };
 
-            For the SMS 2, Game Gear, and Genesis, the value $FF is always read from
-            the data bus, which corresponds to the instruction 'RST 38H'.
+        self.registers.iff1 = false;
+        self.registers.iff2 = false;
 
-            For the SMS, a random value is returned which could correspond to any
-            possible instruction.
-
-            Interrupt mode 1
-
-            When an interrupt occurs the Z80's PC register is set to $0038.
-
-            Interrupt mode 2
-
-            The interrupting device can place a single byte on the data bus which is
-            used as the LSB of a 16-bit address, of which the MSB comes from the Z80's
-            I register. The Z80 manual says the address must be even, but odd addresses
-            work fine. The Z80 then jumps to that address.
-        */
-
-        if self.interrupts_enabled {
-            debug!("Interrupt triggered");
-
-            let vector = match self.interrupt_mode {
-                InterruptMode::IM0 => 0x0038,
-                InterruptMode::IM1 => 0x0038,
-                InterruptMode::IM2 => 0x0038,
-            };
-
-            match current_instruction.opcode {
-                Opcode::Halt(length) => self.push_stack(bus, self.registers.pc + length as u16)?,
-                _ => self.push_stack(bus, self.registers.pc)?,
-            }
-
-            self.registers.pc = vector;
+        match current_instruction.opcode {
+            Opcode::Halt(length) => self.push_stack(bus, self.registers.pc + length as u16)?,
+            _ => self.push_stack(bus, self.registers.pc)?,
         }
+
+        self.registers.pc = vector;
 
         Ok(())
     }

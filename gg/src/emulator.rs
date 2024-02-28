@@ -117,7 +117,7 @@ impl Emulator {
             internal_texture,
             visible_texture,
             memory_view: MemoryView::Rom,
-            frame_time_cap: Duration::from_micros(16667 / 15),
+            frame_time_cap: Duration::from_micros(16667 / 30),
             frame_time: Instant::now(),
         }
     }
@@ -270,15 +270,6 @@ impl Emulator {
 
             ui.separator();
 
-            ui.heading("CPU Interrupts");
-            ui.horizontal(|ui| {
-                ui.checkbox(&mut self.system.cpu.interrupts_enabled, "Interrupts Enabled");
-
-                ui.label(format!("Interrupt Mode: {}", self.system.cpu.interrupt_mode.to_u8()));
-            });
-
-            ui.separator();
-
             ui.heading("VDP Registers");
 
             ui.vertical(|ui| {
@@ -298,6 +289,23 @@ impl Emulator {
                 ui.label(format!("R09: {:08b}", self.system.vdp.registers.r9));
                 ui.label(format!("R10: {:08b}", self.system.vdp.registers.r10));
                 ui.label(format!("Address: {:04x}", self.system.vdp.registers.address));
+            });
+
+            ui.separator();
+
+            ui.heading("CPU Interrupts");
+            ui.vertical(|ui| {
+                ui.label(format!("IFF1: {}", self.system.cpu.registers.iff1));
+                ui.label(format!("IFF2: {}", self.system.cpu.registers.iff2));
+                ui.label(format!("Ignoring IRQs: {}", self.system.cpu.ignore_next_irq));
+                ui.label(format!("IM: {}", self.system.cpu.interrupt_mode.to_u8()));
+            });
+
+            ui.separator();
+
+            ui.heading("VDP Interrupts");
+            ui.vertical(|ui| {
+                ui.label(format!("VBlank: {}", self.system.vdp.vblank_irq_pending()));
             });
         });
 

@@ -100,19 +100,23 @@ impl Vdp {
         }
     }
 
-    pub(crate) fn tick(&mut self, cpu: &mut Cpu) -> bool {
+    pub(crate) fn tick(&mut self) -> bool {
         self.handle_counters();
 
         // todo: we should probably handle different types of interrupts here...
         if self.is_vblank() && self.is_hblank() {
             self.status |= 0b1000_0000;
-
-            if self.registers.r1 & 0b0010_0000 > 0 {
-                cpu.queue_irq();
-            }
         }
 
         self.v_2nd_loop && self.v > INTERNAL_HEIGHT as u8 && self.vram_dirty
+    }
+
+    pub fn vblank_irq_pending(&self) -> bool {
+        if self.registers.r1 & 0b0010_0000 > 0 {
+            return self.status & 0b1000_0000 > 0;
+        }
+
+        false
     }
 
     pub(crate) fn is_vblank(&self) -> bool {

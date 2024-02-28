@@ -101,7 +101,7 @@ impl System {
         // Process tick for all components
         let mut repeat_not_fulfilled = false;
 
-        if self.clocks < 262 {
+        if self.master_clock % 3 == 0 {
             let result = self.cpu.tick(&mut self.bus, &mut self.vdp, &mut self.psg);
             match result {
                 Err(GgError::IoRequestNotFulfilled) => (),
@@ -135,8 +135,10 @@ impl System {
 
             self.clocks += 1;
         }
-
-        let frame_generated = self.vdp.tick(&mut self.cpu);
+        let mut frame_generated = false;
+        if self.master_clock % 2 == 0 {
+            frame_generated = self.vdp.tick();
+        }
         self.psg.tick();
 
         self.master_clock += 1;
