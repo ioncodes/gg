@@ -201,8 +201,8 @@ impl Vdp {
         };
 
         let sprite_size = self.sprite_size();
-        // let mut overflow_lookup_table: HashMap<u8, usize> = HashMap::new();
-        // let mut collision_lookup_table: Vec<(u8, u8)> = Vec::new();
+        let mut overflow_lookup_table: HashMap<u8, usize> = HashMap::new();
+        let mut collision_lookup_table: Vec<(u8, u8)> = Vec::new();
 
         for idx in 0..64 {
             let sprite_attr_base_addr = self.get_sprite_attribute_table_addr();
@@ -223,23 +223,23 @@ impl Vdp {
                 continue;
             }
 
-            // // Process OVR
-            // if !overflow_lookup_table.contains_key(&y) {
-            //     overflow_lookup_table.insert(y, 0);
-            // } else {
-            //     let count = overflow_lookup_table.get_mut(&y).unwrap();
-            //     *count += 1;
-            //     if *count > 8 {
-            //         self.status |= 0b0100_0000;
-            //     }
-            // }
+            // Process OVR
+            if !overflow_lookup_table.contains_key(&y) {
+                overflow_lookup_table.insert(y, 0);
+            } else {
+                let count = overflow_lookup_table.get_mut(&y).unwrap();
+                *count += 1;
+                if *count > 8 {
+                    self.status |= 0b0100_0000;
+                }
+            }
 
-            // // Process COL
-            // if collision_lookup_table.contains(&(x, y)) {
-            //     self.status |= 0b0010_0000;
-            // } else {
-            //     collision_lookup_table.push((x, y));
-            // }
+            // Process COL
+            if collision_lookup_table.contains(&(x, y)) {
+                self.status |= 0b0010_0000;
+            } else {
+                collision_lookup_table.push((x, y));
+            }
 
             // Render sprites for 8x8 and 8x16
             if sprite_size == SpriteSize::Size8x8 {
