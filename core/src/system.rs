@@ -132,8 +132,6 @@ impl System {
                 }
                 _ => (),
             };
-
-            self.clocks += 1;
         }
         let mut frame_generated = false;
         if self.master_clock % 2 == 0 {

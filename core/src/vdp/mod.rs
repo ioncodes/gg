@@ -4,7 +4,6 @@ mod sprite;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
-use crate::cpu::Cpu;
 use crate::error::GgError;
 use crate::io::Controller;
 use crate::lua_engine::{HookType, LuaEngine};
