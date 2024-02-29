@@ -1,13 +1,15 @@
 ## gg
 WIP GameGear (and possibly Sega Master System) emulator. Most of the information I either figured out by reverse engineering
-the hardware and software myself or by using the excellent docs found on [smspower.org](https://www.smspower.org/).
+the hardware and software myself or by using the excellent docs found on [smspower.org](https://www.smspower.org/). This project is  
+messed up in some cases and should not be used as direct reference for your own implementation. I mostly implemented everything on a
+"fuck around and find out" basis, implementing features where needed to get things working.
 
 <details>
   <summary>Demos</summary>
 
-  | Sonic The Hedgehog 2 Demo                                                                         | Lucky Dime Caper Starring Donald Duck Demo                                                        | Pac-Man Demo                                                                                      |
-  | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-  | <video src="https://github.com/ioncodes/gg/assets/18533297/707c1d23-8182-4dd6-8960-2e86f79d7ee6"> | <video src="https://github.com/ioncodes/gg/assets/18533297/a9638e21-5365-4515-a29d-4701d761c3a2"> | <video src="https://github.com/ioncodes/gg/assets/18533297/1549887c-45f5-4eec-9201-9e4de168b32e"> |
+  | Sonic The Hedgehog 2 Demo                                                                         | Lucky Dime Caper Starring Donald Duck Demo                                                        | Pac-Man Demo                                                                                      | Earthworm Jim Demo |
+  | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ---- |
+  | <video src="https://github.com/ioncodes/gg/assets/18533297/afd20259-47d0-4dd6-86b8-abe68bc0a4e6"> | <video src="https://github.com/ioncodes/gg/assets/18533297/9ac07dca-3b54-43b2-a881-163980319dff"> | <video src="https://github.com/ioncodes/gg/assets/18533297/1549887c-45f5-4eec-9201-9e4de168b32e"> | <video src="https://github.com/ioncodes/gg/assets/18533297/3812319b-5b0e-4841-99c7-e3f084279b67"> |
 </details>
 
 ## Compatibility List
