@@ -1,6 +1,6 @@
 ## gg
 WIP GameGear (and possibly Sega Master System) emulator. Most of the information I either figured out by reverse engineering
-the hardware and software myself or by using the excellent docs found on [smspower.org](https://www.smspower.org/).  
+the hardware and software myself or by using the excellent docs found on [smspower.org](https://www.smspower.org/).
 
 <details>
   <summary>Demos</summary>
@@ -11,21 +11,32 @@ the hardware and software myself or by using the excellent docs found on [smspow
 </details>
 
 ## Compatibility List
-| **Title**                                                | **CRC32**  | **Status** |
-| -------------------------------------------------------- | :--------: | :--------: |
-| [BIOS] Sega Game Gear (USA) (Majesco)                    | `0ebea9d4` |     👌      |
-| Pac-Man (USA)                                            | `b318dd37` |     👌      |
-| Sonic The Hedgehog 2 (U) [!]                             | `95a18ec7` |     🐥      |
-| Lucky Dime Caper Starring Donald Duck, The (USA, Europe) | `07a7815a` |     🐥      |
-| Sonic The Hedgehog (U) (V1.0) [!]                        | `3e31cb8c` |     🐣      |
-| Batman Returns (World)                                   | `7ac4a3ca` |     🐣      |
-| Asterix and the Great Rescue (Europe) (En,Fr,De,Es,It)   | `328c5cc8` |     🐞      |
-| Shinobi (USA, Europe)                                    | `30f1c984` |     🐞      |
+| **Title**                                                                     | **CRC32**  | **Status** |
+| ----------------------------------------------------------------------------- | :--------: | :--------: |
+| [BIOS] Sega Game Gear (USA) (Majesco)                                         | `0ebea9d4` |     👌      |
+| Pac-Man (USA)                                                                 | `b318dd37` |     👌      |
+| Sonic The Hedgehog 2 (U) [!]                                                  | `95a18ec7` |     👌      |
+| Sonic & Tails (Japan) (En)                                                    | `8ac0dade` |     👌      |
+| Sonic & Tails 2 (Japan)                                                       | `496bce64` |     👌      |
+| Sonic Labyrinth (World)                                                       | `5550173b` |     👌      |
+| Sonic The Hedgehog - Triple Trouble (USA, Europe, Brazil) (Beta) (1994-08-08) | `80eb7cfb` |     👌      |
+| Lucky Dime Caper Starring Donald Duck, The (USA, Europe)                      | `07a7815a` |     👌      |
+| Earthworm Jim (Europe)                                                        | `691ae339` |     🐥      |
+| Batman Returns (World)                                                        | `7ac4a3ca` |     🐥      |
+| Ecco the Dolphin (Japan)                                                      | `a32eb9d5` |     🐥      |
+| Ecco - The Tides of Time (USA, Europe, Brazil)                                | `e2f3b203` |     🐥      |
+| GG Shinobi II, The ~ Shinobi II - The Silent Fury (World)                     | `6201c694` |     🐥      |
+| Sonic The Hedgehog (U) (V1.0) [!]                                             | `3e31cb8c` |     🐣      |
+| Tom and Jerry - The Movie (USA, Europe)                                       | `5cd33ff2` |     🐞      |
+| Asterix and the Great Rescue (Europe) (En,Fr,De,Es,It)                        | `328c5cc8` |     🐞      |
+| Shinobi (USA, Europe)                                                         | `30f1c984` |     🐞      |
 
 * 👌: No known issues
 * 🐥: Playable with a few bugs
 * 🐣: In-Game, but only limited playability
 * 🐞: Bugged/Broken
+
+Note: This rating is completely subjective.
 
 ## Running
 It is strongly recommended to run the emulator in release mode, no matter what.
@@ -72,5 +83,5 @@ provided by [jsmoo](https://github.com/raddad772/jsmoo/tree/main/misc/tests/Gene
 ## JSON Tests
 `cargo test` in the workspace folder will launch all unit tests. The current implementation measures only registers and RAM content. Status at the time of writing:  
 ```
-test result: FAILED. 1375 passed; 232 failed; 3 ignored; 0 measured; 0 filtered out; finished in 32.60s
+test result: FAILED. 1388 passed; 222 failed; 0 ignored; 0 measured; 0 filtered out; finished in 66.36s
 ```
