@@ -86,10 +86,10 @@ There's more features that are CLI only:
 Currently the Z80 implementation can be tested using [ZEXDOC/ZEXALL](https://github.com/maxim-zhao/zexall-smsjsm) and using the JSON unit tests 
 provided by [jsmoo](https://github.com/raddad772/jsmoo/tree/main/misc/tests/GeneratedTests/z80/v1). However, some features are ignored/disabled/not implemented.
 
-## ZEXDOC & ZEXALL
+### ZEXDOC & ZEXALL
 `zexdoc` is built into the emulator and can be executed by passing the `--cpu-test` flag.
 
-## JSON Tests
+### JSON Tests
 `cargo test` in the workspace folder will launch all unit tests. The current implementation measures only registers and RAM content. Status at the time of writing:  
 ```
 test result: FAILED. 1388 passed; 222 failed; 0 ignored; 0 measured; 0 filtered out; finished in 66.36s
