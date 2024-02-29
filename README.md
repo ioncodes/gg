@@ -2,7 +2,8 @@
 WIP GameGear (and possibly Sega Master System) emulator. Most of the information I either figured out by reverse engineering
 the hardware and software myself or by using the excellent docs found on [smspower.org](https://www.smspower.org/). This project is 
 messed up in some cases and should not be used as direct reference for your own implementation. I mostly implemented everything on a
-"fuck around and find out" basis, implementing features where needed to get things working. Also, there is no PSG support!
+"fuck around and find out" basis, implementing features where needed to get things working. Also, there is no PSG support! Oh, and I
+used AI to generate the z80 opcode parser / jump table. :)
 
 <details>
   <summary>Demos</summary>
