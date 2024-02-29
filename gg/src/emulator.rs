@@ -1,10 +1,9 @@
 use std::collections::VecDeque;
-use std::fs::File;
-use std::io::Read;
 
-use clap::Parser;
-use core::bus::{MEMORY_REGISTER_CR_BANK_SELECT_0, MEMORY_REGISTER_CR_BANK_SELECT_1, MEMORY_REGISTER_CR_BANK_SELECT_2};
-use core::system::System;
+use core::bus::{
+    BankSelect, RomWriteProtection, MEMORY_REGISTER_CR_BANK_SELECT_0, MEMORY_REGISTER_CR_BANK_SELECT_1, MEMORY_REGISTER_CR_BANK_SELECT_2,
+};
+use core::system::{System, SystemState};
 use core::vdp::{Color, INTERNAL_HEIGHT, INTERNAL_WIDTH, OFFSET_X, OFFSET_Y, VISIBLE_HEIGHT, VISIBLE_WIDTH};
 use eframe::egui::scroll_area::ScrollBarVisibility;
 use eframe::egui::{
@@ -12,33 +11,14 @@ use eframe::egui::{
     Window,
 };
 use eframe::CreationContext;
-use env_logger::{Builder, Target};
-use log::{error, Level};
+use log::error;
+use std::time::{Duration, Instant};
 use z80::disassembler::Disassembler;
 use z80::instruction::{Instruction, Opcode};
 
+use crate::EmulatorSettings;
+
 pub(crate) const SCALE: usize = 8;
-
-#[derive(Parser, Debug)]
-struct Args {
-    #[arg(long)]
-    bios: String,
-
-    #[arg(long)]
-    rom: String,
-
-    #[arg(long)]
-    lua: Option<String>,
-
-    #[arg(long, default_value_t = false)]
-    cpu_test: bool,
-
-    #[arg(long, default_value_t = String::from("info"))]
-    log_level: String,
-
-    #[arg(long, default_value_t = false)]
-    log_to_file: bool,
-}
 
 #[derive(PartialEq, Debug)]
 enum MemoryView {
@@ -62,19 +42,25 @@ pub(crate) struct Emulator {
     internal_texture: TextureHandle,
     visible_texture: TextureHandle,
     memory_view: MemoryView,
+    frame_time_cap: Duration,
+    frame_time: Instant,
 }
 
 impl eframe::App for Emulator {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        if self.paused && self.stepping {
-            if self.run(1) {
-                self.render();
+        if self.frame_time.elapsed() > self.frame_time_cap {
+            if self.paused && self.stepping {
+                if self.run(1) {
+                    self.render();
+                }
+                self.stepping = false;
+            } else if !self.paused && !self.stepping {
+                if self.run(50000) {
+                    self.render();
+                }
             }
-            self.stepping = false;
-        } else if !self.paused && !self.stepping {
-            if self.run(100000) {
-                self.render();
-            }
+
+            self.frame_time = Instant::now();
         }
 
         CentralPanel::default().show(ctx, |ui| {
@@ -94,47 +80,17 @@ impl eframe::App for Emulator {
 }
 
 impl Emulator {
-    pub(crate) fn new(cc: &CreationContext) -> Emulator {
-        let args = Args::parse();
-
-        match args.log_level {
-            level if level == "trace" => Emulator::setup_logging(true, false, args.log_to_file),
-            level if level == "debug" => Emulator::setup_logging(false, true, args.log_to_file),
-            _ => Emulator::setup_logging(false, false, args.log_to_file),
-        }
-
-        let (is_sms, cartridge) = if args.cpu_test {
-            (true, Vec::from(include_bytes!("../../external/test_roms/zexdoc.sms")))
-        } else {
-            let mut file = File::open(&args.rom).unwrap();
-            let mut buffer: Vec<u8> = Vec::new();
-            let _ = file.read_to_end(&mut buffer).unwrap();
-            (false, buffer)
-        };
-
-        let lua = if let Some(lua) = args.lua {
-            let mut file = File::open(lua).unwrap();
-            let mut script = String::new();
-            let _ = file.read_to_string(&mut script).unwrap();
-            Some(script)
-        } else {
-            None
-        };
-
-        let mut file = File::open(&args.bios).unwrap();
-        let mut bios: Vec<u8> = Vec::new();
-        let _ = file.read_to_end(&mut bios).unwrap();
-
-        let mut system = System::new(lua, is_sms);
+    pub(crate) fn new(cc: &CreationContext, emulator_settings: EmulatorSettings) -> Emulator {
+        let mut system = System::new(emulator_settings.lua, emulator_settings.emulate_sms);
         system.set_abort_on_io_operation_behavior(false); // Let's only log invalid ports
-        system.bus.set_rom_write_protection(false); // Pac-Man writes to ROM for some reason
+        system.bus.set_rom_write_protection(RomWriteProtection::Warn);
 
-        if args.cpu_test {
-            system.load_cartridge(cartridge.as_ref());
+        if emulator_settings.cpu_test {
+            system.load_cartridge(emulator_settings.cartridge.as_ref());
             system.disable_bios();
         } else {
-            system.load_bios(&bios);
-            system.load_cartridge(cartridge.as_ref());
+            system.load_bios(&emulator_settings.bios);
+            system.load_cartridge(emulator_settings.cartridge.as_ref());
         }
 
         let internal_texture = cc.egui_ctx.load_texture(
@@ -161,6 +117,8 @@ impl Emulator {
             internal_texture,
             visible_texture,
             memory_view: MemoryView::Rom,
+            frame_time_cap: Duration::from_micros(200),
+            frame_time: Instant::now(),
         }
     }
 
@@ -175,45 +133,45 @@ impl Emulator {
         }
 
         ctx.input(|i| {
-            if i.key_pressed(Key::Enter) {
+            if i.key_down(Key::Enter) {
                 self.system.bus.joysticks[0].set_start(true);
-            } else if i.key_released(Key::Enter) {
+            } else {
                 self.system.bus.joysticks[0].set_start(false);
             }
 
-            if i.key_pressed(Key::A) {
+            if i.key_down(Key::A) {
                 self.system.bus.joysticks[0].set_input_button1(true);
-            } else if i.key_released(Key::A) {
+            } else {
                 self.system.bus.joysticks[0].set_input_button1(false);
             }
 
-            if i.key_pressed(Key::S) {
+            if i.key_down(Key::S) {
                 self.system.bus.joysticks[0].set_input_button2(true);
-            } else if i.key_released(Key::S) {
+            } else {
                 self.system.bus.joysticks[0].set_input_button2(false);
             }
 
-            if i.key_pressed(Key::ArrowUp) {
+            if i.key_down(Key::ArrowUp) {
                 self.system.bus.joysticks[0].set_input_up(true);
-            } else if i.key_released(Key::ArrowUp) {
+            } else {
                 self.system.bus.joysticks[0].set_input_up(false);
             }
 
-            if i.key_pressed(Key::ArrowDown) {
+            if i.key_down(Key::ArrowDown) {
                 self.system.bus.joysticks[0].set_input_down(true);
-            } else if i.key_released(Key::ArrowDown) {
+            } else {
                 self.system.bus.joysticks[0].set_input_down(false);
             }
 
-            if i.key_pressed(Key::ArrowLeft) {
+            if i.key_down(Key::ArrowLeft) {
                 self.system.bus.joysticks[0].set_input_left(true);
-            } else if i.key_released(Key::ArrowLeft) {
+            } else {
                 self.system.bus.joysticks[0].set_input_left(false);
             }
 
-            if i.key_pressed(Key::ArrowRight) {
+            if i.key_down(Key::ArrowRight) {
                 self.system.bus.joysticks[0].set_input_right(true);
-            } else if i.key_released(Key::ArrowRight) {
+            } else {
                 self.system.bus.joysticks[0].set_input_right(false);
             }
         });
@@ -312,15 +270,6 @@ impl Emulator {
 
             ui.separator();
 
-            ui.heading("CPU Interrupts");
-            ui.horizontal(|ui| {
-                ui.checkbox(&mut self.system.cpu.interrupts_enabled, "Interrupts Enabled");
-
-                ui.label(format!("Interrupt Mode: {}", self.system.cpu.interrupt_mode.to_u8()));
-            });
-
-            ui.separator();
-
             ui.heading("VDP Registers");
 
             ui.vertical(|ui| {
@@ -341,6 +290,23 @@ impl Emulator {
                 ui.label(format!("R10: {:08b}", self.system.vdp.registers.r10));
                 ui.label(format!("Address: {:04x}", self.system.vdp.registers.address));
             });
+
+            ui.separator();
+
+            ui.heading("CPU Interrupts");
+            ui.vertical(|ui| {
+                ui.label(format!("IFF1: {}", self.system.cpu.registers.iff1));
+                ui.label(format!("IFF2: {}", self.system.cpu.registers.iff2));
+                ui.label(format!("Ignoring IRQs: {}", self.system.cpu.ignore_next_irq));
+                ui.label(format!("IM: {}", self.system.cpu.interrupt_mode.to_u8()));
+            });
+
+            ui.separator();
+
+            ui.heading("VDP Interrupts");
+            ui.vertical(|ui| {
+                ui.label(format!("VBlank: {}", self.system.vdp.vblank_irq_pending()));
+            });
         });
 
         Window::new("CPU Mappings").resizable(false).show(ctx, |ui| {
@@ -348,23 +314,29 @@ impl Emulator {
             let rom1_bank = self.system.bus.read(MEMORY_REGISTER_CR_BANK_SELECT_1);
             let rom2_bank = self.system.bus.read(MEMORY_REGISTER_CR_BANK_SELECT_2);
             let sram_active = self.system.bus.is_sram_bank_active();
+            let sram_bank = self.system.bus.fetch_bank(BankSelect::Bank2);
 
+            ui.label(format!(
+                "SRAM Bank #{:02x}: {:08x} [{}]",
+                sram_bank,
+                self.system.bus.translate_address_to_real(0x8000).unwrap_or(0x69),
+                if sram_active { "Active" } else { "Inactive" }
+            ));
             ui.label(format!(
                 "ROM Bank #{:02x}: {:08x}",
                 rom0_bank.unwrap_or(0),
-                self.system.bus.translate_address_to_real(0x0000).unwrap_or(0)
+                self.system.bus.translate_address_to_real(0x0000).unwrap_or(0x69)
             ));
             ui.label(format!(
                 "ROM Bank #{:02x}: {:08x}",
                 rom1_bank.unwrap_or(0),
-                self.system.bus.translate_address_to_real(0x4000).unwrap_or(0)
+                self.system.bus.translate_address_to_real(0x4000).unwrap_or(0x69)
             ));
             ui.label(format!(
                 "ROM Bank #{:02x}: {:08x}",
                 rom2_bank.unwrap_or(0),
-                self.system.bus.translate_address_to_real(0x8000).unwrap_or(0)
+                self.system.bus.translate_address_to_real(0x8000).unwrap_or(0x69)
             ));
-            ui.label(format!("SRAM Bank: {}", if sram_active { "Active" } else { "Inactive" }));
         });
 
         Window::new("Memory").resizable(false).min_width(500.0).show(ctx, |ui| {
@@ -384,7 +356,7 @@ impl Emulator {
             let range = match self.memory_view {
                 MemoryView::Rom => (0x0000..0xc000).into_iter(),
                 MemoryView::Ram => (0xc000..0xffff).into_iter(),
-                MemoryView::Sram => (0x0000..0x4000).into_iter(),
+                MemoryView::Sram => (0x0000..0x8000).into_iter(),
                 MemoryView::Vram => (0x0000..0x4000).into_iter(),
                 MemoryView::Cram => (0x0000..0x40).into_iter(),
             };
@@ -469,11 +441,11 @@ impl Emulator {
             }
 
             match self.system.tick() {
-                Ok(true) => {
+                Ok(SystemState { frame_ready: true, .. }) => {
                     new_frame_available = true;
                     break;
                 }
-                Ok(false) => (),
+                Ok(SystemState { frame_ready: false, .. }) => (),
                 Err(e) => {
                     error!("{}", e);
                     self.paused = true;
@@ -543,30 +515,5 @@ impl Emulator {
         self.visible_texture.set(image, TextureOptions::NEAREST);
 
         self.background_color = background_color;
-    }
-
-    fn setup_logging(enable_trace: bool, enable_debug: bool, enable_log_to_file: bool) {
-        let mut default_log_level = Level::Info.to_level_filter();
-
-        let mut target = Target::Stderr;
-
-        if enable_trace {
-            default_log_level = Level::Trace.to_level_filter();
-        }
-
-        if enable_debug {
-            default_log_level = Level::Debug.to_level_filter();
-        }
-
-        if enable_log_to_file {
-            target = Target::Pipe(Box::new(File::create("trace.log").expect("Can't create file")));
-        }
-
-        Builder::new()
-            .filter(Some("core"), default_log_level)
-            .filter(Some("gg"), default_log_level)
-            .target(target)
-            .format_timestamp(None)
-            .init();
     }
 }

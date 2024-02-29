@@ -18,7 +18,7 @@ def main():
     print(f"Comparing files: {trace}, {mesen_trace}")
 
     trace = open(trace, "r").read().splitlines()
-    trace = [line for line in trace if line.startswith("[TRACE emu::cpu] [rom:")]
+    trace = [line for line in trace if line.startswith("[TRACE core::cpu] [")]
     mesen_trace = open(mesen_trace, "r").read().splitlines()
     compare_traces(trace, mesen_trace)
 

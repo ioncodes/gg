@@ -1,3 +1,5 @@
+use log::warn;
+
 use crate::error::GgError;
 use crate::io::Controller;
 use crate::joystick::{self, Joystick, JoystickPort};
@@ -18,10 +20,17 @@ pub enum Passthrough {
     Ram,
 }
 
-enum BankSelect {
+pub enum BankSelect {
     Bank0,
     Bank1,
     Bank2,
+}
+
+#[derive(PartialEq)]
+pub enum RomWriteProtection {
+    Abort,
+    Warn,
+    Allow,
 }
 
 pub struct Bus {
@@ -34,8 +43,8 @@ pub struct Bus {
     pub joysticks: [Joystick; 2],
     joysticks_enabled: bool,
     pub sdsc_console: DebugConsole,
-    rom_write_protection: bool,  // Useful for unit tests that are not SMS/GG specific
-    disable_bank_behavior: bool, // Useful for unit tests that are not SMS/GG specific
+    rom_write_protection: RomWriteProtection, // Useful for unit tests that are not SMS/GG specific
+    disable_bank_behavior: bool,              // Useful for unit tests that are not SMS/GG specific
 }
 
 impl Bus {
@@ -43,14 +52,14 @@ impl Bus {
         Bus {
             rom: Box::new(rom),
             ram: Memory::new(0x1024 * 16, 0x0000), /* changed from 0xc000 */
-            sram: Memory::new(0x4000, 0x0000),
+            sram: Memory::new(0xffff, 0x0000),     // todo: lol
             bios_rom: Memory::new(0x400, 0x0000),
             bios_enabled: true,
             gear_to_gear_cache: None,
             joysticks: [Joystick::new(JoystickPort::Player1), Joystick::new(JoystickPort::Player2)],
             joysticks_enabled: true,
             sdsc_console: DebugConsole::new(),
-            rom_write_protection: true,
+            rom_write_protection: RomWriteProtection::Warn,
             disable_bank_behavior: false,
         }
     }
@@ -62,7 +71,7 @@ impl Bus {
         }
 
         if address >= 0x0000 && address < 0x4000 {
-            let bank = self.fetch_bank(BankSelect::Bank0);
+            let bank = if address < 0x400 { 0 } else { self.fetch_bank(BankSelect::Bank0) };
             return Ok(self.rom.read_from_bank(bank, address));
         }
 
@@ -72,11 +81,13 @@ impl Bus {
         }
 
         if address >= 0x8000 && address < 0xc000 {
+            let bank = self.fetch_bank(BankSelect::Bank2);
+
             if self.is_sram_bank_active() {
-                return Ok(self.sram.read(address - 0x8000));
+                let addr = ((bank * 0x4000) + (address - 0x8000) as usize) as u16;
+                return Ok(self.sram.read(addr));
             }
 
-            let bank = self.fetch_bank(BankSelect::Bank2);
             return Ok(self.rom.read_from_bank(bank, address - 0x8000));
         }
 
@@ -97,42 +108,68 @@ impl Bus {
     #[allow(unused_comparisons)]
     pub fn write(&mut self, address: u16, value: u8) -> Result<(), GgError> {
         if self.bios_enabled && address >= 0x0000 && address < 0x0400 {
-            if self.rom_write_protection {
+            if self.rom_write_protection == RomWriteProtection::Abort {
                 return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
             }
 
-            return Ok(self.bios_rom.write(address, value));
+            if self.rom_write_protection == RomWriteProtection::Warn {
+                warn!("Ignored write to ROM at address {:04x}", address);
+            } else {
+                self.bios_rom.write(address, value);
+            }
+
+            return Ok(());
         }
 
         if address >= 0x0000 && address < 0x4000 {
-            if self.rom_write_protection {
+            if self.rom_write_protection == RomWriteProtection::Abort {
                 return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
             }
 
-            let bank = self.fetch_bank(BankSelect::Bank0);
-            return Ok(self.rom.write_to_bank(bank, address, value));
+            if self.rom_write_protection == RomWriteProtection::Warn {
+                warn!("Ignored write to ROM at address {:04x}", address);
+            } else {
+                let bank = if address < 0x400 { 0 } else { self.fetch_bank(BankSelect::Bank0) };
+                self.rom.write_to_bank(bank, address, value);
+            }
+
+            return Ok(());
         }
 
         if address >= 0x4000 && address < 0x8000 {
-            if self.rom_write_protection {
+            if self.rom_write_protection == RomWriteProtection::Abort {
                 return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
             }
 
-            let bank = self.fetch_bank(BankSelect::Bank1);
-            return Ok(self.rom.write_to_bank(bank, address - 0x4000, value));
+            if self.rom_write_protection == RomWriteProtection::Warn {
+                warn!("Ignored write to ROM at address {:04x}", address);
+            } else {
+                let bank = self.fetch_bank(BankSelect::Bank1);
+                self.rom.write_to_bank(bank, address - 0x4000, value);
+            }
+
+            return Ok(());
         }
 
         if address >= 0x8000 && address < 0xc000 {
             if self.is_sram_bank_active() {
-                return Ok(self.sram.write(address - 0x8000, value));
+                let bank = self.fetch_bank(BankSelect::Bank2);
+                let addr = ((bank * 0x4000) + (address - 0x8000) as usize) as u16;
+                return Ok(self.sram.write(addr, value));
             }
 
-            if self.rom_write_protection {
+            if self.rom_write_protection == RomWriteProtection::Abort {
                 return Err(GgError::WriteToReadOnlyMemory { address: address as usize });
             }
 
-            let bank = self.fetch_bank(BankSelect::Bank2);
-            return Ok(self.rom.write_to_bank(bank, address - 0x8000, value));
+            if self.rom_write_protection == RomWriteProtection::Warn {
+                warn!("Ignored write to ROM at address {:04x}", address);
+            } else {
+                let bank = self.fetch_bank(BankSelect::Bank2);
+                self.rom.write_to_bank(bank, address - 0x8000, value);
+            }
+
+            return Ok(());
         }
 
         if address >= 0xc000 && address <= 0xffff {
@@ -166,7 +203,7 @@ impl Bus {
         let address = address as usize;
 
         if address >= 0x0000 && address < 0x4000 {
-            let bank = self.fetch_bank(BankSelect::Bank0);
+            let bank = if address < 0x400 { 0 } else { self.fetch_bank(BankSelect::Bank0) };
             return Ok(bank * 0x4000 + address);
         }
 
@@ -196,7 +233,7 @@ impl Bus {
         ram_mapping & 0b0000_1000 > 0
     }
 
-    fn fetch_bank(&self, bank: BankSelect) -> usize {
+    pub fn fetch_bank(&self, bank: BankSelect) -> usize {
         if self.disable_bank_behavior {
             return match bank {
                 BankSelect::Bank0 => 0,
@@ -207,26 +244,30 @@ impl Bus {
 
         (match bank {
             BankSelect::Bank0 => self.read(MEMORY_REGISTER_CR_BANK_SELECT_0).unwrap(),
-            BankSelect::Bank1 => {
-                let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_1).unwrap();
-                if bank == 0 {
-                    1
-                } else {
-                    bank
-                }
-            }
+            BankSelect::Bank1 => self.read(MEMORY_REGISTER_CR_BANK_SELECT_1).unwrap(),
             BankSelect::Bank2 => {
-                let bank = self.read(MEMORY_REGISTER_CR_BANK_SELECT_2).unwrap();
-                if bank == 0 {
-                    2
+                if self.is_sram_bank_active() {
+                    let ram_mapping = self.read(MEMORY_REGISTER_RAM_MAPPING).unwrap();
+                    if ram_mapping & 0b0000_0100 == 0 {
+                        0
+                    } else {
+                        1
+                    }
                 } else {
-                    bank
+                    self.read(MEMORY_REGISTER_CR_BANK_SELECT_2).unwrap()
                 }
             }
         }) as usize
     }
 
-    pub fn set_rom_write_protection(&mut self, value: bool) {
+    pub(crate) fn powerup_reset_banks(&mut self) -> Result<(), GgError> {
+        self.write(MEMORY_REGISTER_CR_BANK_SELECT_0, 0)?;
+        self.write(MEMORY_REGISTER_CR_BANK_SELECT_1, 1)?;
+        self.write(MEMORY_REGISTER_CR_BANK_SELECT_2, 2)?;
+        Ok(())
+    }
+
+    pub fn set_rom_write_protection(&mut self, value: RomWriteProtection) {
         self.rom_write_protection = value;
     }
 

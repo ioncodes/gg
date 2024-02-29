@@ -12,6 +12,11 @@ use crate::mapper::SegaMapper;
 use crate::psg::Psg;
 use crate::vdp::{Color, Mode, Vdp};
 
+pub struct SystemState {
+    pub frame_ready: bool,
+    pub repeat_not_fulfilled: bool,
+}
+
 pub struct System {
     pub cpu: Cpu,
     pub bus: Bus,
@@ -19,23 +24,29 @@ pub struct System {
     pub psg: Psg,
     lua: Rc<LuaEngine>,
     abort_invalid_io_op: bool,
+    clocks: usize,
+    master_clock: usize,
 }
 
 impl System {
     pub fn new(lua_script: Option<String>, emulate_sms: bool) -> System {
         // todo: figure out mapper
         let mapper = SegaMapper::new(0);
+        let mut bus = Bus::new(mapper);
         let mode = if emulate_sms { Mode::SegaMasterSystem } else { Mode::GameGear };
-
         let lua = Rc::new(LuaEngine::new(lua_script));
+
+        bus.powerup_reset_banks().unwrap();
 
         System {
             cpu: Cpu::new(),
-            bus: Bus::new(mapper),
+            bus,
             vdp: Vdp::new(mode, Rc::clone(&lua)),
             psg: Psg::new(),
             lua,
             abort_invalid_io_op: true,
+            clocks: 0,
+            master_clock: 0,
         }
     }
 
@@ -74,7 +85,7 @@ impl System {
         self.cpu.decode_at_pc(&mut self.bus)
     }
 
-    pub fn tick(&mut self) -> Result<bool, GgError> {
+    pub fn tick(&mut self) -> Result<SystemState, GgError> {
         self.lua.create_tables(&self.cpu, &self.vdp, &self.bus);
 
         // Execute Lua script
@@ -83,44 +94,61 @@ impl System {
             self.lua.execute_hook(current_pc_before_tick, HookType::CpuExec);
         }
 
+        if self.vdp.is_hblank() {
+            self.clocks = 0;
+        }
+
         // Process tick for all components
-        let result = self.cpu.tick(&mut self.bus, &mut self.vdp, &mut self.psg);
-        match result {
-            Err(GgError::IoRequestNotFulfilled) => (),
-            Err(GgError::JumpNotTaken) => (),
-            Err(GgError::CpuHalted) => (),
-            Err(GgError::RepeatNotFulfilled) => (),
-            Err(GgError::IoControllerInvalidPort) | Err(GgError::VdpInvalidIoMode) => {
-                if self.abort_invalid_io_op {
-                    error!("Identified I/O error at address: {:04x}", self.cpu.registers.pc);
+        let mut repeat_not_fulfilled = false;
+
+        if self.master_clock % 3 == 0 {
+            let result = self.cpu.tick(&mut self.bus, &mut self.vdp, &mut self.psg);
+            match result {
+                Err(GgError::IoRequestNotFulfilled) => (),
+                Err(GgError::JumpNotTaken) => (),
+                Err(GgError::CpuHalted) => (),
+                Err(GgError::RepeatNotFulfilled) => repeat_not_fulfilled = true,
+                Err(GgError::IoControllerInvalidPort) | Err(GgError::VdpInvalidIoMode) => {
+                    if self.abort_invalid_io_op {
+                        error!("Identified I/O error at address: {:04x}", self.cpu.registers.pc);
+                        if self.cpu.registers.pc < 0xc000 {
+                            error!(
+                                "Real address in ROM: {:08x}",
+                                self.bus.translate_address_to_real(self.cpu.registers.pc).unwrap()
+                            );
+                        }
+                        return Err(result.err().unwrap());
+                    }
+                }
+                Err(e) => {
+                    error!("Identified error at address: {:04x}", self.cpu.registers.pc);
                     if self.cpu.registers.pc < 0xc000 {
                         error!(
                             "Real address in ROM: {:08x}",
                             self.bus.translate_address_to_real(self.cpu.registers.pc).unwrap()
                         );
                     }
-                    return Err(result.err().unwrap());
+                    return Err(e);
                 }
-            }
-            Err(e) => {
-                error!("Identified error at address: {:04x}", self.cpu.registers.pc);
-                if self.cpu.registers.pc < 0xc000 {
-                    error!(
-                        "Real address in ROM: {:08x}",
-                        self.bus.translate_address_to_real(self.cpu.registers.pc).unwrap()
-                    );
-                }
-                return Err(e);
-            }
-            _ => (),
-        };
-        let frame_generated = self.vdp.tick(&mut self.cpu);
+                _ => (),
+            };
+        }
+        let mut frame_generated = false;
+        if self.master_clock % 2 == 0 {
+            frame_generated = self.vdp.tick();
+        }
+        self.psg.tick();
+
+        self.master_clock += 1;
 
         // Let the caller know if we reached VBlank to cause a redraw
-        Ok(frame_generated)
+        Ok(SystemState {
+            frame_ready: frame_generated,
+            repeat_not_fulfilled,
+        })
     }
 
-    pub fn render(&mut self) -> (Color, Vec<Color>) {
+    pub fn render(&mut self) -> (Color, &Vec<Color>) {
         self.vdp.render()
     }
 

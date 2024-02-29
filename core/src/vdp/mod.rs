@@ -1,10 +1,9 @@
 mod pattern;
 mod sprite;
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 
-use crate::cpu::Cpu;
 use crate::error::GgError;
 use crate::io::Controller;
 use crate::lua_engine::{HookType, LuaEngine};
@@ -14,13 +13,10 @@ use log::{debug, error, trace};
 
 use self::sprite::SpriteSize;
 
-// todo: ????
-//const H_COUNTER_COUNT: u8 = 171;
-//const NTSC_SCANLINE_COUNT: u16 = 262; // 60 frames
-pub(crate) const V_COUNTER_PORT: u8 = 0x7e;
-pub(crate) const CONTROL_PORT: u8 = 0xbf;
-pub(crate) const DATA_PORT: u8 = 0xbe;
-// const PAL_SCANLINE_COUNT: u8 = 312;
+// $40-7F = Even locations are V counter/PSG, odd locations are H counter/PSG
+// $80-BF = Even locations are data port, odd locations are control port.
+pub(crate) const IO_DATA_CONTROL_START: u8 = 0x80;
+pub(crate) const IO_DATA_CONTROL_END: u8 = 0xbf;
 
 pub const INTERNAL_WIDTH: usize = 256;
 pub const INTERNAL_HEIGHT: usize = 224;
@@ -76,6 +72,10 @@ pub struct Vdp {
     status: u8,
     vram_dirty: bool,
     lua: Rc<LuaEngine>,
+    last_frame: Vec<Color>,
+    priority_list: Vec<usize>,
+    scanline_counter: u8,
+    scanline_irq_available: bool,
 }
 
 impl Vdp {
@@ -96,22 +96,47 @@ impl Vdp {
             status: 0,
             vram_dirty: false,
             lua,
+            last_frame: vec![(0, 0, 0, 0); INTERNAL_WIDTH * INTERNAL_HEIGHT],
+            priority_list: vec![],
+            scanline_counter: 0,
+            scanline_irq_available: false,
         }
     }
 
-    pub(crate) fn tick(&mut self, cpu: &mut Cpu) -> bool {
+    pub(crate) fn tick(&mut self) -> bool {
         self.handle_counters();
 
-        // todo: we should probably handle different types of interrupts here...
-        if self.is_vblank() && self.is_hblank() {
-            self.status |= 0b1000_0000;
-
-            if self.registers.r1 & 0b0010_0000 > 0 {
-                cpu.queue_irq();
+        // Line IRQ
+        if self.v <= 192 {
+            self.scanline_counter = self.scanline_counter.wrapping_sub(1);
+            if self.scanline_counter == 0 {
+                self.scanline_irq_available = true;
+                self.scanline_counter = self.registers.r10;
             }
         }
 
+        // Frame IRQ (VBlank)
+        if self.is_vblank() && self.is_hblank() {
+            self.status |= 0b1000_0000;
+        }
+
         self.v_2nd_loop && self.v > INTERNAL_HEIGHT as u8 && self.vram_dirty
+    }
+
+    pub fn vblank_irq_pending(&self) -> bool {
+        if self.registers.r1 & 0b0010_0000 > 0 {
+            return self.status & 0b1000_0000 > 0;
+        }
+
+        false
+    }
+
+    pub fn scanline_irq_pending(&self) -> bool {
+        if self.registers.r0 & 0b0001_0000 > 0 {
+            return self.scanline_irq_available;
+        }
+
+        false
     }
 
     pub(crate) fn is_vblank(&self) -> bool {
@@ -122,21 +147,21 @@ impl Vdp {
         self.h == 0
     }
 
-    pub fn render(&mut self) -> (Color, Vec<Color>) {
+    pub fn render(&mut self) -> (Color, &Vec<Color>) {
         let background_color = self.read_palette_entry(0, 0);
 
-        let mut pixels = vec![(0, 0, 0, 0); INTERNAL_WIDTH * INTERNAL_HEIGHT];
-        self.render_background(&mut pixels);
-        self.render_sprites(&mut pixels);
+        // Using binary search makes it roughly 6x faster
+        self.priority_list.clear();
+        self.render_background();
+        self.priority_list.sort_unstable();
+        self.render_sprites();
 
         self.vram_dirty = false;
 
-        (background_color, pixels)
+        (background_color, &self.last_frame)
     }
 
-    pub fn render_sprites(&mut self, pixels: &mut Vec<Color>) {
-        debug!("Rendering sprites");
-
+    pub fn render_sprites(&mut self) {
         let write_pattern_to_internal = |pattern: &Pattern, pixels: &mut Vec<Color>, x: u8, y: u8| {
             for p_y in 0..8 {
                 for p_x in 0..8 {
@@ -168,21 +193,20 @@ impl Vdp {
                     }
 
                     let idx = (y as usize * INTERNAL_WIDTH) + x as usize;
-                    pixels[idx] = color;
+                    if self.priority_list.binary_search(&idx).is_err() {
+                        pixels[idx] = color;
+                    }
                 }
             }
         };
 
         let sprite_size = self.sprite_size();
+        let mut overflow_lookup_table: HashMap<u8, usize> = HashMap::new();
+        let mut collision_lookup_table: Vec<(u8, u8)> = Vec::new();
 
         for idx in 0..64 {
             let sprite_attr_base_addr = self.get_sprite_attribute_table_addr();
             let y = self.vram.read(sprite_attr_base_addr + idx) + 1;
-            //println!("y: {:02x} v: {:02x}", y, self.v);
-            // if OFFSET_Y as u8 + y != self.v {
-            //     continue;
-            // }
-
             let x = self.vram.read(sprite_attr_base_addr + 0x80 + 2 * idx);
             let n = self.vram.read(sprite_attr_base_addr + 0x80 + 2 * idx + 1);
 
@@ -194,31 +218,50 @@ impl Vdp {
                 continue;
             }
 
+            // Process OVR
+            if !overflow_lookup_table.contains_key(&y) {
+                overflow_lookup_table.insert(y, 0);
+            } else {
+                let count = overflow_lookup_table.get_mut(&y).unwrap();
+                *count += 1;
+                if *count > 8 {
+                    self.status |= 0b0100_0000;
+                }
+            }
+
+            // Process COL
+            if collision_lookup_table.contains(&(x, y)) {
+                self.status |= 0b0010_0000;
+            } else {
+                collision_lookup_table.push((x, y));
+            }
+
+            // Render sprites for 8x8 and 8x16
             if sprite_size == SpriteSize::Size8x8 {
                 let sprite_table_entry = self.get_sprite_generator_entry(n as u16);
                 let pattern_addr = sprite_table_entry * 32;
                 let pattern = self.fetch_pattern(pattern_addr, false, 1);
 
-                write_pattern_to_internal(&pattern, pixels, x, y);
+                write_pattern_to_internal(&pattern, &mut self.last_frame, x, y);
             } else {
                 let sprite_table_entry = self.get_sprite_generator_entry(n as u16 & 0b1111_1110);
                 let sprite1_addr = sprite_table_entry * 32;
                 let sprite2_addr = (sprite_table_entry + 1) * 32;
 
                 let pattern = self.fetch_pattern(sprite1_addr, false, 1);
-                write_pattern_to_internal(&pattern, pixels, x, y);
+                write_pattern_to_internal(&pattern, &mut self.last_frame, x, y);
 
                 let pattern = self.fetch_pattern(sprite2_addr, false, 1);
-                write_pattern_to_internal(&pattern, pixels, x, y + 8);
+                write_pattern_to_internal(&pattern, &mut self.last_frame, x, y + 8);
             }
         }
     }
 
-    pub fn render_background(&mut self, pixels: &mut Vec<Color>) {
-        debug!("Rendering background");
-
+    pub fn render_background(&mut self) {
         let h_scroll = self.registers.r8 as usize;
         let v_scroll = self.registers.r9 as usize;
+
+        let background_color = self.read_palette_entry(0, 0);
 
         for row in 0..28 {
             for column in 0..32 {
@@ -232,6 +275,7 @@ impl Vdp {
                 let v_flip = (pattern_information & 0b0000_0100_0000_0000) > 0;
                 let h_flip = (pattern_information & 0b0000_0010_0000_0000) > 0;
                 let palette_row = if (pattern_information & 0b0000_1000_0000_0000) > 0 { 1 } else { 0 };
+                let priority = (pattern_information & 0b0001_0000_0000_0000) > 0;
 
                 let pattern_base_addr = pattern_information & 0b0000_0001_1111_1111;
                 let pattern_addr = pattern_base_addr * 32;
@@ -262,8 +306,12 @@ impl Vdp {
                     for x in 0..8 {
                         let color = pattern.get_pixel(x, y);
                         let idx = (screen_y + y as usize) * INTERNAL_WIDTH + (screen_x + x as usize);
-                        if idx < pixels.len() {
-                            pixels[idx] = color;
+                        if idx < self.last_frame.len() {
+                            self.last_frame[idx] = color;
+
+                            if priority && color != background_color {
+                                self.priority_list.push(idx);
+                            }
                         }
                     }
                 }
@@ -491,9 +539,7 @@ impl Vdp {
                 let control_byte2 = self.control_data.pop_front().unwrap();
                 let address = (((control_byte2 & 0b0011_1111) as u16) << 8) | (control_byte1 as u16);
                 let value = self.vram.read(address);
-
-                self.registers.address += 1;
-                self.registers.address %= 0x3fff; // ensure we wrap around
+                self.increment_address_register(0x4000);
 
                 debug!("Setting address register to {:04x}", address);
                 self.data_buffer = value;
@@ -542,8 +588,7 @@ impl Vdp {
             }
         }
 
-        self.registers.address += 1;
-        self.registers.address %= 0x40;
+        self.increment_address_register(0x40);
 
         // Force a rerender
         self.vram_dirty = true;
@@ -556,11 +601,15 @@ impl Vdp {
 
         self.vram.write(self.registers.address, value);
 
-        self.registers.address += 1;
-        self.registers.address %= 0x4000; // ensure we wrap around
+        self.increment_address_register(0x4000);
 
         // Force a rerender
         self.vram_dirty = true;
+    }
+
+    fn increment_address_register(&mut self, boundary: u16) {
+        self.registers.address += 1;
+        self.registers.address %= boundary; // ensure we wrap around
     }
 
     fn status(&mut self) -> u8 {
@@ -572,7 +621,8 @@ impl Vdp {
         //   in which case it contains the number of the first sprite that could not be displayed due to overflow.
 
         let status = self.status;
-        self.status &= 0b0111_1111; // clear VBlank flag
+        self.status &= 0b0001_1111; // clear VBlank, Sprite Overflow and Sprite Collision flags
+        self.scanline_irq_available = false; // clear scanline IRQ flag
         status
     }
 }
@@ -580,16 +630,27 @@ impl Vdp {
 impl Controller for Vdp {
     fn read_io(&mut self, port: u8) -> Result<u8, GgError> {
         match port {
-            V_COUNTER_PORT => Ok(self.v),
-            CONTROL_PORT => Ok(self.status()),
-            DATA_PORT => {
-                // todo: reset control port flag
-                let data = self.vram.read(self.registers.address);
-                self.registers.address += 1;
-                self.registers.address %= 0x3fff; // ensure we wrap around
-                let current_data = self.data_buffer;
-                self.data_buffer = data;
-                Ok(current_data)
+            0x40..=0x7f => {
+                if port % 2 == 0 {
+                    Ok(self.v)
+                } else {
+                    Ok(self.h)
+                }
+            }
+            IO_DATA_CONTROL_START..=IO_DATA_CONTROL_END => {
+                if port % 2 == 0 {
+                    // data port
+                    // todo: reset control port flag
+                    let data = self.vram.read(self.registers.address);
+                    self.increment_address_register(0x4000);
+
+                    let current_data = self.data_buffer;
+                    self.data_buffer = data;
+                    Ok(current_data)
+                } else {
+                    // control port
+                    Ok(self.status())
+                }
             }
             _ => {
                 error!("Invalid port for VDP I/O controller (read): {:02x}", port);
@@ -600,25 +661,26 @@ impl Controller for Vdp {
 
     fn write_io(&mut self, port: u8, value: u8) -> Result<(), GgError> {
         match port {
-            CONTROL_PORT => {
-                self.control_data.push_back(value);
-                if self.control_data.len() >= 2 {
-                    trace!("VDP control type: {:08b}", self.control_data[1]);
-                    self.process_control_data();
-                }
-
-                Ok(())
-            }
-            DATA_PORT => {
-                match self.io_mode {
-                    IoMode::VramWrite => self.vram_write(value),
-                    IoMode::CramWrite => self.cram_write(value),
-                    _ => {
-                        error!(
-                            "Received byte on data port ({:02x}) without being in a specific mode: {:02x}",
-                            DATA_PORT, value
-                        );
-                        return Err(GgError::VdpInvalidIoMode);
+            IO_DATA_CONTROL_START..=IO_DATA_CONTROL_END => {
+                if port % 2 == 0 {
+                    // data port
+                    match self.io_mode {
+                        IoMode::VramWrite => self.vram_write(value),
+                        IoMode::CramWrite => self.cram_write(value),
+                        _ => {
+                            error!(
+                                "Received byte on data port ({:02x}) without being in a specific mode: {:02x}",
+                                port, value
+                            );
+                            return Err(GgError::VdpInvalidIoMode);
+                        }
+                    }
+                } else {
+                    // control port
+                    self.control_data.push_back(value);
+                    if self.control_data.len() >= 2 {
+                        trace!("VDP control type: {:08b}", self.control_data[1]);
+                        self.process_control_data();
                     }
                 }
 

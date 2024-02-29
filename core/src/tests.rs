@@ -1,18 +1,14 @@
 #[cfg(test)]
 mod tests {
-    use crate::bus::Passthrough;
+    use crate::bus::{Passthrough, RomWriteProtection};
     use crate::cpu::Flags;
     use crate::system::System;
     use serde_json::Value;
     use z80::instruction::Reg16;
 
-    fn is_ignore(path: &std::path::Path) -> bool {
-        // we dont wanna test interrupts
-        // i also dont wanna bother with daa just now
-        // ignore all i/o port tests
-
-        path.ends_with("76.json") || path.ends_with("27.json") || path.ends_with("db.json")
-        // !path.ends_with("ed a3.json")
+    fn is_ignore(_path: &std::path::Path) -> bool {
+        // _path.ends_with("ed b1.json")
+        false
     }
 
     #[datatest::files("../external/jsmoo/misc/tests/GeneratedTests/z80/v1", {
@@ -33,7 +29,7 @@ mod tests {
             system.disable_bios();
             system.set_abort_on_io_operation_behavior(false);
             system.bus.rom.resize(0xffff);
-            system.bus.set_rom_write_protection(false);
+            system.bus.set_rom_write_protection(RomWriteProtection::Allow);
             system.bus.disable_bank_behavior(true);
 
             system.cpu.registers.a = initial.get("a").unwrap().as_u64().unwrap() as u8;
@@ -68,6 +64,9 @@ mod tests {
             system.cpu.registers.pc = initial.get("pc").unwrap().as_u64().unwrap() as u16;
             system.cpu.registers.sp = initial.get("sp").unwrap().as_u64().unwrap() as u16;
 
+            system.cpu.registers.iff1 = initial.get("iff1").unwrap().as_u64().unwrap() != 0;
+            system.cpu.registers.iff2 = initial.get("iff2").unwrap().as_u64().unwrap() != 0;
+
             let ram = initial.get("ram").unwrap().as_array().unwrap();
             for value in ram {
                 let addr = value.as_array().unwrap()[0].as_u64().unwrap() as usize;
@@ -81,8 +80,9 @@ mod tests {
             }
 
             let decoded = system.decode_instr_at_pc().unwrap().opcode;
+
             match system.tick() {
-                Ok(_) => {}
+                Ok(_) => (),
                 Err(e) => panic!("{}", e),
             }
 
@@ -193,6 +193,22 @@ mod tests {
             assert_eq!(
                 system.cpu.registers.sp,
                 final_.get("sp").unwrap().as_u64().unwrap() as u16,
+                "Testcase {} ({})",
+                name,
+                decoded
+            );
+
+            assert_eq!(
+                system.cpu.registers.iff1,
+                final_.get("iff1").unwrap().as_u64().unwrap() != 0,
+                "Testcase {} ({})",
+                name,
+                decoded
+            );
+
+            assert_eq!(
+                system.cpu.registers.iff2,
+                final_.get("iff2").unwrap().as_u64().unwrap() != 0,
                 "Testcase {} ({})",
                 name,
                 decoded

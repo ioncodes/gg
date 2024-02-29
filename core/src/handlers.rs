@@ -97,11 +97,25 @@ impl<'a> Handlers<'a> {
             Opcode::Load(Operand::Register(Register::Reg8(dst_reg), false), Operand::Register(Register::Reg8(src_reg), false), _) => {
                 let src = self.cpu.get_register_u8(src_reg);
                 self.cpu.set_register_u8(dst_reg, src);
+
+                if dst_reg == Reg8::A && (src_reg == Reg8::R || src_reg == Reg8::I) {
+                    self.cpu.registers.f.set(Flags::ZERO, src == 0);
+                    self.cpu.registers.f.set(Flags::SIGN, src & 0b1000_0000 != 0);
+                    self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.cpu.registers.iff2);
+                    self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+                    self.cpu.registers.f.set(Flags::SUBTRACT, false);
+                }
+
                 Ok(())
             }
             Opcode::Load(Operand::Register(Register::Reg16(dst_reg), false), Operand::Register(Register::Reg16(src_reg), false), _) => {
                 let src = self.cpu.get_register_u16(src_reg);
                 self.cpu.set_register_u16(dst_reg, src);
+                Ok(())
+            }
+            Opcode::Load(Operand::Register(Register::Reg16(dst_reg), true), Operand::Register(Register::Reg16(src_reg), false), _) => {
+                let src = self.cpu.get_register_u16(src_reg);
+                self.bus.write_word(self.cpu.get_register_u16(dst_reg), src)?;
                 Ok(())
             }
             _ => Err(GgError::InvalidOpcodeImplementation {
@@ -139,7 +153,10 @@ impl<'a> Handlers<'a> {
     }
 
     pub(crate) fn set_interrupt_state(&mut self, enabled: bool, instruction: &Instruction) -> Result<(), GgError> {
-        self.cpu.interrupts_enabled = enabled;
+        self.cpu.ignore_next_irq = enabled;
+        self.cpu.registers.iff1 = enabled;
+        self.cpu.registers.iff2 = enabled;
+
         Ok(())
     }
 
@@ -288,10 +305,32 @@ impl<'a> Handlers<'a> {
                 self.cpu.set_register_u8(dst_reg, imm);
                 Ok(())
             }
+            Opcode::In(Operand::Register(Register::Reg8(dst_reg), false), Operand::Register(Register::Reg8(src_reg), true), _) => {
+                let src = self.cpu.get_register_u8(src_reg);
+                let imm = self.cpu.read_io(src, self.vdp, self.bus, self.psg)?;
+                self.cpu.set_register_u8(dst_reg, imm);
+                Ok(())
+            }
             _ => Err(GgError::InvalidOpcodeImplementation {
                 instruction: instruction.opcode,
             }),
         }
+    }
+
+    pub(crate) fn ini(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let c = self.cpu.get_register_u8(Reg8::C);
+        let hl = self.cpu.get_register_u16(Reg16::HL);
+        let imm = self.cpu.read_io(c, self.vdp, self.bus, self.psg)?;
+        self.bus.write(hl, imm)?;
+
+        self.cpu.set_register_u16(Reg16::HL, hl.wrapping_add(1));
+        let b = self.cpu.get_register_u8(Reg8::B);
+        self.cpu.set_register_u8(Reg8::B, b.wrapping_sub(1));
+
+        self.cpu.registers.f.set(Flags::ZERO, b.wrapping_sub(1) == 0);
+        self.cpu.registers.f.set(Flags::SUBTRACT, true);
+
+        Ok(())
     }
 
     pub(crate) fn compare(&mut self, instruction: &Instruction) -> Result<(), GgError> {
@@ -393,6 +432,7 @@ impl<'a> Handlers<'a> {
             Opcode::ReturnFromIrq(_) => {
                 let addr = self.cpu.pop_stack(self.bus)?;
                 self.cpu.set_register_u16(Reg16::PC, addr);
+                self.cpu.registers.iff1 = self.cpu.registers.iff2;
                 Ok(())
             }
             _ => Err(GgError::InvalidOpcodeImplementation {
@@ -419,15 +459,31 @@ impl<'a> Handlers<'a> {
         }
     }
 
-    pub(crate) fn compare_increment_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+    pub(crate) fn out_decrement_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let b = self.cpu.get_register_u8(Reg8::B);
+        let hl = self.cpu.get_register_u16(Reg16::HL);
+
+        let value = self.bus.read(hl)?;
+        let port = self.cpu.get_register_u8(Reg8::C);
+        self.cpu.write_io(port, value, self.vdp, self.bus, self.psg)?;
+
+        self.cpu.set_register_u16(Reg16::HL, hl.wrapping_sub(1));
+        self.cpu.set_register_u8(Reg8::B, b.wrapping_sub(1));
+
+        if self.cpu.get_register_u8(Reg8::B) == 0 {
+            Ok(())
+        } else {
+            Err(GgError::RepeatNotFulfilled)
+        }
+    }
+
+    pub(crate) fn compare_increment(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         let src = {
             let hl = self.cpu.get_register_u16(Reg16::HL);
             self.bus.read(hl)?
         };
         let a = self.cpu.get_register_u8(Reg8::A);
         let result = a.wrapping_sub(src);
-
-        self.cpu.set_register_u8(Reg8::A, result);
 
         let hl = self.cpu.get_register_u16(Reg16::HL);
         self.cpu.set_register_u16(Reg16::HL, hl.wrapping_add(1));
@@ -440,7 +496,6 @@ impl<'a> Handlers<'a> {
             .f
             .set(Flags::HALF_CARRY, self.detect_half_carry_u8(a, src, result));
         self.cpu.registers.f.set(Flags::SUBTRACT, true);
-        self.cpu.registers.f.set(Flags::CARRY, result > a);
         self.cpu.registers.f.set(Flags::ZERO, result == 0);
         self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
         self.cpu
@@ -448,7 +503,69 @@ impl<'a> Handlers<'a> {
             .f
             .set(Flags::PARITY_OR_OVERFLOW, self.cpu.get_register_u16(Reg16::BC) != 0);
 
-        if self.cpu.get_register_u16(Reg16::BC) == 0 && self.cpu.registers.f.contains(Flags::ZERO) {
+        Ok(())
+    }
+
+    pub(crate) fn compare_increment_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let src = {
+            let hl = self.cpu.get_register_u16(Reg16::HL);
+            self.bus.read(hl)?
+        };
+        let a = self.cpu.get_register_u8(Reg8::A);
+        let result = a.wrapping_sub(src);
+
+        let hl = self.cpu.get_register_u16(Reg16::HL);
+        self.cpu.set_register_u16(Reg16::HL, hl.wrapping_add(1));
+
+        let bc = self.cpu.get_register_u16(Reg16::BC);
+        self.cpu.set_register_u16(Reg16::BC, bc.wrapping_sub(1));
+
+        self.cpu
+            .registers
+            .f
+            .set(Flags::HALF_CARRY, self.detect_half_carry_u8(a, src, result));
+        self.cpu.registers.f.set(Flags::SUBTRACT, true);
+        self.cpu.registers.f.set(Flags::ZERO, result == 0);
+        self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+        self.cpu
+            .registers
+            .f
+            .set(Flags::PARITY_OR_OVERFLOW, self.cpu.get_register_u16(Reg16::BC) != 0);
+
+        if self.cpu.get_register_u16(Reg16::BC) == 0 || self.cpu.registers.f.contains(Flags::ZERO) {
+            Ok(())
+        } else {
+            Err(GgError::RepeatNotFulfilled)
+        }
+    }
+
+    pub(crate) fn compare_decrement_repeat(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        let src = {
+            let hl = self.cpu.get_register_u16(Reg16::HL);
+            self.bus.read(hl)?
+        };
+        let a = self.cpu.get_register_u8(Reg8::A);
+        let result = a.wrapping_sub(src);
+
+        let hl = self.cpu.get_register_u16(Reg16::HL);
+        self.cpu.set_register_u16(Reg16::HL, hl.wrapping_sub(1));
+
+        let bc = self.cpu.get_register_u16(Reg16::BC);
+        self.cpu.set_register_u16(Reg16::BC, bc.wrapping_sub(1));
+
+        self.cpu
+            .registers
+            .f
+            .set(Flags::HALF_CARRY, self.detect_half_carry_u8(a, src, result));
+        self.cpu.registers.f.set(Flags::SUBTRACT, true);
+        self.cpu.registers.f.set(Flags::ZERO, result == 0);
+        self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+        self.cpu
+            .registers
+            .f
+            .set(Flags::PARITY_OR_OVERFLOW, self.cpu.get_register_u16(Reg16::BC) != 0);
+
+        if self.cpu.get_register_u16(Reg16::BC) == 0 || self.cpu.registers.f.contains(Flags::ZERO) {
             Ok(())
         } else {
             Err(GgError::RepeatNotFulfilled)
@@ -996,6 +1113,60 @@ impl<'a> Handlers<'a> {
         }
     }
 
+    pub(crate) fn rotate_left_decimal(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::RotateLeftDecimal(_) => {
+                let a = self.cpu.get_register_u8(Reg8::A);
+                let hl = self.cpu.get_register_u16(Reg16::HL);
+                let value = self.bus.read(hl)?;
+
+                let result = (a & 0b0000_1111) | (value << 4);
+                self.bus.write(hl, result)?;
+
+                let result = (value >> 4) | (a & 0b1111_0000);
+                self.cpu.set_register_u8(Reg8::A, result);
+
+                self.cpu.registers.f.set(Flags::SUBTRACT, false);
+                self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
+
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
+    }
+
+    pub(crate) fn rotate_right_decimal(&mut self, instruction: &Instruction) -> Result<(), GgError> {
+        match instruction.opcode {
+            Opcode::RotateRightDecimal(_) => {
+                let a = self.cpu.get_register_u8(Reg8::A);
+                let hl = self.cpu.get_register_u16(Reg16::HL);
+                let value = self.bus.read(hl)?;
+
+                let result = (a << 4) | (value >> 4);
+                self.bus.write(hl, result)?;
+
+                let result = (value & 0b0000_1111) | (a & 0b1111_0000);
+                self.cpu.set_register_u8(Reg8::A, result);
+
+                self.cpu.registers.f.set(Flags::SUBTRACT, false);
+                self.cpu.registers.f.set(Flags::HALF_CARRY, false);
+                self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+                self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+                self.cpu.registers.f.set(Flags::ZERO, result == 0);
+
+                Ok(())
+            }
+            _ => Err(GgError::InvalidOpcodeImplementation {
+                instruction: instruction.opcode,
+            }),
+        }
+    }
+
     pub(crate) fn rotate_right_carry_accumulator(&mut self, instruction: &Instruction) -> Result<(), GgError> {
         match instruction.opcode {
             Opcode::RotateRightCarryAccumulator(_) => {
@@ -1465,6 +1636,16 @@ impl<'a> Handlers<'a> {
                 self.cpu.set_register_u16(rhs_reg, data1);
                 Ok(())
             }
+            Opcode::Exchange(Operand::Register(Register::Reg16(lhs_reg), true), Operand::Register(Register::Reg16(rhs_reg), true), _) => {
+                let src = self.cpu.get_register_u16(lhs_reg);
+                let data1 = self.bus.read_word(src)?;
+                let src = self.cpu.get_register_u16(rhs_reg);
+                let data2 = self.bus.read_word(src)?;
+                self.bus.write_word(src, data1)?;
+                let src = self.cpu.get_register_u16(lhs_reg);
+                self.bus.write_word(src, data2)?;
+                Ok(())
+            }
             _ => Err(GgError::InvalidOpcodeImplementation {
                 instruction: instruction.opcode,
             }),
@@ -1604,24 +1785,28 @@ impl<'a> Handlers<'a> {
     }
 
     pub(crate) fn decimal_adjust_accumulator(&mut self, instruction: &Instruction) -> Result<(), GgError> {
-        // Straight up stolen from: https://github.com/JDRobotter/rgg/blob/master/src/cpu/z80.rs#L1480
-
         let mut a = self.cpu.get_register_u8(Reg8::A);
-
-        if ((a & 0x0f) > 9) || self.cpu.registers.f.contains(Flags::HALF_CARRY) {
-            a += 0x06;
-        }
-
-        if ((a & 0xf0) > 0x90) || self.cpu.registers.f.contains(Flags::CARRY) {
-            a += 0x60;
+        if self.cpu.registers.f.contains(Flags::CARRY) || a > 0x99 {
+            let value = a.wrapping_add_signed(if self.cpu.registers.f.contains(Flags::SUBTRACT) {
+                -0x60
+            } else {
+                0x60
+            });
+            self.cpu.set_register_u8(Reg8::A, value);
             self.cpu.registers.f.set(Flags::CARRY, true);
         }
 
-        self.cpu.set_register_u8(Reg8::A, a);
+        a = self.cpu.get_register_u8(Reg8::A);
+        if self.cpu.registers.f.contains(Flags::HALF_CARRY) || ((a & 0x0f) > 0x09) {
+            let value = a.wrapping_add_signed(if self.cpu.registers.f.contains(Flags::SUBTRACT) { -6 } else { 6 });
+            self.cpu.set_register_u8(Reg8::A, value);
+        }
 
-        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(a));
-        self.cpu.registers.f.set(Flags::ZERO, a == 0);
-        self.cpu.registers.f.set(Flags::SIGN, a & 0b1000_0000 != 0);
+        let result = self.cpu.get_register_u8(Reg8::A);
+        self.cpu.registers.f.set(Flags::PARITY_OR_OVERFLOW, self.check_parity(result));
+        self.cpu.registers.f.set(Flags::ZERO, result == 0);
+        self.cpu.registers.f.set(Flags::SIGN, result & 0b1000_0000 != 0);
+        self.cpu.registers.f.set(Flags::HALF_CARRY, (result ^ a) & 0x10 > 0);
 
         Ok(())
     }

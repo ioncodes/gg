@@ -6,7 +6,7 @@ use crate::psg::Psg;
 use crate::vdp::{self, Vdp};
 use crate::{joystick, sdsc};
 use bitflags::bitflags;
-use log::{error, trace};
+use log::{debug, error, trace};
 use std::fmt;
 use z80::disassembler::Disassembler;
 use z80::instruction::{Instruction, Opcode, Reg16, Reg8, Register};
@@ -35,6 +35,8 @@ pub struct Registers {
     pub iy: u16,
     pub pc: u16,
     pub sp: u16,
+    pub iff1: bool,
+    pub iff2: bool,
 }
 
 bitflags! {
@@ -78,9 +80,15 @@ impl InterruptMode {
 
 pub struct Cpu {
     pub registers: Registers,
-    pub interrupts_enabled: bool,
     pub interrupt_mode: InterruptMode,
-    irq_available: bool,
+    // Note a fact about EI: a maskable interrupt isn’t accepted directly after it, so the next op-
+    // portunity for an interrupt is after the RETI. This is very useful; if the INT line is still low, an
+    // interrupt is accepted again. If this happens a lot and the interrupt is generated before the RETI,
+    // the stack could overflow (since the routine would be called again and again). But this property of
+    // EI prevents this.
+    // Directly after an EI or DI instruction, interrupts aren’t accepted. They’re accepted again after
+    // the instruction after the EI (RET in the following example).
+    pub ignore_next_irq: bool,
 }
 
 impl Cpu {
@@ -109,10 +117,11 @@ impl Cpu {
                 iy: 0,
                 pc: 0,
                 sp: 0,
+                iff1: false,
+                iff2: false,
             },
-            interrupts_enabled: true,
             interrupt_mode: InterruptMode::IM0,
-            irq_available: false,
+            ignore_next_irq: false,
         }
     }
 
@@ -139,14 +148,21 @@ impl Cpu {
             Err(msg) => return Err(GgError::DecoderError { msg }),
         };
 
-        if self.irq_available {
-            self.trigger_irq(bus, &instruction)?;
-            self.irq_available = false;
+        if vdp.vblank_irq_pending() || vdp.scanline_irq_pending() {
+            if self.registers.iff1 && !self.ignore_next_irq {
+                self.trigger_irq(bus, &instruction)?;
 
-            instruction = match self.decode_at_pc(bus) {
-                Ok(instruction) => instruction,
-                Err(msg) => return Err(GgError::DecoderError { msg }),
-            };
+                instruction = match self.decode_at_pc(bus) {
+                    Ok(instruction) => instruction,
+                    Err(msg) => return Err(GgError::DecoderError { msg }),
+                };
+            }
+        }
+
+        // Directly after an EI or DI instruction, interrupts aren’t accepted. They’re accepted again after
+        // the instruction after the EI (RET in the following example).
+        if self.ignore_next_irq {
+            self.ignore_next_irq = false;
         }
 
         let prefix = if self.registers.pc < 0xc000 { "rom" } else { "ram" };
@@ -155,12 +171,15 @@ impl Cpu {
             Err(_) => self.registers.pc as usize, // This can happen if we execute code in RAM (example: end of BIOS)
         };
         trace!(
-            "[{}:{:04x}->{:08x}] {:<20} [{:?}]",
+            "[{}:{:04x}->{:08x}] {:<20} [{:?}  V: {}  H: {}  VBlank: {}]",
             prefix,
             self.registers.pc,
             real_pc_addr,
             format!("{}", instruction.opcode),
-            self
+            self,
+            vdp.v,
+            vdp.h,
+            vdp.vblank_irq_pending()
         );
 
         let mut handlers = Handlers::new(self, bus, vdp, psg);
@@ -178,6 +197,7 @@ impl Cpu {
             Opcode::Return(_, _) => handlers.return_(&instruction),
             Opcode::ReturnFromIrq(_) => handlers.return_from_irq(&instruction),
             Opcode::OutIncrementRepeat(_) => handlers.out_increment_repeat(&instruction),
+            Opcode::OutDecrementRepeat(_) => handlers.out_decrement_repeat(&instruction),
             Opcode::Or(_, _) => handlers.or(&instruction),
             Opcode::Push(_, _) => handlers.push(&instruction),
             Opcode::Pop(_, _) => handlers.pop(&instruction),
@@ -231,6 +251,11 @@ impl Cpu {
             Opcode::Negate(_) => handlers.negate(&instruction),
             Opcode::LoadIncrement(_) => handlers.load_increment(&instruction),
             Opcode::CompareIncrementRepeat(_) => handlers.compare_increment_repeat(&instruction),
+            Opcode::CompareDecrementRepeat(_) => handlers.compare_decrement_repeat(&instruction),
+            Opcode::CompareIncrement(_) => handlers.compare_increment(&instruction),
+            Opcode::InIncrement(_) => handlers.ini(&instruction),
+            Opcode::RotateLeftDecimal(_) => handlers.rotate_left_decimal(&instruction),
+            Opcode::RotateRightDecimal(_) => handlers.rotate_right_decimal(&instruction),
             Opcode::NoOperation(_) => Ok(()),
             _ => {
                 error!("Handler missing for instruction: {}\n{}", instruction.opcode, self);
@@ -252,15 +277,23 @@ impl Cpu {
             Opcode::Call(_, _, _) => result.is_ok(),
             Opcode::Jump(_, _, _) => result.is_ok(),
             Opcode::Return(_, _) => result.is_ok(),
+            Opcode::ReturnFromIrq(_) => result.is_ok(),
+            Opcode::ReturnFromNmi(_) => result.is_ok(), // todo: sure?
             Opcode::Restart(_, _) => result.is_ok(),
             // Do NOT increase PC if the repeat instruction's condition is not met
-            Opcode::LoadDecrementRepeat(_) => result.is_err(),
             Opcode::LoadIncrementRepeat(_) => result.is_err(),
+            Opcode::LoadDecrementRepeat(_) => result.is_err(),
             Opcode::OutIncrementRepeat(_) => result.is_err(),
+            Opcode::OutDecrementRepeat(_) => result.is_err(),
+            Opcode::CompareIncrementRepeat(_) => result.is_err(),
+            Opcode::CompareDecrementRepeat(_) => result.is_err(),
+            Opcode::InIncrementRepeat(_) => result.is_err(),
+            Opcode::InDecrementRepeat(_) => result.is_err(),
             _ => false,
         };
 
         if !skip {
+            self.increment_r();
             self.registers.pc = self.registers.pc.wrapping_add(instruction.length as u16);
         }
 
@@ -271,47 +304,28 @@ impl Cpu {
         }
     }
 
-    pub(crate) fn queue_irq(&mut self) {
-        // todo: i think we might even just execute the handler right away...
-        // perhaps just execute trigger_irq directly instead of waiting for a new tick?
-        self.irq_available = true;
+    pub(crate) fn increment_r(&mut self) {
+        self.registers.r = self.registers.r & 0b1000_0000 | (((self.registers.r & 0b0111_1111) + 1) & 0b0111_1111);
     }
 
     pub(crate) fn trigger_irq(&mut self, bus: &mut Bus, current_instruction: &Instruction) -> Result<(), GgError> {
-        /*
-            Interrupt mode 0
+        debug!("IRQ triggered");
 
-            The interrupting device can place a single or multi-byte opcode on the
-            data bus for the Z80 to fetch and execute when an interrupt occurs.
+        let vector = match self.interrupt_mode {
+            InterruptMode::IM0 => 0x0038,
+            InterruptMode::IM1 => 0x0038,
+            InterruptMode::IM2 => 0x0038,
+        };
 
-            For the SMS 2, Game Gear, and Genesis, the value $FF is always read from
-            the data bus, which corresponds to the instruction 'RST 38H'.
+        self.registers.iff1 = false;
+        self.registers.iff2 = false;
 
-            For the SMS, a random value is returned which could correspond to any
-            possible instruction.
-
-            Interrupt mode 1
-
-            When an interrupt occurs the Z80's PC register is set to $0038.
-
-            Interrupt mode 2
-
-            The interrupting device can place a single byte on the data bus which is
-            used as the LSB of a 16-bit address, of which the MSB comes from the Z80's
-            I register. The Z80 manual says the address must be even, but odd addresses
-            work fine. The Z80 then jumps to that address.
-        */
-
-        if self.interrupts_enabled {
-            let instr_length = current_instruction.length as u16;
-            let vector = match self.interrupt_mode {
-                InterruptMode::IM0 => 0x0038,
-                InterruptMode::IM1 => 0x0038,
-                InterruptMode::IM2 => 0x0038,
-            };
-            self.push_stack(bus, self.registers.pc + instr_length)?;
-            self.registers.pc = vector;
+        match current_instruction.opcode {
+            Opcode::Halt(length) => self.push_stack(bus, self.registers.pc + length as u16)?,
+            _ => self.push_stack(bus, self.registers.pc)?,
         }
+
+        self.registers.pc = vector;
 
         Ok(())
     }
@@ -319,10 +333,10 @@ impl Cpu {
     pub(crate) fn write_io(&mut self, port: u8, value: u8, vdp: &mut Vdp, bus: &mut Bus, psg: &mut Psg) -> Result<(), GgError> {
         match port {
             0x00..=0x06 => bus.write_io(port, value)?,
-            vdp::CONTROL_PORT | vdp::DATA_PORT => vdp.write_io(port, value)?,
+            vdp::IO_DATA_CONTROL_START..=vdp::IO_DATA_CONTROL_END => vdp.write_io(port, value)?,
             sdsc::CONTROL_PORT | sdsc::DATA_PORT => bus.write_io(port, value)?,
             bus::MEMORY_CONTROL_PORT => bus.write_io(port, value)?,
-            0x7f => psg.write_io(port, value)?,
+            0x40..=0x7f => psg.write_io(port, value)?,
             _ => {
                 error!("Unassigned port (write): {:02x}", port);
                 return Err(GgError::IoControllerInvalidPort);
@@ -335,7 +349,8 @@ impl Cpu {
     pub(crate) fn read_io(&self, port: u8, vdp: &mut Vdp, bus: &mut Bus, _psg: &mut Psg) -> Result<u8, GgError> {
         match port {
             0x00..=0x06 => bus.read_io(port),
-            vdp::CONTROL_PORT | vdp::DATA_PORT | vdp::V_COUNTER_PORT => vdp.read_io(port),
+            vdp::IO_DATA_CONTROL_START..=vdp::IO_DATA_CONTROL_END => vdp.read_io(port),
+            0x40..=0x7f => vdp.read_io(port),
             joystick::JOYSTICK_AB_PORT | joystick::JOYSTICK_B_MISC_PORT => bus.read_io(port),
             _ => {
                 error!("Unassigned port (read): {:02x}", port);
@@ -521,7 +536,7 @@ impl fmt::Debug for Cpu {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "AF: {:04x}  BC: {:04x}  DE: {:04x}  HL: {:04x}  AF': {:04x}  BC': {:04x}  DE': {:04x}  HL': {:04x}  PC: {:04x}  SP: {:04x}  Flags: {:08b} ({})",
+            "AF: {:04x}  BC: {:04x}  DE: {:04x}  HL: {:04x}  AF': {:04x}  BC': {:04x}  DE': {:04x}  HL': {:04x}  IX: {:04x}  IY: {:04x}  PC: {:04x}  SP: {:04x}  R: {:02x}  I: {:02x}  Flags: {:08b} ({})",
             self.get_register_u16(Reg16::AF),
             self.get_register_u16(Reg16::BC),
             self.get_register_u16(Reg16::DE),
@@ -530,8 +545,12 @@ impl fmt::Debug for Cpu {
             self.get_register_u16(Reg16::BCShadow),
             self.get_register_u16(Reg16::DEShadow),
             self.get_register_u16(Reg16::HLShadow),
+            self.get_register_u16(Reg16::IX(None)),
+            self.get_register_u16(Reg16::IY(None)),
             self.registers.pc,
             self.registers.sp,
+            self.registers.r,
+            self.registers.i,
             self.registers.f.bits(),
             self.registers.f
         )
