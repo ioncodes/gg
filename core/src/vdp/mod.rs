@@ -207,11 +207,6 @@ impl Vdp {
         for idx in 0..64 {
             let sprite_attr_base_addr = self.get_sprite_attribute_table_addr();
             let y = self.vram.read(sprite_attr_base_addr + idx) + 1;
-            //println!("y: {:02x} v: {:02x}", y, self.v);
-            // if OFFSET_Y as u8 + y != self.v {
-            //     continue;
-            // }
-
             let x = self.vram.read(sprite_attr_base_addr + 0x80 + 2 * idx);
             let n = self.vram.read(sprite_attr_base_addr + 0x80 + 2 * idx + 1);
 
