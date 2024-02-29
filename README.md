@@ -1,8 +1,15 @@
 ## gg
 WIP GameGear (and possibly Sega Master System) emulator. Most of the information I either figured out by reverse engineering
-the hardware and software myself or by using the excellent docs found on [smspower.org](https://www.smspower.org/). This project is  
+the hardware and software myself or by using the excellent docs found on [smspower.org](https://www.smspower.org/). This project is 
 messed up in some cases and should not be used as direct reference for your own implementation. I mostly implemented everything on a
 "fuck around and find out" basis, implementing features where needed to get things working. Also, there is no PSG support!
+
+I would not have gotten this far without the amazing help from the helpful people over on the [Emulation Development](https://discord.gg/dkmJAes) Discord server:
+* originaldave_
+* ZjoyKiLer
+* Mask of Destiny
+* and everyone else that helped along the way <3
+
 
 <details>
   <summary>Demos</summary>
