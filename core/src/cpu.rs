@@ -253,6 +253,7 @@ impl Cpu {
             Opcode::CompareIncrementRepeat(_) => handlers.compare_increment_repeat(&instruction),
             Opcode::CompareDecrementRepeat(_) => handlers.compare_decrement_repeat(&instruction),
             Opcode::CompareIncrement(_) => handlers.compare_increment(&instruction),
+            Opcode::CompareDecrement(_) => handlers.compare_decrement(&instruction),
             Opcode::InIncrement(_) => handlers.ini(&instruction),
             Opcode::RotateLeftDecimal(_) => handlers.rotate_left_decimal(&instruction),
             Opcode::RotateRightDecimal(_) => handlers.rotate_right_decimal(&instruction),

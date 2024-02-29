@@ -1252,7 +1252,11 @@ impl<'a> Disassembler<'a> {
                 Operand::Immediate(Immediate::U16(self.read_u16(offset + 2)), true),
                 4,
             ),
-            (Some(0xed), Some(0x6f), _, _) => Opcode::RotateLeftDecimal(2),
+            (Some(0xed), Some(0x6f), _, _) => Opcode::Load(
+                Operand::Register(Register::Reg8(Reg8::A), false),
+                Operand::Register(Register::Reg8(Reg8::R), false),
+                2,
+            ),
             (Some(0xed), Some(0x72), _, _) => Opcode::SubtractCarry(
                 Operand::Register(Register::Reg16(Reg16::HL), false),
                 Operand::Register(Register::Reg16(Reg16::SP), false),
