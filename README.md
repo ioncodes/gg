@@ -4,13 +4,6 @@ the hardware and software myself or by using the excellent docs found on [smspow
 messed up in some cases and should not be used as direct reference for your own implementation. I mostly implemented everything on a
 "fuck around and find out" basis, implementing features where needed to get things working. Also, there is no PSG support!
 
-I would not have gotten this far without the amazing help from the helpful people over on the [Emulation Development](https://discord.gg/dkmJAes) Discord server:
-* originaldave_
-* ZjoyKiLer
-* Mask of Destiny
-* and everyone else that helped along the way <3
-
-
 <details>
   <summary>Demos</summary>
 
@@ -18,6 +11,17 @@ I would not have gotten this far without the amazing help from the helpful peopl
   | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ---- |
   | <video src="https://github.com/ioncodes/gg/assets/18533297/afd20259-47d0-4dd6-86b8-abe68bc0a4e6"> | <video src="https://github.com/ioncodes/gg/assets/18533297/9ac07dca-3b54-43b2-a881-163980319dff"> | <video src="https://github.com/ioncodes/gg/assets/18533297/1549887c-45f5-4eec-9201-9e4de168b32e"> | <video src="https://github.com/ioncodes/gg/assets/18533297/3812319b-5b0e-4841-99c7-e3f084279b67"> |
 </details>
+
+I would not have gotten this far without the amazing help from the helpful people over on the [Emulation Development](https://discord.gg/dkmJAes) Discord server:
+* originaldave_
+* ZjoyKiLer
+* Mask of Destiny
+* and everyone else that helped along the way <3
+
+Mandatory quote:  
+> Layle - certified idiot — Yesterday at 9:49 PM  
+> i am  
+> officially an idiot
 
 ## Compatibility List
 | **Title**                                                                     | **CRC32**  | **Status** |
