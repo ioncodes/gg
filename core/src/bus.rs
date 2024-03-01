@@ -265,19 +265,19 @@ impl Bus {
             }
         }) as usize;
 
-        // todo: wrap banks?
-        // Mask of Destiny — Today at 1:34 AM
-        // banks should wrap. If it's a 1 Mbit (128 KB) ROM and the game selects bank 8 that should map in the same chunk of ROM as bank 0
-        match self.rom.memory().buffer.len() {
+        let rom_size = self.rom.memory().buffer.len();
+        let bank = match rom_size {
             0x20000 => bank & 0b0000_0111,
             0x40000 => bank & 0b0000_1111,
             0x80000 => bank & 0b0001_1111,
             0x100000 => bank & 0b0011_1111,
             _ => {
-                error!("Unsupported ROM size: {}", self.rom.memory().buffer.len());
+                error!("Unsupported ROM size: {}", rom_size);
                 bank
             }
-        }
+        };
+
+        bank % (rom_size / 0x4000)
     }
 
     pub(crate) fn powerup_reset_banks(&mut self) -> Result<(), GgError> {

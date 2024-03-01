@@ -3,9 +3,6 @@ name = "core"
 version = "0.1.0"
 edition = "2021"
 
-[profile.release]
-debug = true
-
 [dependencies]
 z80 = { path = "../z80" }
 bitflags = "2.4.1"
