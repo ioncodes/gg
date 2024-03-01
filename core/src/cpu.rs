@@ -1,4 +1,4 @@
-use crate::bus::{self, Bus};
+use crate::bus::{self, BankSelect, Bus};
 use crate::error::GgError;
 use crate::handlers::Handlers;
 use crate::io::Controller as _;
@@ -171,12 +171,19 @@ impl Cpu {
             Err(_) => self.registers.pc as usize, // This can happen if we execute code in RAM (example: end of BIOS)
         };
         trace!(
-            "[{}:{:04x}->{:08x}] {:<20} [{:?}  V: {}  H: {}  VBlank: {}]",
+            "[{}:{:04x}->{:08x}] {:<20} [{:?}]",
             prefix,
             self.registers.pc,
             real_pc_addr,
             format!("{}", instruction.opcode),
-            self,
+            self
+        );
+        trace!(
+            "Bank 1: {:02x}  Bank 2: {:02x}  Bank 3: {:02x}  SRAM: {}  V: {}  H: {}  VBlank: {}",
+            bus.fetch_bank(BankSelect::Bank0),
+            bus.fetch_bank(BankSelect::Bank1),
+            bus.fetch_bank(BankSelect::Bank2),
+            bus.is_sram_bank_active(),
             vdp.v,
             vdp.h,
             vdp.vblank_irq_pending()
