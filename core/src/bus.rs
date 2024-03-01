@@ -1,4 +1,4 @@
-use log::warn;
+use log::{error, warn};
 
 use crate::error::GgError;
 use crate::io::Controller;
@@ -242,7 +242,13 @@ impl Bus {
             };
         }
 
-        (match bank {
+        // Depending on the mapper revision, the number of significant bits in the bank selection register may vary -
+        // for example, some revisions have 3 significant bits (supporting 8 banks, 128KB total size), others have 5 (512KB),
+        // with the largest known supporting 6 bits (1MB). Some software may also set higher-order bits than those that are
+        // relevant to its ROM size. Provided the ROM is a power-of-two size, these issues do not cause problems,
+        // because ROM mirroring will nullify the effect.
+
+        let bank = (match bank {
             BankSelect::Bank0 => self.read(MEMORY_REGISTER_CR_BANK_SELECT_0).unwrap(),
             BankSelect::Bank1 => self.read(MEMORY_REGISTER_CR_BANK_SELECT_1).unwrap(),
             BankSelect::Bank2 => {
@@ -257,7 +263,21 @@ impl Bus {
                     self.read(MEMORY_REGISTER_CR_BANK_SELECT_2).unwrap()
                 }
             }
-        }) as usize
+        }) as usize;
+
+        let rom_size = self.rom.memory().buffer.len();
+        let bank = match rom_size {
+            0x20000 => bank & 0b0000_0111,
+            0x40000 => bank & 0b0000_1111,
+            0x80000 => bank & 0b0001_1111,
+            0x100000 => bank & 0b0011_1111,
+            _ => {
+                error!("Unsupported ROM size: {}", rom_size);
+                bank
+            }
+        };
+
+        bank % (rom_size / 0x4000)
     }
 
     pub(crate) fn powerup_reset_banks(&mut self) -> Result<(), GgError> {

@@ -107,9 +107,9 @@ impl Vdp {
         self.handle_counters();
 
         // Line IRQ
-        if self.v <= 192 {
+        if self.v <= 192 && self.is_hblank() {
             self.scanline_counter = self.scanline_counter.wrapping_sub(1);
-            if self.scanline_counter == 0 {
+            if self.scanline_counter == 0xff {
                 self.scanline_irq_available = true;
                 self.scanline_counter = self.registers.r10;
             }
@@ -238,15 +238,15 @@ impl Vdp {
 
             // Render sprites for 8x8 and 8x16
             if sprite_size == SpriteSize::Size8x8 {
-                let sprite_table_entry = self.get_sprite_generator_entry(n as u16);
-                let pattern_addr = sprite_table_entry * 32;
+                let sprite_table_addr = self.get_sprite_generator_addr();
+                let pattern_addr = sprite_table_addr + (n as u16 * 32);
                 let pattern = self.fetch_pattern(pattern_addr, false, 1);
 
                 write_pattern_to_internal(&pattern, &mut self.last_frame, x, y);
             } else {
-                let sprite_table_entry = self.get_sprite_generator_entry(n as u16 & 0b1111_1110);
-                let sprite1_addr = sprite_table_entry * 32;
-                let sprite2_addr = (sprite_table_entry + 1) * 32;
+                let sprite_table_addr = self.get_sprite_generator_addr();
+                let sprite1_addr = sprite_table_addr + (n as u16 & 0b1111_1110) * 32;
+                let sprite2_addr = sprite_table_addr + (n as u16 | 0b0000_0001) * 32;
 
                 let pattern = self.fetch_pattern(sprite1_addr, false, 1);
                 write_pattern_to_internal(&pattern, &mut self.last_frame, x, y);
@@ -405,7 +405,7 @@ impl Vdp {
         address
     }
 
-    fn get_sprite_generator_entry(&self, idx: u16) -> u16 {
+    fn get_sprite_generator_addr(&self) -> u16 {
         /*
          *  Register $06 - Sprite Pattern Generator Base Address
          *
@@ -420,9 +420,9 @@ impl Vdp {
          */
 
         if self.registers.r6 & 0b0000_0100 > 0 {
-            (1 << 13) + idx
+            1 << 13
         } else {
-            idx
+            0
         }
     }
 
