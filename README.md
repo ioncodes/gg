@@ -8,8 +8,8 @@ used AI to generate the z80 opcode parser / jump table. :)
 <details>
   <summary>Demos</summary>
 
-  | Sonic The Hedgehog 2 Demo                                                                         | Lucky Dime Caper Starring Donald Duck Demo                                                        | Pac-Man Demo                                                                                      | Earthworm Jim Demo |
-  | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ---- |
+  | Sonic The Hedgehog 2 Demo                                                                         | Lucky Dime Caper Starring Donald Duck Demo                                                        | Pac-Man Demo                                                                                      | Earthworm Jim Demo                                                                                |
+  | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
   | <video src="https://github.com/ioncodes/gg/assets/18533297/afd20259-47d0-4dd6-86b8-abe68bc0a4e6"> | <video src="https://github.com/ioncodes/gg/assets/18533297/9ac07dca-3b54-43b2-a881-163980319dff"> | <video src="https://github.com/ioncodes/gg/assets/18533297/1549887c-45f5-4eec-9201-9e4de168b32e"> | <video src="https://github.com/ioncodes/gg/assets/18533297/3812319b-5b0e-4841-99c7-e3f084279b67"> |
 </details>
 
@@ -35,14 +35,14 @@ Mandatory quote:
 | Sonic Labyrinth (World)                                                       | `5550173b` |     👌      |
 | Sonic The Hedgehog - Triple Trouble (USA, Europe, Brazil) (Beta) (1994-08-08) | `80eb7cfb` |     👌      |
 | Lucky Dime Caper Starring Donald Duck, The (USA, Europe)                      | `07a7815a` |     👌      |
+| Sonic The Hedgehog (U) (V1.0) [!]                                             | `3e31cb8c` |     👌      |
 | Earthworm Jim (Europe)                                                        | `691ae339` |     🐥      |
 | Batman Returns (World)                                                        | `7ac4a3ca` |     🐥      |
 | Ecco the Dolphin (Japan)                                                      | `a32eb9d5` |     🐥      |
 | Ecco - The Tides of Time (USA, Europe, Brazil)                                | `e2f3b203` |     🐥      |
 | GG Shinobi II, The ~ Shinobi II - The Silent Fury (World)                     | `6201c694` |     🐥      |
-| Sonic The Hedgehog (U) (V1.0) [!]                                             | `3e31cb8c` |     🐣      |
+| Asterix and the Great Rescue (Europe) (En,Fr,De,Es,It)                        | `328c5cc8` |     🐣      |
 | Tom and Jerry - The Movie (USA, Europe)                                       | `5cd33ff2` |     🐞      |
-| Asterix and the Great Rescue (Europe) (En,Fr,De,Es,It)                        | `328c5cc8` |     🐞      |
 | Shinobi (USA, Europe)                                                         | `30f1c984` |     🐞      |
 
 * 👌: No known issues
