@@ -1,3 +1,4 @@
+use crate::cycles;
 use crate::instruction::{Condition, Immediate, Instruction, Opcode, Operand, Reg16, Reg8, Register};
 
 pub struct Disassembler<'a> {
@@ -17,10 +18,16 @@ impl<'a> Disassembler<'a> {
             Some(self.data[offset + 3]),
         );
         let opcode = self.decode_opcode(offset, sequence);
+        let cycles = cycles::fetch_cycles(sequence);
 
         if opcode != Opcode::Unknown(0) {
             let length = self.calc_length(opcode);
-            Ok(Instruction { opcode, length, offset })
+            Ok(Instruction {
+                opcode,
+                length,
+                offset,
+                cycles,
+            })
         } else {
             Err(format!("Unknown instruction {:x}", self.data[offset]))
         }

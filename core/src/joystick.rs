@@ -1,7 +1,7 @@
 use log::debug;
 
+use crate::bus::io;
 use crate::error::GgError;
-use crate::io;
 
 pub(crate) const JOYSTICK_START_PORT: u8 = 0x00;
 pub(crate) const JOYSTICK_AB_PORT: u8 = 0xdc;

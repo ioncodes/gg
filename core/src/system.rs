@@ -24,8 +24,7 @@ pub struct System {
     pub psg: Psg,
     lua: Rc<LuaEngine>,
     abort_invalid_io_op: bool,
-    clocks: usize,
-    master_clock: usize,
+    master_clock: isize,
 }
 
 impl System {
@@ -45,7 +44,6 @@ impl System {
             psg: Psg::new(),
             lua,
             abort_invalid_io_op: true,
-            clocks: 0,
             master_clock: 0,
         }
     }
@@ -94,14 +92,10 @@ impl System {
             self.lua.execute_hook(current_pc_before_tick, HookType::CpuExec);
         }
 
-        if self.vdp.is_hblank() {
-            self.clocks = 0;
-        }
-
         // Process tick for all components
         let mut repeat_not_fulfilled = false;
 
-        if self.master_clock % 3 == 0 {
+        if self.master_clock == 0 {
             let result = self.cpu.tick(&mut self.bus, &mut self.vdp, &mut self.psg);
             match result {
                 Err(GgError::IoRequestNotFulfilled) => (),
@@ -132,14 +126,18 @@ impl System {
                 }
                 _ => (),
             };
+
+            self.master_clock = self.cpu.current_cycles as isize;
         }
+
         let mut frame_generated = false;
-        if self.master_clock % 2 == 0 {
-            frame_generated = self.vdp.tick();
+        while self.master_clock > 0 {
+            frame_generated |= self.vdp.tick();
+            self.master_clock -= 2;
         }
         self.psg.tick();
 
-        self.master_clock += 1;
+        self.master_clock = 0;
 
         // Let the caller know if we reached VBlank to cause a redraw
         Ok(SystemState {

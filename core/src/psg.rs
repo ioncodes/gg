@@ -1,7 +1,7 @@
 use log::{debug, error};
 
+use crate::bus::io::Controller;
 use crate::error::GgError;
-use crate::io::Controller;
 
 struct Latch {
     data: u16,

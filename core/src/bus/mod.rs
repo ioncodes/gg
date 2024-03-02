@@ -1,11 +1,13 @@
+pub(crate) mod io;
+
 use log::{error, warn};
 
 use crate::error::GgError;
-use crate::io::Controller;
 use crate::joystick::{self, Joystick, JoystickPort};
 use crate::mapper::Mapper;
 use crate::memory::Memory;
 use crate::sdsc::{self, DebugConsole};
+use io::Controller;
 
 pub(crate) const MEMORY_CONTROL_PORT: u8 = 0x3e;
 pub(crate) const MEMORY_REGISTER_RAM_MAPPING: u16 = 0xfffc;

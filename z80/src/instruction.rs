@@ -162,6 +162,7 @@ pub struct Instruction {
     pub opcode: Opcode,
     pub length: usize,
     pub offset: usize,
+    pub cycles: usize,
 }
 
 impl fmt::Display for Instruction {

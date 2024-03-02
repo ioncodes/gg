@@ -1,11 +1,13 @@
+mod handlers;
+
+use crate::bus::io::Controller as _;
 use crate::bus::{self, BankSelect, Bus};
 use crate::error::GgError;
-use crate::handlers::Handlers;
-use crate::io::Controller as _;
 use crate::psg::Psg;
 use crate::vdp::{self, Vdp};
 use crate::{joystick, sdsc};
 use bitflags::bitflags;
+use handlers::Handlers;
 use log::{debug, error, trace};
 use std::fmt;
 use z80::disassembler::Disassembler;
@@ -89,6 +91,7 @@ pub struct Cpu {
     // Directly after an EI or DI instruction, interrupts aren’t accepted. They’re accepted again after
     // the instruction after the EI (RET in the following example).
     pub ignore_next_irq: bool,
+    pub current_cycles: usize,
 }
 
 impl Cpu {
@@ -122,6 +125,7 @@ impl Cpu {
             },
             interrupt_mode: InterruptMode::IM0,
             ignore_next_irq: false,
+            current_cycles: 0,
         }
     }
 
@@ -158,6 +162,8 @@ impl Cpu {
                 };
             }
         }
+
+        self.current_cycles = instruction.cycles;
 
         // Directly after an EI or DI instruction, interrupts aren’t accepted. They’re accepted again after
         // the instruction after the EI (RET in the following example).

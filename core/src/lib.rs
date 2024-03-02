@@ -5,8 +5,6 @@
 mod tests;
 
 mod error;
-mod handlers;
-mod io;
 mod lua_engine;
 mod mapper;
 mod memory;

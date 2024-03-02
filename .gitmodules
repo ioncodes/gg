@@ -1,3 +1,6 @@
 [submodule "external/jsmoo"]
 	path = external/jsmoo
 	url = https://github.com/raddad772/jsmoo
+[submodule "external/libzel"]
+	path = external/libzel
+	url = https://github.com/ioncodes/libzel

@@ -4,8 +4,8 @@ mod sprite;
 use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 
+use crate::bus::io::Controller;
 use crate::error::GgError;
-use crate::io::Controller;
 use crate::lua_engine::{HookType, LuaEngine};
 use crate::memory::Memory;
 use crate::vdp::pattern::Pattern;
@@ -120,7 +120,7 @@ impl Vdp {
             self.status |= 0b1000_0000;
         }
 
-        self.v_2nd_loop && self.v > INTERNAL_HEIGHT as u8 && self.vram_dirty
+        self.is_vblank() && self.is_hblank()
     }
 
     pub fn vblank_irq_pending(&self) -> bool {
