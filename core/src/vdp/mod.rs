@@ -9,7 +9,7 @@ use crate::error::GgError;
 use crate::lua_engine::{HookType, LuaEngine};
 use crate::memory::Memory;
 use crate::vdp::pattern::Pattern;
-use log::{debug, error, trace};
+use log::{debug, error, trace, warn};
 
 use self::sprite::SpriteSize;
 
@@ -57,14 +57,11 @@ pub enum Mode {
 }
 
 pub struct Vdp {
-    pub v: u8,
-    pub h: u8,
     pub registers: Registers,
     pub vram: Memory<u16>,
     pub cram: Memory<u16>,
+    pub scanline: u16,
     pub(crate) data_buffer: u8,
-    v_2nd_loop: bool,
-    h_2nd_loop: bool,
     control_data: VecDeque<u8>,
     cram_latch: Option<u8>,
     io_mode: IoMode,
@@ -81,10 +78,6 @@ pub struct Vdp {
 impl Vdp {
     pub(crate) fn new(mode: Mode, lua: Rc<LuaEngine>) -> Vdp {
         Vdp {
-            v: 0,
-            h: 0,
-            v_2nd_loop: false,
-            h_2nd_loop: false,
             control_data: VecDeque::new(),
             registers: Registers::default(),
             vram: Memory::new(16 * 1024, 0x0000),
@@ -98,16 +91,20 @@ impl Vdp {
             lua,
             last_frame: vec![(0, 0, 0, 0); INTERNAL_WIDTH * INTERNAL_HEIGHT],
             priority_list: vec![],
+            scanline: 0,
             scanline_counter: 0,
             scanline_irq_available: false,
         }
     }
 
     pub(crate) fn tick(&mut self) -> bool {
-        self.handle_counters();
+        self.scanline += 1;
+        if self.scanline > INTERNAL_HEIGHT as u16 {
+            self.scanline = 0;
+        }
 
         // Line IRQ
-        if self.v <= 192 && self.is_hblank() {
+        if self.scanline <= 192 {
             self.scanline_counter = self.scanline_counter.wrapping_sub(1);
             if self.scanline_counter == 0xff {
                 self.scanline_irq_available = true;
@@ -116,11 +113,11 @@ impl Vdp {
         }
 
         // Frame IRQ (VBlank)
-        if self.is_vblank() && self.is_hblank() {
+        if self.is_vblank() {
             self.status |= 0b1000_0000;
         }
 
-        self.is_vblank() && self.is_hblank()
+        self.is_vblank()
     }
 
     pub fn vblank_irq_pending(&self) -> bool {
@@ -140,11 +137,7 @@ impl Vdp {
     }
 
     pub(crate) fn is_vblank(&self) -> bool {
-        self.v == 0
-    }
-
-    pub(crate) fn is_hblank(&self) -> bool {
-        self.h == 0
+        self.scanline == 0
     }
 
     pub fn render(&mut self) -> (Color, &Vec<Color>) {
@@ -355,40 +348,6 @@ impl Vdp {
         }
 
         pattern
-    }
-
-    fn handle_counters(&mut self) {
-        /*
-        The V counter counts up from 00h to EAh, then it jumps back to E5h and
-        continues counting up to FFh. This allows it to cover the entire 262 line
-        display.
-
-        The H counter counts up from 00h to E9h, then it jumps back to 93h and
-        continues counting up to FFh. This allows it to cover an entire 342 pixel
-        line.
-        */
-
-        // todo: Generate vblank interrupt
-
-        if self.h == 0xe9 && !self.h_2nd_loop {
-            self.h = 0x93;
-            self.h_2nd_loop = true;
-        } else if self.h == 0xff && self.h_2nd_loop {
-            self.h = 0x00;
-            self.h_2nd_loop = false;
-
-            if self.v == 0xea && !self.v_2nd_loop {
-                self.v = 0xe5;
-                self.v_2nd_loop = true;
-            } else if self.v == 0xff && self.v_2nd_loop {
-                self.v = 0x00;
-                self.v_2nd_loop = false;
-            } else {
-                self.v += 1;
-            }
-        } else {
-            self.h += 1;
-        }
     }
 
     fn get_name_table_addr(&self, x: u8, y: u8) -> u16 {
@@ -632,9 +591,14 @@ impl Controller for Vdp {
         match port {
             0x40..=0x7f => {
                 if port % 2 == 0 {
-                    Ok(self.v)
+                    Ok(if self.scanline <= 0xea {
+                        self.scanline as u8
+                    } else {
+                        (self.scanline - 0xea + 0xe5) as u8
+                    })
                 } else {
-                    Ok(self.h)
+                    warn!("Reading H counter!");
+                    Ok(0)
                 }
             }
             IO_DATA_CONTROL_START..=IO_DATA_CONTROL_END => {
@@ -696,7 +660,7 @@ impl Controller for Vdp {
 
 impl std::fmt::Display for Vdp {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "V: {:02x}  H: {:02x}\n", self.v, self.h)?;
+        write!(f, "Scanline: {:04x}\n", self.scanline)?;
         write!(f, "r0: {:02x}  r1: {:02x}  r2: {:02x}  r3: {:02x}  r4: {:02x}  r5: {:02x}  r6: {:02x}  r7: {:02x}  r8: {:02x}  r9: {:02x}  r10: {:02x}  address: {:04x}\n",
             self.registers.r0,
             self.registers.r1,

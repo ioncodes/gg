@@ -24,7 +24,7 @@ pub struct System {
     pub psg: Psg,
     lua: Rc<LuaEngine>,
     abort_invalid_io_op: bool,
-    master_clock: isize,
+    last_cycles: usize,
 }
 
 impl System {
@@ -44,7 +44,7 @@ impl System {
             psg: Psg::new(),
             lua,
             abort_invalid_io_op: true,
-            master_clock: 0,
+            last_cycles: 0,
         }
     }
 
@@ -95,49 +95,47 @@ impl System {
         // Process tick for all components
         let mut repeat_not_fulfilled = false;
 
-        if self.master_clock == 0 {
-            let result = self.cpu.tick(&mut self.bus, &mut self.vdp, &mut self.psg);
-            match result {
-                Err(GgError::IoRequestNotFulfilled) => (),
-                Err(GgError::JumpNotTaken) => (),
-                Err(GgError::CpuHalted) => (),
-                Err(GgError::RepeatNotFulfilled) => repeat_not_fulfilled = true,
-                Err(GgError::IoControllerInvalidPort) | Err(GgError::VdpInvalidIoMode) => {
-                    if self.abort_invalid_io_op {
-                        error!("Identified I/O error at address: {:04x}", self.cpu.registers.pc);
-                        if self.cpu.registers.pc < 0xc000 {
-                            error!(
-                                "Real address in ROM: {:08x}",
-                                self.bus.translate_address_to_real(self.cpu.registers.pc).unwrap()
-                            );
-                        }
-                        return Err(result.err().unwrap());
-                    }
-                }
-                Err(e) => {
-                    error!("Identified error at address: {:04x}", self.cpu.registers.pc);
+        let result = self.cpu.tick(&mut self.bus, &mut self.vdp, &mut self.psg);
+        match result {
+            Err(GgError::IoRequestNotFulfilled) => (),
+            Err(GgError::JumpNotTaken) => (),
+            Err(GgError::CpuHalted) => (),
+            Err(GgError::RepeatNotFulfilled) => repeat_not_fulfilled = true,
+            Err(GgError::IoControllerInvalidPort) | Err(GgError::VdpInvalidIoMode) => {
+                if self.abort_invalid_io_op {
+                    error!("Identified I/O error at address: {:04x}", self.cpu.registers.pc);
                     if self.cpu.registers.pc < 0xc000 {
                         error!(
                             "Real address in ROM: {:08x}",
                             self.bus.translate_address_to_real(self.cpu.registers.pc).unwrap()
                         );
                     }
-                    return Err(e);
+                    return Err(result.err().unwrap());
                 }
-                _ => (),
-            };
-
-            self.master_clock = self.cpu.current_cycles as isize;
-        }
+            }
+            Err(e) => {
+                error!("Identified error at address: {:04x}", self.cpu.registers.pc);
+                if self.cpu.registers.pc < 0xc000 {
+                    error!(
+                        "Real address in ROM: {:08x}",
+                        self.bus.translate_address_to_real(self.cpu.registers.pc).unwrap()
+                    );
+                }
+                return Err(e);
+            }
+            _ => (),
+        };
 
         let mut frame_generated = false;
-        while self.master_clock > 0 {
-            frame_generated |= self.vdp.tick();
-            self.master_clock -= 2;
-        }
-        self.psg.tick();
 
-        self.master_clock = 0;
+        // https://www.smspower.org/forums/13530-VDPClockSpeed
+        let delta = self.cpu.cycles - self.last_cycles;
+        if delta > 262 {
+            frame_generated = self.vdp.tick();
+            self.last_cycles = self.cpu.cycles;
+        }
+
+        self.psg.tick();
 
         // Let the caller know if we reached VBlank to cause a redraw
         Ok(SystemState {

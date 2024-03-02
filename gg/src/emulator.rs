@@ -55,7 +55,7 @@ impl eframe::App for Emulator {
         } else if !self.paused && !self.stepping {
             if self.frame_time.elapsed() >= Duration::from_millis(16) {
                 self.frame_time = Instant::now();
-                if self.run(1000000) {
+                if self.run(10000) {
                     self.render();
                 }
             }
@@ -270,10 +270,7 @@ impl Emulator {
             ui.heading("VDP Registers");
 
             ui.vertical(|ui| {
-                ui.horizontal(|ui| {
-                    ui.label(format!("V: {:02x}", self.system.vdp.v));
-                    ui.label(format!("H: {:02x}", self.system.vdp.h));
-                });
+                ui.label(format!("Scanline: {:04x}", self.system.vdp.scanline));
                 ui.label(format!("R00: {:08b}", self.system.vdp.registers.r0));
                 ui.label(format!("R01: {:08b}", self.system.vdp.registers.r1));
                 ui.label(format!("R02: {:08b}", self.system.vdp.registers.r2));

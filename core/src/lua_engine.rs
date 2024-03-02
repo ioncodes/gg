@@ -158,8 +158,7 @@ impl LuaEngine {
                 let vdp_table = lua.create_table().unwrap();
                 vdp_table.set("vram", vdp.vram.buffer.clone()).unwrap();
                 vdp_table.set("cram", vdp.cram.buffer.clone()).unwrap();
-                vdp_table.set("h_counter", vdp.h).unwrap();
-                vdp_table.set("v_counter", vdp.v).unwrap();
+                vdp_table.set("scanline", vdp.scanline).unwrap();
                 globals.set("vdp", vdp_table).unwrap();
             }
         }

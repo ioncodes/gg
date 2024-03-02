@@ -91,7 +91,7 @@ pub struct Cpu {
     // Directly after an EI or DI instruction, interrupts aren’t accepted. They’re accepted again after
     // the instruction after the EI (RET in the following example).
     pub ignore_next_irq: bool,
-    pub current_cycles: usize,
+    pub cycles: usize,
 }
 
 impl Cpu {
@@ -125,7 +125,7 @@ impl Cpu {
             },
             interrupt_mode: InterruptMode::IM0,
             ignore_next_irq: false,
-            current_cycles: 0,
+            cycles: 0,
         }
     }
 
@@ -163,8 +163,6 @@ impl Cpu {
             }
         }
 
-        self.current_cycles = instruction.cycles;
-
         // Directly after an EI or DI instruction, interrupts aren’t accepted. They’re accepted again after
         // the instruction after the EI (RET in the following example).
         if self.ignore_next_irq {
@@ -185,13 +183,12 @@ impl Cpu {
             self
         );
         trace!(
-            "Bank 1: {:02x}  Bank 2: {:02x}  Bank 3: {:02x}  SRAM: {}  V: {}  H: {}  VBlank: {}",
+            "Bank 1: {:02x}  Bank 2: {:02x}  Bank 3: {:02x}  SRAM: {}  Scanline: {}  VBlank: {}",
             bus.fetch_bank(BankSelect::Bank0),
             bus.fetch_bank(BankSelect::Bank1),
             bus.fetch_bank(BankSelect::Bank2),
             bus.is_sram_bank_active(),
-            vdp.v,
-            vdp.h,
+            vdp.scanline,
             vdp.vblank_irq_pending()
         );
 
@@ -247,7 +244,7 @@ impl Cpu {
             Opcode::ResetBitStore(_, _, _, _) => handlers.reset_bit_store(&instruction),
             Opcode::Complement(_) => handlers.complement(&instruction),
             Opcode::SetBit(_, _, _) => handlers.set_bit(&instruction),
-            Opcode::Halt(_) => return Err(GgError::CpuHalted),
+            Opcode::Halt(_) => Err(GgError::CpuHalted),
             Opcode::Exchange(_, _, _) => handlers.exchange(&instruction),
             Opcode::ExchangeAll(_) => handlers.exchange_all(&instruction),
             Opcode::TestBit(_, _, _) => handlers.test_bit(&instruction),
@@ -294,6 +291,7 @@ impl Cpu {
             Opcode::ReturnFromIrq(_) => result.is_ok(),
             Opcode::ReturnFromNmi(_) => result.is_ok(), // todo: sure?
             Opcode::Restart(_, _) => result.is_ok(),
+            Opcode::Halt(_) => result.is_err(),
             // Do NOT increase PC if the repeat instruction's condition is not met
             Opcode::LoadIncrementRepeat(_) => result.is_err(),
             Opcode::LoadDecrementRepeat(_) => result.is_err(),
@@ -310,6 +308,8 @@ impl Cpu {
             self.increment_r();
             self.registers.pc = self.registers.pc.wrapping_add(instruction.length as u16);
         }
+
+        self.cycles += instruction.cycles;
 
         if result.is_ok() {
             Ok(instruction)
